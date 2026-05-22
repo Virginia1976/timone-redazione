@@ -27,6 +27,9 @@ app.permanent_session_lifetime = __import__('datetime').timedelta(days=365)
 PASSWORD_REDAZIONE = os.environ.get('PASSWORD_REDAZIONE', '')
 PASSWORD_EDITOR    = os.environ.get('PASSWORD_EDITOR', '')
 
+_attivi_raw = os.environ.get('TIMONI_ATTIVI', '')
+TIMONI_ATTIVI = [t.strip() for t in _attivi_raw.split(',') if t.strip()] if _attivi_raw else []
+
 DATA_DIR        = pathlib.Path(__file__).parent / 'data'
 DATA_DIR.mkdir(exist_ok=True)
 EDITORIALE_BASE = os.environ.get('EDITORIALE_BASE', '/Volumes/EDITORIALE')
@@ -152,9 +155,12 @@ def logout():
     return redirect(url_for('login'))
 
 
-@app.route('/api/ruolo')
-def get_ruolo():
-    return jsonify({'ruolo': session.get('ruolo', '')})
+@app.route('/api/config')
+def get_config():
+    return jsonify({
+        'ruolo': session.get('ruolo', ''),
+        'timoni_attivi': TIMONI_ATTIVI,
+    })
 
 
 def _safe_path(cartella: str, codice: str) -> str | None:

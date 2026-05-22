@@ -1821,6 +1821,7 @@ function openTimoneHome(timone) {
   closeAllDropdowns();
   const meta = TIMONI_META[timone];
   if (!meta) return;
+  if (!isTimoneAttivo(timone)) { showStatus('Non disponibile in questa versione', 'warn'); return; }
 
   if (isDirty) { salvaTimone(true); }
 
@@ -1901,6 +1902,7 @@ function selectTimoneDay(timone, day) {
   closeAllDropdowns();
   const meta = TIMONI_META[timone];
   if (!meta) return;
+  if (!isTimoneAttivo(timone)) { showStatus('Non disponibile in questa versione', 'warn'); return; }
 
   if (isDirty) { salvaTimone(true); }  // auto-save prima di cambiare
 
@@ -3121,18 +3123,36 @@ function getRigheVisibili() {
   });
 }
 
-// ── Ruolo utente ─────────────────────────────────────────────────────────────
+// ── Configurazione utente ─────────────────────────────────────────────────────
 let _ruolo = '';
+let _timoniAttivi = [];
 
 async function initRuolo() {
   try {
-    const r = await fetch('/api/ruolo');
+    const r = await fetch('/api/config');
     const d = await r.json();
     _ruolo = d.ruolo || '';
+    _timoniAttivi = d.timoni_attivi || [];
+    if (_timoniAttivi.length) applyTimoniAttivi();
   } catch {}
 }
 
 function canOpenTif() { return _ruolo === 'editor'; }
+
+function isTimoneAttivo(id) {
+  return _timoniAttivi.length === 0 || _timoniAttivi.includes(id);
+}
+
+function applyTimoniAttivi() {
+  document.querySelectorAll('[data-timone]').forEach(el => {
+    const id = el.dataset.timone;
+    if (!isTimoneAttivo(id)) {
+      el.style.opacity = '0.4';
+      el.style.cursor  = 'not-allowed';
+      el.title = 'Non disponibile in questa versione';
+    }
+  });
+}
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 aggiornaConteggiWelcome();

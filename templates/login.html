@@ -65,8 +65,12 @@ button[type="submit"]:hover { background: #e85d28; }
     </div>
   </div>
   <form method="post" action="/login">
+    <label for="username">Username</label>
+    <input type="text" id="username" name="username" autofocus required placeholder="Username"
+           style="width:100%;padding:11px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:15px;color:#1e293b;outline:none;margin-bottom:14px;transition:border-color .15s;"
+           onfocus="this.style.borderColor='#FF6B35'" onblur="this.style.borderColor='#e2e8f0'">
     <label for="password">Password</label>
-    <input type="password" id="password" name="password" autofocus required placeholder="Inserisci la password">
+    <input type="password" id="password" name="password" required placeholder="Password">
     {% if error %}<div class="error">{{ error }}</div>{% endif %}
     <button type="submit">Accedi</button>
   </form>

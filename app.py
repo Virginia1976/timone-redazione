@@ -24,8 +24,10 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', '')
 app.permanent_session_lifetime = __import__('datetime').timedelta(days=365)
 
-PASSWORD_REDAZIONE = os.environ.get('PASSWORD_REDAZIONE', '')
-PASSWORD_EDITOR    = os.environ.get('PASSWORD_EDITOR', '')
+EDITOR_USERNAME    = os.environ.get('EDITOR_USERNAME', '')
+EDITOR_PASSWORD    = os.environ.get('EDITOR_PASSWORD', '')
+REDAZIONE_USERNAME = os.environ.get('REDAZIONE_USERNAME', '')
+REDAZIONE_PASSWORD = os.environ.get('REDAZIONE_PASSWORD', '')
 
 _attivi_raw = os.environ.get('TIMONI_ATTIVI', '')
 TIMONI_ATTIVI = [t.strip() for t in _attivi_raw.split(',') if t.strip()] if _attivi_raw else []
@@ -135,17 +137,18 @@ def require_login():
 def login():
     error = None
     if request.method == 'POST':
+        u = request.form.get('username', '')
         pw = request.form.get('password', '')
-        if pw and pw == PASSWORD_EDITOR:
+        if u and pw and u == EDITOR_USERNAME and pw == EDITOR_PASSWORD:
             session.permanent = True
             session['ruolo'] = 'editor'
             return redirect(url_for('index'))
-        elif pw and pw == PASSWORD_REDAZIONE:
+        elif u and pw and u == REDAZIONE_USERNAME and pw == REDAZIONE_PASSWORD:
             session.permanent = True
             session['ruolo'] = 'redazione'
             return redirect(url_for('index'))
         else:
-            error = 'Password errata'
+            error = 'Credenziali non valide'
     return render_template('login.html', error=error)
 
 

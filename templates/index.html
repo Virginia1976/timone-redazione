@@ -2082,7 +2082,7 @@ function renderTable() {
     const hiddenCount = currentRows.filter(r => !r._separator && r.nascosta).length;
     if (hiddenCount > 0) secActions.appendChild(_makeScopriTuttoBtn());
     const hasCodicGrouped = currentRows.some(r => !r._separator && !r.nascosta && r.codice && r.codice.trim());
-    if (hasCodicGrouped) secActions.appendChild(_makeApriTutteBtn());
+    if (hasCodicGrouped) { const b = _makeApriTutteBtn(); if (b) secActions.appendChild(b); }
     buildChannelGroupView(channelsCont);
     return;
   }
@@ -2097,7 +2097,7 @@ function renderTable() {
   const hiddenCountFlat = currentRows.filter(r => !r._separator && r.nascosta).length;
   if (hiddenCountFlat > 0) secActionsFlat.appendChild(_makeScopriTuttoBtn());
   const hasCodicFlat = currentRows.some(r => !r._separator && !r.nascosta && r.codice && r.codice.trim());
-  if (hasCodicFlat) secActionsFlat.appendChild(_makeApriTutteBtn());
+  if (hasCodicFlat) { const b = _makeApriTutteBtn(); if (b) secActionsFlat.appendChild(b); }
 
   // Intestazione
   const thead = document.getElementById('theadRow');
@@ -2157,6 +2157,7 @@ function _makeScopriTuttoBtn() {
 }
 
 function _makeApriTutteBtn() {
+  if (!canOpenTif()) return null;
   const btn = document.createElement('button');
   btn.className = 'btn-expand-all';
   btn.textContent = '🖼 Apri tutte le canvas';
@@ -2208,8 +2209,12 @@ function buildRow(row, i, tbody, colsOverride) {
       img.className = 'codice-thumb'; img.alt = ''; img.src = THUMB_PH;
       img.dataset.codice = row.codice || '';
       img.onerror = () => { img.src = THUMB_PH; };
-      img.title = 'Apri canvas';
-      img.addEventListener('click', (e) => { e.stopPropagation(); if (row.codice) openTif(row.codice); });
+      img.title = canOpenTif() ? 'Apri canvas' : 'Anteprima';
+      if (canOpenTif()) {
+        img.addEventListener('click', (e) => { e.stopPropagation(); if (row.codice) openTif(row.codice); });
+      } else {
+        img.style.cursor = 'default';
+      }
 
       const cod = document.createElement('div');
       cod.contentEditable = 'true'; cod.className = 'codice-editable';
@@ -3116,8 +3121,22 @@ function getRigheVisibili() {
   });
 }
 
+// ── Ruolo utente ─────────────────────────────────────────────────────────────
+let _ruolo = '';
+
+async function initRuolo() {
+  try {
+    const r = await fetch('/api/ruolo');
+    const d = await r.json();
+    _ruolo = d.ruolo || '';
+  } catch {}
+}
+
+function canOpenTif() { return _ruolo === 'editor'; }
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 aggiornaConteggiWelcome();
+initRuolo();
 </script>
 </body>
 </html>

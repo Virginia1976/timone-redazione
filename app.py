@@ -15,12 +15,18 @@ import subprocess
 
 import requests
 from dotenv import load_dotenv
-from flask import Flask, Response, render_template, request, jsonify
+from flask import Flask, Response, render_template, request, jsonify, session, redirect, url_for
 from PIL import Image
 
 load_dotenv(pathlib.Path(__file__).parent / '.env')
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', '')
+app.permanent_session_lifetime = __import__('datetime').timedelta(days=365)
+
+PASSWORD_REDAZIONE = os.environ.get('PASSWORD_REDAZIONE', '')
+PASSWORD_EDITOR    = os.environ.get('PASSWORD_EDITOR', '')
+
 DATA_DIR        = pathlib.Path(__file__).parent / 'data'
 DATA_DIR.mkdir(exist_ok=True)
 EDITORIALE_BASE = os.environ.get('EDITORIALE_BASE', '/Volumes/EDITORIALE')
@@ -110,6 +116,45 @@ def prjdia_login() -> bool:
         print(f'[PRJDIA] Login fallito: {e}')
         _prjdia_ok = False
     return _prjdia_ok
+
+
+@app.before_request
+def require_login():
+    if request.endpoint in ('login', 'logout', 'static'):
+        return
+    if not session.get('ruolo'):
+        if request.is_json or not request.accept_mimetypes.accept_html:
+            return jsonify({'error': 'non autenticato'}), 401
+        return redirect(url_for('login'))
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = None
+    if request.method == 'POST':
+        pw = request.form.get('password', '')
+        if pw and pw == PASSWORD_EDITOR:
+            session.permanent = True
+            session['ruolo'] = 'editor'
+            return redirect(url_for('index'))
+        elif pw and pw == PASSWORD_REDAZIONE:
+            session.permanent = True
+            session['ruolo'] = 'redazione'
+            return redirect(url_for('index'))
+        else:
+            error = 'Password errata'
+    return render_template('login.html', error=error)
+
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+
+@app.route('/api/ruolo')
+def get_ruolo():
+    return jsonify({'ruolo': session.get('ruolo', '')})
 
 
 def _safe_path(cartella: str, codice: str) -> str | None:
@@ -296,6 +341,8 @@ def tif_thumb():
 
 @app.route('/open_tif', methods=['POST'])
 def open_tif():
+    if session.get('ruolo') != 'editor':
+        return jsonify({'ok': False, 'error': 'non autorizzato'}), 403
     data     = request.json or {}
     cartella = data.get('cartella', '').strip()
     codice   = data.get('codice', '').strip()

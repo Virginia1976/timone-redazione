@@ -12,6 +12,7 @@ import os
 import pathlib
 import re
 import subprocess
+from datetime import timedelta
 
 import requests
 from dotenv import load_dotenv
@@ -21,8 +22,8 @@ from PIL import Image
 load_dotenv(pathlib.Path(__file__).parent / '.env')
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', '')
-app.permanent_session_lifetime = __import__('datetime').timedelta(days=365)
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-local-secret-key')
+app.permanent_session_lifetime = timedelta(days=365)
 
 EDITOR_USERNAME    = os.environ.get('EDITOR_USERNAME', '')
 EDITOR_PASSWORD    = os.environ.get('EDITOR_PASSWORD', '')

@@ -2211,8 +2211,8 @@ function buildRow(row, i, tbody, colsOverride) {
       img.className = 'codice-thumb'; img.alt = ''; img.src = THUMB_PH;
       img.dataset.codice = row.codice || '';
       img.onerror = () => { img.src = THUMB_PH; };
-      img.title = canOpenTif() ? 'Apri canvas' : 'Anteprima';
       if (canOpenTif()) {
+        img.title = 'Apri canvas';
         img.addEventListener('click', (e) => { e.stopPropagation(); if (row.codice) openTif(row.codice); });
       } else {
         img.style.cursor = 'default';
@@ -2415,7 +2415,6 @@ function buildRow(row, i, tbody, colsOverride) {
   tr.appendChild(tdA);
   tbody.appendChild(tr);
 
-  // Carica thumbnail se c'è già cartella+codice
   if (row.codice) updateSingleThumb(tr.querySelector('img.codice-thumb'), row.codice);
 }
 
@@ -2624,24 +2623,24 @@ function syncGoogleLink(tr, row, btnOverride) {
   else      { btn.removeAttribute('href'); btn.classList.add('disabled'); }
 }
 
-// ── Apri .tif ────────────────────────────────────────────────────────────────
+// ── Apri .tif (solo Mac locale) ───────────────────────────────────────────────
 async function openTif(codice, silent = false) {
   const cartella = getCartella();
-  if (!cartella) { if (!silent) showStatus('Seleziona prima la cartella .tif', 'warn'); return false; }
+  if (!cartella) { if (!silent) showStatus('Cartella non configurata', 'warn'); return false; }
   if (!codice)   { if (!silent) showStatus('Codice non inserito', 'warn'); return false; }
   try {
     const res = await fetch('/open_tif', {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ codice, cartella })
     });
-    if (res.ok) {
-      const ct = res.headers.get('Content-Type') || '';
-      if (ct.includes('image/tiff')) {
-        const blob = await res.blob();
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
-        a.href = url; a.download = `${codice}.tif`; a.click();
-        URL.revokeObjectURL(url);
+    const data = await res.json();
+    if (data.ok) {
+      if (data.method === 'smb' && data.url) {
+        const a = document.createElement('a');
+        a.href = data.url;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
       }
       if (!silent) showStatus(`Aperto: ${codice}.tif`, 'success');
       return true;
@@ -2653,8 +2652,6 @@ async function openTif(codice, silent = false) {
 }
 
 async function apriTutteLeCanvas() {
-  const cartella = getCartella();
-  if (!cartella) { showStatus('Seleziona prima la cartella .tif', 'warn'); return; }
   const righe = getRigheVisibili().filter(r => r.codice && r.codice.trim());
   if (!righe.length) { showStatus('Nessuna canvas visibile da aprire', 'warn'); return; }
   showStatus(`Apertura ${righe.length} canvas…`, 'info');
@@ -2743,7 +2740,6 @@ async function checkMtimes(cartella) {
       const init = _initialMtimes[codice];
       if (init === undefined) { _initialMtimes[codice] = mtime; return; }
       if (mtime !== init) {
-        // Il file è stato modificato → riga diventa grigia
         const row = currentRows.find(r => r.codice === codice);
         const tr  = document.querySelector(`tr[data-id="${row?.id}"]`);
         if (row && tr && (row.colore === '' || row.colore === 'giallo' || !row.colore)) {
@@ -2751,7 +2747,6 @@ async function checkMtimes(cartella) {
           markDirty();
         }
         _initialMtimes[codice] = mtime;
-        // Aggiorna la thumbnail
         const img = tr?.querySelector('img.codice-thumb');
         updateSingleThumb(img, codice);
       }

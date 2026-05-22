@@ -12,7 +12,6 @@ import os
 import pathlib
 import re
 import subprocess
-import sys
 from datetime import timedelta
 
 import requests
@@ -24,7 +23,7 @@ load_dotenv(pathlib.Path(__file__).parent / '.env')
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-local-secret-key')
-app.permanent_session_lifetime = timedelta(days=365)
+app.permanent_session_lifetime = timedelta(days=1)
 
 EDITOR_USERNAME    = os.environ.get('EDITOR_USERNAME', '')
 EDITOR_PASSWORD    = os.environ.get('EDITOR_PASSWORD', '')
@@ -37,6 +36,7 @@ TIMONI_ATTIVI = [t.strip() for t in _attivi_raw.split(',') if t.strip()] if _att
 DATA_DIR        = pathlib.Path(__file__).parent / 'data'
 DATA_DIR.mkdir(exist_ok=True)
 EDITORIALE_BASE = os.environ.get('EDITORIALE_BASE', '/Volumes/EDITORIALE')
+EDITORIALE_SMB  = os.environ.get('EDITORIALE_SMB', '')
 
 VALID_KEY = re.compile(r'^[a-z0-9_]{1,60}$')
 
@@ -163,7 +163,7 @@ def logout():
 @app.route('/api/config')
 def get_config():
     return jsonify({
-        'ruolo': session.get('ruolo', ''),
+        'ruolo':         session.get('ruolo', ''),
         'timoni_attivi': TIMONI_ATTIVI,
     })
 
@@ -308,25 +308,6 @@ def autocomplete_personaggi():
         return jsonify([])
 
 
-@app.route('/cartelle')
-def cartelle():
-    timone_id = request.args.get('timone', '').strip()
-    meta = TIMONI_META.get(timone_id)
-    if not meta:
-        return jsonify({'cartelle': []})
-    base = os.path.join(EDITORIALE_BASE, meta['percorso'])
-    if not os.path.isdir(base):
-        return jsonify({'cartelle': []})
-    items = []
-    try:
-        for entry in sorted(os.scandir(base), key=lambda e: e.name, reverse=True):
-            if entry.is_dir() and not entry.name.startswith('.'):
-                items.append({'nome': entry.name, 'percorso': entry.path})
-    except PermissionError:
-        pass
-    return jsonify({'cartelle': items})
-
-
 @app.route('/tif_thumb')
 def tif_thumb():
     cartella = request.args.get('cartella', '').strip()
@@ -349,7 +330,6 @@ def tif_thumb():
         return '', 500
 
 
-
 @app.route('/open_tif', methods=['POST'])
 def open_tif():
     if session.get('ruolo') != 'editor':
@@ -360,20 +340,18 @@ def open_tif():
     path = _safe_path(cartella, codice)
     if not path:
         return jsonify({'ok': False, 'error': 'parametri non validi'}), 400
+
+    if EDITORIALE_SMB:
+        idx = cartella.upper().find('/EDITORIALE/')
+        rel = cartella[idx + len('/EDITORIALE'):] if idx >= 0 else '/' + os.path.basename(cartella)
+        smb_url = EDITORIALE_SMB.rstrip('/') + rel.rstrip('/') + '/' + codice + '.tif'
+        return jsonify({'ok': True, 'method': 'smb', 'url': smb_url})
+
     if not os.path.isfile(path):
         return jsonify({'ok': False, 'path': path})
     try:
-        if sys.platform == 'darwin':
-            subprocess.Popen(['open', path])
-            return jsonify({'ok': True, 'method': 'local'})
-        return Response(
-            open(path, 'rb').read(),
-            mimetype='image/tiff',
-            headers={
-                'Content-Disposition': f'attachment; filename="{codice}.tif"',
-                'Cache-Control': 'no-cache',
-            }
-        )
+        subprocess.Popen(['open', path])
+        return jsonify({'ok': True, 'method': 'local'})
     except Exception as e:
         print(f'[OPEN_TIF] {e}')
         return jsonify({'ok': False, 'error': str(e)}), 500

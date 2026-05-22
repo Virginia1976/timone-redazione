@@ -1,0 +1,13 @@
+# Ambiente
+.env
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Dati redazione (restano solo sul server)
+data/
+
+# macOS
+.DS_Store

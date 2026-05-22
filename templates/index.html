@@ -1,0 +1,3123 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timone Redazione</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+/* ── Variabili globali ─────────────────────────────────────────────────────── */
+:root {
+  --accent:        #FF6B35;
+  --accent-light:  rgba(255,107,53,.12);
+  --accent-dark:   #e85d28;
+  --bg:            #f5f6fa;
+  --card:          #ffffff;
+  --border:        #e2e8f0;
+  --muted:         #94a3b8;
+  --text:          #1e293b;
+  --text-soft:     #475569;
+  --nav-h:         74px;
+  --day-h:         50px;
+  --header-h:      84px;
+  --radius:        16px;
+  --shadow:        0 2px 16px rgba(0,0,0,.07), 0 1px 4px rgba(0,0,0,.03);
+  --shadow-lg:     0 12px 48px rgba(0,0,0,.13), 0 4px 16px rgba(0,0,0,.07);
+  --shadow-card:   0 4px 24px rgba(0,0,0,.07), 0 1px 6px rgba(0,0,0,.04);
+  --transition:    .22s cubic-bezier(.4,0,.2,1);
+}
+
+/* ── Reset / Base ──────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 15px; line-height: 1.5;
+}
+
+/* ── Header ────────────────────────────────────────────────────────────────── */
+.app-header {
+  position: sticky; top: 0; z-index: 100;
+  height: var(--header-h);
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  display: flex; align-items: center; padding: 0 24px; gap: 16px;
+}
+
+.logo-wrap {
+  display: flex; align-items: center; gap: 10px; text-decoration: none;
+  flex-shrink: 0;
+}
+.logo-svg {
+  width: 56px; height: 56px;
+  color: var(--accent);
+  transition: transform .7s cubic-bezier(.34,1.56,.64,1);
+  flex-shrink: 0;
+}
+.logo-wrap:hover .logo-svg { transform: rotate(45deg); }
+
+.logo-text {
+  display: flex; flex-direction: column; line-height: 1.1;
+}
+.logo-title {
+  font-size: 22px; font-weight: 800; letter-spacing: -.03em;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.logo-sub {
+  font-size: 11px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--muted);
+}
+
+.header-center {
+  flex: 1; display: flex; justify-content: center;
+}
+#currentBadge {
+  display: none; align-items: center; gap: 8px;
+  padding: 6px 16px; border-radius: 20px;
+  font-size: 13px; font-weight: 600;
+  background: var(--accent-light);
+  color: var(--accent);
+  border: 1px solid rgba(255,107,53,.25);
+}
+#currentBadge.visible { display: flex; }
+
+.header-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+.btn-header {
+  display: flex; align-items: center; gap: 6px;
+  padding: 9px 20px; border-radius: 10px; font-size: 14px; font-weight: 600;
+  border: none; cursor: pointer; transition: all var(--transition);
+  white-space: nowrap;
+}
+.btn-save {
+  background: var(--accent); color: #fff;
+}
+.btn-save:hover { background: var(--accent-dark); transform: translateY(-1px); }
+.btn-save:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+.btn-export {
+  background: none; border: 1.5px solid var(--border); color: var(--text-soft);
+}
+.btn-export:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.btn-export:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── Main nav ──────────────────────────────────────────────────────────────── */
+.main-nav {
+  position: sticky;
+  top: var(--header-h);
+  z-index: 90;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  height: var(--nav-h);
+  display: flex; align-items: stretch;
+  padding: 0 24px; gap: 0;
+  overflow-x: auto; overflow-y: hidden;
+}
+.main-nav::-webkit-scrollbar { height: 3px; }
+.main-nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.nav-tab {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 22px; border: none; background: none;
+  font-size: 16px; font-weight: 700; color: var(--text-soft);
+  cursor: pointer; border-bottom: 3px solid transparent;
+  transition: all var(--transition); white-space: nowrap;
+  position: relative; flex-shrink: 0;
+  letter-spacing: -.01em;
+}
+.nav-tab:hover { color: var(--accent); background: var(--accent-light); }
+.nav-tab.active {
+  color: var(--accent); border-bottom-color: var(--accent);
+}
+.nav-tab .nav-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.nav-tab .arrow { font-size: 10px; opacity: .6; transition: transform var(--transition); }
+.nav-tab.open .arrow { transform: rotate(180deg); }
+
+/* Colori per timone */
+.nav-tab[data-timone="nuovotv"]   .nav-dot { background: #FF6B35; }
+.nav-tab[data-timone="dipiutv"]   .nav-dot { background: #7C3AED; }
+.nav-tab[data-timone="tvmia"]     .nav-dot { background: #0891B2; }
+.nav-tab[data-timone="nuovo"]     .nav-dot { background: #059669; }
+.nav-tab[data-timone="dipiu"]     .nav-dot { background: #DB2777; }
+.nav-tab[data-timone="divadonna"] .nav-dot { background: #E11D48; }
+
+/* Dropdown giorni — position:fixed per non essere clippato dall'overflow della navbar */
+.days-dropdown {
+  display: none; position: fixed;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-lg);
+  min-width: 180px; z-index: 9000; overflow: hidden;
+  animation: fadeDown .15s ease;
+}
+.days-dropdown.show { display: block; }
+.day-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 20px; cursor: pointer; font-size: 15px; font-weight: 700;
+  color: var(--text); transition: all .12s; border: none; background: none;
+  width: 100%; text-align: left; letter-spacing: -.01em;
+}
+.day-item:hover { background: var(--accent-light); color: var(--accent); }
+.day-item.active { background: var(--accent-light); color: var(--accent); font-weight: 700; }
+.day-item .day-count {
+  margin-left: auto; font-size: 11px; color: var(--muted);
+  background: var(--bg); border-radius: 10px; padding: 1px 7px;
+}
+
+/* Separatore nav */
+.nav-sep {
+  width: 1px; background: var(--border); margin: 12px 4px; flex-shrink: 0;
+}
+
+@keyframes fadeDown {
+  from { opacity:0; transform: translateY(-6px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+
+/* ── Day sub-bar (per TV quando già dentro un timone) ──────────────────────── */
+.day-bar {
+  display: none; position: sticky;
+  top: calc(var(--header-h) + var(--nav-h));
+  z-index: 80;
+  background: #fff;
+  border-bottom: 2px solid var(--accent);
+  padding: 0 24px; gap: 4px;
+  align-items: center; height: var(--day-h);
+  overflow-x: auto;
+}
+.day-bar.visible { display: flex; }
+.day-bar::-webkit-scrollbar { height: 2px; }
+
+.day-pill {
+  padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  border: 1.5px solid transparent; cursor: pointer; transition: all var(--transition);
+  color: var(--text-soft); background: none; white-space: nowrap;
+}
+.day-pill:hover { border-color: var(--accent); color: var(--accent); background: #fff; }
+.day-pill.active {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(255,107,53,.3);
+}
+
+/* ── Welcome screen ────────────────────────────────────────────────────────── */
+#welcome {
+  max-width: 980px; margin: 60px auto; padding: 0 28px;
+}
+.welcome-title {
+  font-size: 34px; font-weight: 800; letter-spacing: -.05em;
+  color: var(--text); margin-bottom: 10px;
+}
+.welcome-sub {
+  font-size: 18px; color: var(--text-soft); margin-bottom: 52px; font-weight: 400;
+}
+.timone-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 22px;
+}
+.timone-card {
+  background: #fff;
+  border: 1.5px solid #e8edf4;
+  border-radius: 20px;
+  padding: 30px 26px 26px;
+  cursor: pointer;
+  transition: all .25s cubic-bezier(.4,0,.2,1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+.timone-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+  background: linear-gradient(90deg, var(--card-accent), color-mix(in srgb, var(--card-accent) 60%, #fff));
+  border-radius: 20px 20px 0 0;
+}
+.timone-card:hover {
+  border-color: color-mix(in srgb, var(--card-accent) 40%, #e8edf4);
+  transform: translateY(-6px);
+  box-shadow: 0 24px 64px rgba(0,0,0,.13), 0 6px 20px rgba(0,0,0,.07);
+}
+.timone-card[data-timone="nuovotv"]   { --card-accent: #FF6B35; }
+.timone-card[data-timone="dipiutv"]   { --card-accent: #7C3AED; }
+.timone-card[data-timone="tvmia"]     { --card-accent: #0891B2; }
+.timone-card[data-timone="nuovo"]     { --card-accent: #059669; }
+.timone-card[data-timone="dipiu"]     { --card-accent: #DB2777; }
+.timone-card[data-timone="divadonna"] { --card-accent: #E11D48; }
+
+.card-icon {
+  width: 54px; height: 54px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; margin-bottom: 18px;
+  background: color-mix(in srgb, var(--card-accent) 13%, #fff);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--card-accent) 20%, transparent);
+}
+.card-label {
+  font-size: 21px; font-weight: 800; color: var(--text);
+  margin-bottom: 0; letter-spacing: -.03em;
+}
+.card-count {
+  margin-top: 18px; font-size: 14px; color: var(--text-soft);
+  display: flex; align-items: center; gap: 6px;
+}
+.card-count strong { color: var(--card-accent); font-size: 22px; font-weight: 800; }
+.card-count-label { font-size: 13px; color: var(--muted); }
+
+/* ── Timone home ─────────────────────────────────────────────────────────────── */
+#timone-home {
+  display: none; max-width: 680px; margin: 56px auto; padding: 0 28px;
+}
+.th-header {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 36px;
+}
+.th-dot {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--accent); flex-shrink: 0;
+}
+.th-title {
+  font-size: 32px; font-weight: 800; letter-spacing: -.04em; color: var(--text);
+}
+
+.week-picker-card {
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 18px; padding: 26px 26px 22px;
+  box-shadow: var(--shadow-card); margin-bottom: 28px;
+}
+.week-picker-label {
+  font-size: 11px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 16px;
+}
+.week-picker-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.week-picker-from-to {
+  font-size: 13px; font-weight: 600; color: var(--text-soft); flex-shrink: 0;
+}
+.week-date-input {
+  flex: 1; min-width: 140px;
+  padding: 10px 13px; border-radius: 10px;
+  border: 1.5px solid var(--border); font-size: 15px;
+  color: var(--text); background: var(--bg);
+  transition: border-color var(--transition); outline: none; font-family: inherit;
+}
+.week-date-input:focus { border-color: var(--accent); }
+.week-picker-sep {
+  font-size: 17px; font-weight: 700; color: var(--muted); flex-shrink: 0; padding: 0 2px;
+}
+.week-saved-badge {
+  font-size: 12px; color: var(--accent); font-weight: 600;
+  margin-top: 12px; height: 16px;
+  opacity: 0; transition: opacity .35s;
+}
+.week-saved-badge.show { opacity: 1; }
+
+.th-section-lbl {
+  font-size: 11px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 14px;
+}
+.th-days-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px;
+}
+.th-day-btn {
+  padding: 16px 10px; border-radius: 14px; font-size: 15px; font-weight: 700;
+  border: 1.5px solid var(--border); cursor: pointer;
+  background: var(--card); color: var(--text);
+  transition: all var(--transition); text-align: center;
+  box-shadow: var(--shadow-card);
+}
+.th-day-btn:hover {
+  border-color: var(--accent); color: var(--accent);
+  background: var(--accent-light); transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.10);
+}
+.th-work-btn {
+  width: 100%; padding: 17px; border-radius: 14px;
+  font-size: 16px; font-weight: 700;
+  background: var(--accent); color: #fff; border: none; cursor: pointer;
+  transition: all var(--transition);
+  box-shadow: 0 4px 16px rgba(0,0,0,.12);
+}
+.th-work-btn:hover { background: var(--accent-dark); transform: translateY(-2px); }
+
+/* ── Nav tab split (name + arrow) ─────────────────────────────────────────────── */
+.nav-tab-name {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 14px 0 22px; border: none; background: none;
+  font-size: 16px; font-weight: 700; color: var(--text-soft);
+  cursor: pointer; border-bottom: 3px solid transparent;
+  transition: all var(--transition); white-space: nowrap;
+  flex-shrink: 0; letter-spacing: -.01em;
+}
+.nav-tab-name:hover { color: var(--accent); background: var(--accent-light); }
+.nav-tab-arrow {
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 10px 0 4px; border: none; background: none;
+  font-size: 10px; opacity: .6; cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all var(--transition); color: var(--text-soft); flex-shrink: 0;
+}
+.nav-tab-arrow:hover { color: var(--accent); background: var(--accent-light); opacity: 1; }
+.nav-tab-wrap.active .nav-tab-name,
+.nav-tab-wrap.active .nav-tab-arrow {
+  color: var(--accent); border-bottom-color: var(--accent);
+}
+.nav-tab-wrap.active .nav-tab-arrow { opacity: 1; }
+.nav-tab-wrap.open .nav-tab-arrow .arrow { transform: rotate(180deg); }
+.nav-tab-arrow .arrow { transition: transform var(--transition); display: inline-block; }
+
+/* Colori dot per nav-tab-name */
+.nav-tab-name[data-timone="nuovotv"]   .nav-dot { background: #FF6B35; }
+.nav-tab-name[data-timone="dipiutv"]   .nav-dot { background: #7C3AED; }
+.nav-tab-name[data-timone="tvmia"]     .nav-dot { background: #0891B2; }
+
+/* ── Sezione timone ────────────────────────────────────────────────────────── */
+#timone-section {
+  display: none; max-width: 1400px; margin: 0 auto; padding: 24px;
+}
+
+.section-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+}
+.section-title-wrap {}
+.section-title {
+  font-size: 26px; font-weight: 800; letter-spacing: -.04em; color: var(--text);
+  display: flex; align-items: center; gap: 12px;
+}
+.section-title .t-dot {
+  width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+}
+.section-day-label {
+  font-size: 15px; color: var(--muted); margin-top: 4px; font-weight: 500;
+}
+.section-week-label {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 6px; font-size: 12px; font-weight: 600;
+  color: var(--accent); background: var(--accent-light);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-radius: 20px; padding: 2px 10px;
+}
+.section-week-label:empty { display: none; }
+
+.section-actions {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+
+/* ── Tabella ────────────────────────────────────────────────────────────────── */
+.table-wrap {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.table-scroll { overflow-x: auto; }
+
+.timone-table {
+  width: 100%; border-collapse: collapse; min-width: 980px;
+}
+.timone-table thead th {
+  background: #f8fafc; padding: 12px 14px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--muted);
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+  position: sticky; top: 0;
+}
+.timone-table thead th:first-child { width: 44px; text-align: center; }
+.timone-table thead th.col-azioni { width: 80px; text-align: center; }
+
+.timone-table tbody tr {
+  border-bottom: 1px solid #f1f5f9; transition: background var(--transition);
+}
+.timone-table tbody tr:last-child { border-bottom: none; }
+.timone-table tbody tr:hover td { background: #f8fafc; }
+.timone-table tr.row-giallo:hover td { background: #fdf0a0 !important; }
+.timone-table tr.row-grigio:hover td  { background: #b8c8d8 !important; }
+
+.timone-table tbody td {
+  padding: 12px 14px; vertical-align: middle; font-size: 16px;
+}
+.timone-table tbody td.td-num {
+  text-align: center; color: var(--muted); font-size: 11px; font-weight: 600;
+  width: 44px; background: #f8fafc;
+}
+
+/* Celle modificabili */
+.timone-table td[contenteditable] {
+  outline: none; cursor: text; border-radius: 4px;
+  transition: background var(--transition), box-shadow var(--transition);
+  min-height: 28px;
+}
+.timone-table td[contenteditable]:hover { background: rgba(255,107,53,.05) !important; }
+.timone-table td[contenteditable]:focus {
+  background: rgba(255,107,53,.08) !important;
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.timone-table td[contenteditable]:empty::before {
+  content: attr(data-placeholder);
+  color: #cbd5e1; font-style: italic; pointer-events: none;
+}
+
+/* Input orario */
+.td-orario {
+  width: 80px;
+}
+.orario-input {
+  width: 100%; border: none; background: transparent; font-size: 14px;
+  color: var(--text); font-family: 'SF Mono', 'Cascadia Code', monospace;
+  padding: 4px 6px; border-radius: 4px; outline: none;
+  transition: background var(--transition);
+}
+.orario-input:focus { background: rgba(255,107,53,.08); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.orario-input::placeholder { color: #cbd5e1; font-style: italic; }
+
+/* Select tipo */
+.tipo-select {
+  border: none; background: transparent; font-size: 13px;
+  color: var(--text); padding: 4px 6px; border-radius: 4px;
+  cursor: pointer; outline: none; transition: background var(--transition);
+  width: 100%;
+}
+.tipo-select:focus { background: rgba(255,107,53,.08); }
+
+/* Badge tipo */
+.tipo-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 20px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+}
+.tipo-tv   { background: rgba(8,145,178,.12); color: #0891B2; }
+.tipo-film { background: rgba(124,58,237,.12); color: #7C3AED; }
+
+/* Colore riga */
+.timone-table tr.row-giallo td { background: #fef9c3 !important; }
+.timone-table tr.row-grigio  td { background: #c8d3de !important; }
+
+/* ── Separatore sezioni ─────────────────────────────────────────────────────── */
+.row-separator td {
+  padding: 0 !important; height: 7px; pointer-events: none;
+  background: linear-gradient(90deg, var(--accent), var(--accent-dark)) !important;
+  border: none !important;
+}
+
+/* ── Cella canale ───────────────────────────────────────────────────────────── */
+.td-canale {
+  font-size: 11px; font-weight: 700; text-align: center;
+  color: var(--text-soft); background: #f8fafc !important;
+  white-space: nowrap; padding: 6px 8px !important;
+  border-right: 1px solid var(--border);
+}
+.sotto-canale-input {
+  width: 86px; border: none; background: transparent;
+  font-size: 13px; text-align: center; color: var(--muted);
+  padding: 1px 3px; border-radius: 3px; outline: none;
+  border-bottom: 1px dashed transparent;
+  transition: border-color .12s, background .12s, color .12s;
+}
+.sotto-canale-input:hover { border-bottom-color: var(--muted); }
+.sotto-canale-input:focus { background: rgba(124,58,237,.07); border-bottom-color: #7C3AED; color: var(--text); }
+.sotto-canale-input::placeholder { color: #cbd5e1; font-style: italic; }
+
+/* ── Cella codice (anteprima + testo) ───────────────────────────────────────── */
+.td-codice { width: 116px; padding: 6px 8px !important; vertical-align: middle !important; }
+.codice-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  cursor: pointer;
+}
+.codice-thumb {
+  width: 96px; height: auto;
+  border-radius: 5px; border: 1px solid var(--border);
+  background: #f0f2f5; display: block; flex-shrink: 0;
+  transition: opacity .15s;
+}
+.codice-wrap:hover .codice-thumb { opacity: .82; }
+.codice-editable {
+  font-size: 12px; font-family: 'SF Mono', 'Cascadia Code', monospace;
+  color: var(--text-soft); text-align: center; white-space: nowrap;
+  outline: none; border-bottom: 1px solid transparent;
+  min-width: 40px; padding: 0 2px;
+  transition: border-color .12s, color .12s;
+}
+.codice-editable:empty::before { content: attr(data-placeholder); color: #cbd5e1; }
+.codice-editable:focus { color: var(--accent); border-bottom-color: var(--accent); }
+.asterisco-badge {
+  font-size: 16px; font-weight: 900; line-height: 1;
+  color: #E11D48; pointer-events: none; user-select: none;
+}
+
+/* ── Trama / textarea espandibile ───────────────────────────────────────────── */
+.trama-cell {
+  width: 100%; min-height: 32px; max-height: 32px; border: none; border-radius: 4px;
+  background: transparent; font-size: 14px; padding: 3px 5px;
+  resize: none; overflow: hidden; cursor: pointer; color: var(--text);
+  font-family: inherit; line-height: 1.45; display: block;
+  transition: max-height .18s, border-color .15s, background .15s;
+}
+.trama-cell:focus {
+  max-height: 100px; border: 1px solid var(--accent);
+  background: #fff; overflow-y: auto; cursor: text; outline: none; resize: vertical;
+}
+.trama-cell::placeholder { color: #cbd5e1; font-style: italic; }
+
+/* ── Bottoni riga ───────────────────────────────────────────────────────────── */
+.btn-row {
+  background: none; border: none; cursor: pointer; padding: 4px 6px;
+  border-radius: 6px; font-size: 13px; transition: all .12s; color: var(--muted);
+}
+.btn-row:hover { background: rgba(220,53,69,.1); color: #dc3545; }
+
+/* Bollino colore */
+.color-dot {
+  width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid #cbd5e1;
+  background: #fff; cursor: pointer; flex-shrink: 0;
+  transition: transform .12s, border-color .12s;
+}
+.color-dot:hover { transform: scale(1.18); }
+tr.row-giallo .color-dot { background: #facc15; border-color: #d4a900; }
+tr.row-grigio .color-dot { background: #94a3b8; border-color: #64748b; }
+
+/* Google images link */
+.btn-google {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 6px; text-decoration: none;
+  font-size: 18px; color: #1a73e8; background: none;
+  transition: background .12s;
+}
+.btn-google:hover { background: rgba(26,115,232,.1); }
+.btn-google.disabled { pointer-events: none; opacity: .3; }
+
+.row-actions { display: flex; align-items: center; justify-content: center; gap: 10px; }
+
+/* ── Pulsante copia colonna (intestazione th) ───────────────────────────────── */
+.btn-copy-col {
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-left: 5px; width: 20px; height: 20px;
+  border: none; background: none; cursor: pointer;
+  color: var(--muted); border-radius: 4px; opacity: .6;
+  transition: color .12s, background .12s, opacity .12s;
+  padding: 3px; vertical-align: middle; flex-shrink: 0;
+}
+.btn-copy-col:hover { color: var(--accent); background: var(--accent-light); opacity: 1; }
+
+/* ── Celle titolo/personaggio con pulsante copia ────────────────────────────── */
+.cell-copy-wrap { display: flex; align-items: stretch; }
+.cell-editable-inner {
+  flex: 1; outline: none; cursor: text; border-radius: 4px; padding: 12px 14px;
+  transition: background var(--transition), box-shadow var(--transition);
+  min-height: 28px;
+}
+.cell-editable-inner:hover { background: rgba(255,107,53,.05); }
+.cell-editable-inner:focus {
+  background: rgba(255,107,53,.08);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.cell-editable-inner:empty::before {
+  content: attr(data-placeholder);
+  color: #cbd5e1; font-style: italic; pointer-events: none;
+}
+.td-titolo .cell-editable-inner,
+.td-personaggio .cell-editable-inner {
+  font-size: 20px; font-weight: 700;
+}
+.btn-copy-cell {
+  flex-shrink: 0; opacity: 0; width: 28px;
+  border: none; background: none; cursor: pointer;
+  color: var(--muted); border-radius: 5px;
+  transition: opacity .12s, color .12s, background .12s;
+  padding: 4px; margin: 4px 4px 4px 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.cell-copy-wrap:hover .btn-copy-cell { opacity: 1; }
+.btn-copy-cell:hover { color: var(--accent); background: var(--accent-light); }
+
+/* Riga vuota */
+.empty-row td {
+  text-align: center; padding: 48px 16px;
+  color: var(--muted); font-size: 14px;
+}
+
+/* ── Barra stato ────────────────────────────────────────────────────────────── */
+.status-bar {
+  position: fixed; bottom: 20px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--text); color: #fff;
+  font-size: 12px; font-weight: 600; padding: 8px 20px;
+  border-radius: 20px; box-shadow: 0 4px 16px rgba(0,0,0,.2);
+  transition: transform .25s cubic-bezier(.34,1.56,.64,1); pointer-events: none;
+  white-space: nowrap; z-index: 9999;
+}
+.status-bar.show { transform: translateX(-50%) translateY(0); }
+.status-bar.success { background: #059669; }
+.status-bar.warn    { background: #d97706; }
+.status-bar.error   { background: #dc2626; }
+
+/* ── Indicatore non salvato ────────────────────────────────────────────────── */
+.unsaved-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;
+  display: none; animation: pulse 1.5s infinite;
+}
+.unsaved-dot.show { display: inline-block; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── Autocomplete titoli ─────────────────────────────────────────────────────── */
+#ac-dropdown {
+  display: none; position: fixed; z-index: 9100;
+  background: #fff; border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: 0 8px 32px rgba(0,0,0,.14);
+  max-height: 300px; overflow-y: auto; min-width: 300px;
+}
+.ac-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px; cursor: pointer; font-size: 14px; gap: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.ac-item:last-child { border-bottom: none; }
+.ac-item:hover, .ac-item.ac-sel { background: var(--accent-light); }
+.ac-item-title { flex: 1; color: var(--text); font-weight: 600; }
+.ac-item-meta {
+  font-size: 11px; color: var(--muted); white-space: nowrap;
+  background: #f1f5f9; border-radius: 6px; padding: 2px 8px;
+}
+
+/* ── Pannello diff modifiche remote ─────────────────────────────────────────── */
+#remoteChangeBanner {
+  display: none; position: fixed;
+  top: calc(var(--header-h) + 16px); right: 20px;
+  z-index: 9500; width: 380px; max-height: 70vh;
+  background: #fff; border: 1.5px solid #f59e0b;
+  border-radius: 14px; box-shadow: 0 8px 32px rgba(0,0,0,.18);
+  overflow: hidden; flex-direction: column;
+  animation: fadeDown .2s ease;
+}
+#remoteChangeBanner.show { display: flex; }
+.rc-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 16px; background: #fffbeb;
+  border-bottom: 1px solid #fde68a; flex-shrink: 0;
+}
+.rc-icon { font-size: 16px; flex-shrink: 0; }
+.rc-title { flex: 1; font-size: 13px; font-weight: 700; color: #92400e; }
+.rc-time  { font-size: 11px; color: #b45309; }
+.rc-actions { display: flex; gap: 6px; padding: 10px 16px; flex-shrink: 0;
+  border-top: 1px solid #fde68a; background: #fffbeb; }
+.rc-btn {
+  flex: 1; padding: 7px 0; border-radius: 8px; font-size: 13px; font-weight: 600;
+  border: none; cursor: pointer; transition: all .15s;
+}
+.rc-btn-reload { background: #f59e0b; color: #fff; }
+.rc-btn-reload:hover { background: #d97706; }
+.rc-btn-ignore { background: none; border: 1.5px solid #d1d5db; color: #6b7280; }
+.rc-btn-ignore:hover { border-color: #9ca3af; color: #374151; }
+.rc-diff-list { overflow-y: auto; padding: 10px 16px; flex: 1; }
+.rc-row-change { margin-bottom: 10px; }
+.rc-row-head {
+  font-size: 11px; font-weight: 700; color: var(--text);
+  font-family: 'SF Mono', monospace; margin-bottom: 4px;
+}
+.rc-field-change {
+  display: flex; gap: 6px; font-size: 12px; padding: 2px 0;
+  border-bottom: 1px solid #f1f5f9; align-items: baseline;
+}
+.rc-campo { color: var(--muted); font-size: 11px; min-width: 64px; flex-shrink: 0; }
+.rc-da { color: #dc2626; text-decoration: line-through; flex: 1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
+.rc-a  { color: #059669; flex: 1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
+.rc-arrow { color: var(--muted); flex-shrink: 0; }
+
+/* ── Channel groups (NuovoTV) ─────────────────────────────────────────────── */
+.channels-container { display: flex; flex-direction: column; gap: 18px; }
+.channel-card {
+  border: 2.5px solid var(--ch, #64748b);
+  border-radius: var(--radius); overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,.06);
+}
+.channel-card-hdr {
+  background: var(--ch, #64748b); color: #fff;
+  padding: 10px 16px; font-weight: 800; font-size: 14px;
+  display: flex; align-items: center; gap: 10px;
+  letter-spacing: -.01em;
+  cursor: pointer; user-select: none;
+}
+.channel-card-hdr:hover { filter: brightness(1.08); }
+.ch-chevron {
+  margin-left: auto; font-size: 11px; opacity: .85;
+  transition: transform .22s cubic-bezier(.4,0,.2,1);
+  flex-shrink: 0;
+}
+.channel-card.expanded .ch-chevron { transform: rotate(90deg); }
+.ch-count {
+  background: rgba(255,255,255,.25); border-radius: 12px;
+  padding: 1px 9px; font-size: 12px; font-weight: 700;
+}
+
+/* Mini-strip colorata (visibile da chiusa) */
+.channel-mini-strips {
+  display: flex; flex-direction: column; gap: 1px;
+  background: #dde3ea;        /* colore del gap tra le righe */
+  max-height: 600px;
+  overflow: hidden;
+  transition: max-height .3s cubic-bezier(.4,0,.2,1), opacity .2s ease;
+}
+.channel-card.expanded .channel-mini-strips {
+  max-height: 0; opacity: 0; pointer-events: none;
+}
+.ch-strip {
+  height: 6px; width: 100%; flex-shrink: 0;
+}
+.ch-strip.strip-vuota    { background: #f8fafc; }
+.ch-strip.strip-giallo   { background: #fef9c3; }
+.ch-strip.strip-grigio   { background: #9aafc4; }
+.ch-strip.strip-nascosta { background: repeating-linear-gradient(
+  90deg, #edf0f3 0px, #edf0f3 3px, #f8fafc 3px, #f8fafc 6px
+); }
+
+/* Body collassabile */
+.channel-card-body {
+  max-height: 0; overflow: hidden;
+  transition: max-height .3s cubic-bezier(.4,0,.2,1);
+}
+.channel-card.expanded .channel-card-body { max-height: 9999px; }
+
+/* Pulsante Espandi/Comprimi tutto */
+.btn-expand-all {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  border: 1.5px solid var(--border); background: none; color: var(--text-soft);
+  cursor: pointer; transition: all var(--transition); white-space: nowrap;
+}
+.btn-expand-all:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.channel-card-body {
+  background: color-mix(in srgb, var(--ch, #64748b) 4%, #ffffff);
+}
+.channel-card .timone-table thead th {
+  background: color-mix(in srgb, var(--ch, #64748b) 8%, #f8fafc);
+}
+.channel-card .timone-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--ch, #64748b) 6%, #f8fafc) !important;
+}
+.channel-card .timone-table tr.row-giallo:hover td { background: #fdf0a0 !important; }
+.channel-card .timone-table tr.row-grigio:hover td  { background: #b8c8d8 !important; }
+.channel-card .timone-table td[contenteditable]:focus {
+  box-shadow: inset 0 0 0 1.5px var(--ch, #64748b);
+}
+.channel-card .orario-input:focus {
+  box-shadow: inset 0 0 0 1.5px var(--ch, #64748b);
+}
+.channel-card .cell-editable-inner:focus {
+  box-shadow: inset 0 0 0 1.5px var(--ch, #64748b);
+}
+.channel-separator {
+  display: flex; align-items: center; gap: 12px;
+  color: var(--muted); font-size: 12px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; padding: 4px 0;
+}
+.channel-separator::before, .channel-separator::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* ── Riga nascosta ──────────────────────────────────────────────────────────── */
+.row-hidden-placeholder td {
+  padding: 0 !important; height: 28px;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--border) !important;
+}
+.row-hidden-inner {
+  display: flex; align-items: center; gap: 8px;
+  padding: 2px 14px; height: 100%;
+  color: var(--muted); font-size: 11px; font-weight: 500;
+}
+.row-hidden-codice { font-family: 'SF Mono', 'Cascadia Code', monospace; }
+.btn-scopri {
+  margin-left: auto; background: none; border: 1px solid var(--border);
+  cursor: pointer; padding: 2px 10px; border-radius: 5px;
+  font-size: 11px; font-weight: 700; color: var(--text-soft);
+  transition: all .12s; white-space: nowrap; flex-shrink: 0;
+}
+.btn-scopri:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+.btn-nascondi {
+  background: none; border: none; cursor: pointer; padding: 3px 8px;
+  border-radius: 6px; font-size: 11px; font-weight: 600; color: var(--muted);
+  transition: all .12s; white-space: nowrap;
+}
+.btn-nascondi:hover { background: rgba(100,116,139,.12); color: var(--text-soft); }
+
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  #timone-section { padding: 16px; }
+  .section-title { font-size: 22px; }
+}
+@media (max-width: 768px) {
+  :root { --header-h: 66px; --nav-h: 58px; }
+  .app-header { padding: 0 12px; gap: 10px; }
+  .logo-svg { width: 46px; height: 46px; }
+  .logo-title { font-size: 19px; }
+  .btn-header { padding: 7px 14px; font-size: 13px; }
+  #timone-section { padding: 12px; }
+  .section-title { font-size: 20px; }
+  .main-nav { padding: 0 8px; }
+  .nav-tab { padding: 0 12px; font-size: 14px; }
+  .channel-card { border-radius: 10px; }
+}
+@media (max-width: 480px) {
+  :root { --header-h: 58px; --nav-h: 52px; }
+  .logo-sub { display: none; }
+  .logo-title { font-size: 17px; }
+  .logo-svg { width: 38px; height: 38px; }
+  .btn-header { padding: 6px 10px; font-size: 12px; gap: 4px; }
+  .nav-tab { padding: 0 8px; font-size: 12px; }
+  #timone-section { padding: 8px; }
+  #welcome { padding: 0 8px; margin-top: 28px; }
+  .welcome-title { font-size: 26px; }
+  .welcome-sub { font-size: 15px; margin-bottom: 32px; }
+  .timone-grid { grid-template-columns: 1fr; }
+  .channel-card-hdr { font-size: 13px; padding: 8px 12px; }
+  .channels-container { gap: 12px; }
+}
+
+</style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────────────────────── -->
+<header class="app-header">
+  <a href="/" class="logo-wrap" title="Home">
+    <!-- Logo timone da nave (SVG) -->
+    <svg class="logo-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+      <!-- Anello esterno -->
+      <circle cx="50" cy="50" r="37" fill="none" stroke="currentColor" stroke-width="7"/>
+      <!-- Raggi (8 raggi: dall'hub r=11 all'interno dell'anello r=33) -->
+      <line x1="50" y1="17" x2="50" y2="39" stroke="currentColor" stroke-width="5.5" stroke-linecap="round"/>
+      <line x1="76.2" y1="23.8" x2="57.3" y2="42.7" stroke="currentColor" stroke-width="5.5" stroke-linecap="round"/>
+      <line x1="83" y1="50" x2="61" y2="50" stroke="currentColor" stroke-width="5.5" stroke-linecap="round"/>
+      <line x1="76.2" y1="76.2" x2="57.3" y2="57.3" stroke="currentColor" stroke-width="5.5" stroke-linecap="round"/>
+      <line x1="50" y1="83" x2="50" y2="61" stroke="currentColor" stroke-width="5.5" stroke-linecap="round"/>
+      <line x1="23.8" y1="76.2" x2="42.7" y2="57.3" stroke="currentColor" stroke-width="5.5" stroke-linecap="round"/>
+      <line x1="17" y1="50" x2="39" y2="50" stroke="currentColor" stroke-width="5.5" stroke-linecap="round"/>
+      <line x1="23.8" y1="23.8" x2="42.7" y2="42.7" stroke="currentColor" stroke-width="5.5" stroke-linecap="round"/>
+      <!-- Maniglie alle punte dei raggi (fuori dall'anello) -->
+      <circle cx="50" cy="6"   r="6"/>
+      <circle cx="81" cy="19"  r="6"/>
+      <circle cx="94" cy="50"  r="6"/>
+      <circle cx="81" cy="81"  r="6"/>
+      <circle cx="50" cy="94"  r="6"/>
+      <circle cx="19" cy="81"  r="6"/>
+      <circle cx="6"  cy="50"  r="6"/>
+      <circle cx="19" cy="19"  r="6"/>
+      <!-- Mozzo centrale -->
+      <circle cx="50" cy="50" r="11"/>
+      <circle cx="50" cy="50" r="5" fill="white"/>
+    </svg>
+    <div class="logo-text">
+      <span class="logo-title">Timone</span>
+      <span class="logo-sub">Redazione</span>
+    </div>
+  </a>
+
+  <div class="header-center">
+    <div id="currentBadge">
+      <span id="badgeDot" style="width:9px;height:9px;border-radius:50%;background:var(--accent);flex-shrink:0"></span>
+      <span id="badgeText">—</span>
+      <span class="unsaved-dot" id="unsavedDot"></span>
+    </div>
+  </div>
+
+  <div class="header-actions">
+    <button class="btn-header btn-export" id="btnExport" disabled onclick="esportaTimone()">
+      📋 Esporta
+    </button>
+    <button class="btn-header btn-save" id="btnSave" disabled onclick="salvaTimone()">
+      💾 Salva
+    </button>
+  </div>
+</header>
+
+<!-- ── Navbar principale ──────────────────────────────────────────────────── -->
+<nav class="main-nav" id="mainNav">
+
+  <!-- NuovoTV (TV con giorni) -->
+  <div style="position:relative;display:flex;align-items:stretch" class="nav-tab-wrap" id="wrap-nuovotv">
+    <button class="nav-tab-name" data-timone="nuovotv" data-tipo="tv" onclick="openTimoneHome('nuovotv')">
+      <span class="nav-dot"></span>
+      NuovoTV
+    </button>
+    <button class="nav-tab-arrow" onclick="toggleDayMenu('nuovotv',event)">
+      <span class="arrow">▾</span>
+    </button>
+    <div class="days-dropdown" id="dd-nuovotv">
+      <button class="day-item" onclick="selectTimoneDay('nuovotv','sabato')">Sabato</button>
+      <button class="day-item" onclick="selectTimoneDay('nuovotv','domenica')">Domenica</button>
+      <button class="day-item" onclick="selectTimoneDay('nuovotv','lunedi')">Lunedì</button>
+      <button class="day-item" onclick="selectTimoneDay('nuovotv','martedi')">Martedì</button>
+      <button class="day-item" onclick="selectTimoneDay('nuovotv','mercoledi')">Mercoledì</button>
+      <button class="day-item" onclick="selectTimoneDay('nuovotv','giovedi')">Giovedì</button>
+      <button class="day-item" onclick="selectTimoneDay('nuovotv','venerdi')">Venerdì</button>
+      <button class="day-item" onclick="selectTimoneDay('nuovotv','compleanni')">Compleanni</button>
+    </div>
+  </div>
+
+  <!-- DipiùTV (TV con giorni) -->
+  <div style="position:relative;display:flex;align-items:stretch" class="nav-tab-wrap" id="wrap-dipiutv">
+    <button class="nav-tab-name" data-timone="dipiutv" data-tipo="tv" onclick="openTimoneHome('dipiutv')">
+      <span class="nav-dot"></span>
+      DipiùTV
+    </button>
+    <button class="nav-tab-arrow" onclick="toggleDayMenu('dipiutv',event)">
+      <span class="arrow">▾</span>
+    </button>
+    <div class="days-dropdown" id="dd-dipiutv">
+      <button class="day-item" onclick="selectTimoneDay('dipiutv','sabato')">Sabato</button>
+      <button class="day-item" onclick="selectTimoneDay('dipiutv','domenica')">Domenica</button>
+      <button class="day-item" onclick="selectTimoneDay('dipiutv','lunedi')">Lunedì</button>
+      <button class="day-item" onclick="selectTimoneDay('dipiutv','martedi')">Martedì</button>
+      <button class="day-item" onclick="selectTimoneDay('dipiutv','mercoledi')">Mercoledì</button>
+      <button class="day-item" onclick="selectTimoneDay('dipiutv','giovedi')">Giovedì</button>
+      <button class="day-item" onclick="selectTimoneDay('dipiutv','venerdi')">Venerdì</button>
+      <button class="day-item" onclick="selectTimoneDay('dipiutv','biscotti')">Biscotti</button>
+    </div>
+  </div>
+
+  <!-- TvMia (TV con giorni) -->
+  <div style="position:relative;display:flex;align-items:stretch" class="nav-tab-wrap" id="wrap-tvmia">
+    <button class="nav-tab-name" data-timone="tvmia" data-tipo="tv" onclick="openTimoneHome('tvmia')">
+      <span class="nav-dot"></span>
+      TvMia
+    </button>
+    <button class="nav-tab-arrow" onclick="toggleDayMenu('tvmia',event)">
+      <span class="arrow">▾</span>
+    </button>
+    <div class="days-dropdown" id="dd-tvmia">
+      <button class="day-item" onclick="selectTimoneDay('tvmia','sabato')">Sabato</button>
+      <button class="day-item" onclick="selectTimoneDay('tvmia','domenica')">Domenica</button>
+      <button class="day-item" onclick="selectTimoneDay('tvmia','lunedi')">Lunedì</button>
+      <button class="day-item" onclick="selectTimoneDay('tvmia','martedi')">Martedì</button>
+      <button class="day-item" onclick="selectTimoneDay('tvmia','mercoledi')">Mercoledì</button>
+      <button class="day-item" onclick="selectTimoneDay('tvmia','giovedi')">Giovedì</button>
+      <button class="day-item" onclick="selectTimoneDay('tvmia','venerdi')">Venerdì</button>
+    </div>
+  </div>
+
+  <div class="nav-sep"></div>
+
+  <!-- Riviste (senza giorni) -->
+  <button class="nav-tab" data-timone="nuovo" data-tipo="rivista" onclick="openTimoneHome('nuovo')">
+    <span class="nav-dot"></span>
+    Nuovo
+  </button>
+  <button class="nav-tab" data-timone="dipiu" data-tipo="rivista" onclick="openTimoneHome('dipiu')">
+    <span class="nav-dot"></span>
+    Dipiu
+  </button>
+  <button class="nav-tab" data-timone="divadonna" data-tipo="rivista" onclick="openTimoneHome('divadonna')">
+    <span class="nav-dot"></span>
+    Diva e Donna
+  </button>
+
+</nav>
+
+<!-- ── Day bar (sub-nav per TV) ──────────────────────────────────────────────── -->
+<div class="day-bar" id="dayBar">
+  <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-right:6px;white-space:nowrap;">Settimana:</span>
+  <button class="day-pill" data-day="sabato"    onclick="changeDay('sabato')">Sabato</button>
+  <button class="day-pill" data-day="domenica"  onclick="changeDay('domenica')">Domenica</button>
+  <button class="day-pill" data-day="lunedi"    onclick="changeDay('lunedi')">Lunedì</button>
+  <button class="day-pill" data-day="martedi"   onclick="changeDay('martedi')">Martedì</button>
+  <button class="day-pill" data-day="mercoledi" onclick="changeDay('mercoledi')">Mercoledì</button>
+  <button class="day-pill" data-day="giovedi"   onclick="changeDay('giovedi')">Giovedì</button>
+  <button class="day-pill" data-day="venerdi"    onclick="changeDay('venerdi')">Venerdì</button>
+  <button class="day-pill" data-day="compleanni" onclick="changeDay('compleanni')">🎂 Compleanni</button>
+</div>
+
+<!-- ── Welcome screen ─────────────────────────────────────────────────────── -->
+<div id="welcome">
+  <p class="welcome-title">Buongiorno! 👋</p>
+  <p class="welcome-sub">Seleziona un timone dalla barra in alto per iniziare a lavorare.</p>
+  <div class="timone-grid" id="welcomeGrid">
+    <div class="timone-card" data-timone="nuovotv" onclick="openTimoneHome('nuovotv')" style="cursor:pointer">
+      <div class="card-icon">📺</div>
+      <div class="card-label">NuovoTV</div>
+      <div class="card-count"><strong id="cnt-nuovotv">—</strong> <span class="card-count-label">giallini</span></div>
+    </div>
+    <div class="timone-card" data-timone="dipiutv" onclick="openTimoneHome('dipiutv')" style="cursor:pointer">
+      <div class="card-icon">📺</div>
+      <div class="card-label">DipiùTV</div>
+      <div class="card-count"><strong id="cnt-dipiutv">—</strong> <span class="card-count-label">giallini</span></div>
+    </div>
+    <div class="timone-card" data-timone="tvmia" onclick="openTimoneHome('tvmia')" style="cursor:pointer">
+      <div class="card-icon">📺</div>
+      <div class="card-label">TvMia</div>
+      <div class="card-count"><strong id="cnt-tvmia">—</strong> <span class="card-count-label">giallini</span></div>
+    </div>
+    <div class="timone-card" data-timone="nuovo" onclick="openTimoneHome('nuovo')" style="cursor:pointer">
+      <div class="card-icon">📰</div>
+      <div class="card-label">Nuovo</div>
+      <div class="card-count"><strong id="cnt-nuovo">—</strong> <span class="card-count-label">giallini</span></div>
+    </div>
+    <div class="timone-card" data-timone="dipiu" onclick="openTimoneHome('dipiu')" style="cursor:pointer">
+      <div class="card-icon">📰</div>
+      <div class="card-label">Dipiu</div>
+      <div class="card-count"><strong id="cnt-dipiu">—</strong> <span class="card-count-label">giallini</span></div>
+    </div>
+    <div class="timone-card" data-timone="divadonna" onclick="openTimoneHome('divadonna')" style="cursor:pointer">
+      <div class="card-icon">📰</div>
+      <div class="card-label">Diva e Donna</div>
+      <div class="card-count"><strong id="cnt-divadonna">—</strong> <span class="card-count-label">giallini</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Timone home (homepage per singolo timone) ──────────────────────────── -->
+<div id="timone-home">
+  <div class="th-header">
+    <span class="th-dot" id="thDot"></span>
+    <span class="th-title" id="thTitle">—</span>
+  </div>
+
+  <!-- Settimana di lavorazione -->
+  <div class="week-picker-card">
+    <div class="week-picker-label">Settimana di lavorazione</div>
+    <div class="week-picker-row">
+      <span class="week-picker-from-to">Dal</span>
+      <input type="date" class="week-date-input" id="weekDal" onchange="saveWeek()">
+      <span class="week-picker-sep">—</span>
+      <span class="week-picker-from-to">Al</span>
+      <input type="date" class="week-date-input" id="weekAl" onchange="saveWeek()">
+    </div>
+    <div class="week-saved-badge" id="weekSavedBadge">Settimana salvata ✓</div>
+  </div>
+
+  <!-- Giorni (solo TV) -->
+  <div id="thDaysWrap" style="display:none">
+    <div class="th-section-lbl">Seleziona il giorno</div>
+    <div class="th-days-grid" id="thDaysGrid"></div>
+  </div>
+
+  <!-- Pulsante accesso diretto (solo riviste) -->
+  <div id="thRivistaWrap" style="display:none">
+    <button class="th-work-btn" id="thWorkBtn">Vai al timone →</button>
+  </div>
+</div>
+
+<!-- ── Sezione timone ─────────────────────────────────────────────────────── -->
+<div id="timone-section">
+  <div class="section-header">
+    <div class="section-title-wrap">
+      <div class="section-title">
+        <span class="t-dot" id="sectionDot"></span>
+        <span id="sectionTitle">—</span>
+      </div>
+      <div class="section-day-label" id="sectionDayLabel"></div>
+      <div class="section-week-label" id="sectionWeekLabel"></div>
+    </div>
+    <div class="section-actions"></div>
+  </div>
+  <div class="channels-container" id="channelsContainer" style="display:none"></div>
+  <div class="table-wrap">
+    <div class="table-scroll">
+      <table class="timone-table" id="timoneTable">
+        <thead><tr id="theadRow"></tr></thead>
+        <tbody id="timoneBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── Autocomplete dropdown ─────────────────────────────────────────────────── -->
+<div id="ac-dropdown"></div>
+
+<!-- ── Pannello diff modifiche remote ────────────────────────────────────────── -->
+<div id="remoteChangeBanner">
+  <div class="rc-header">
+    <span class="rc-icon">⚠️</span>
+    <span class="rc-title">Modifiche di un altro utente</span>
+    <span class="rc-time" id="rcTime"></span>
+  </div>
+  <div class="rc-diff-list" id="rcDiffList"></div>
+  <div class="rc-actions">
+    <button class="rc-btn rc-btn-reload" onclick="rcReload()">Ricarica</button>
+    <button class="rc-btn rc-btn-ignore" onclick="rcIgnore()">Ignora</button>
+  </div>
+</div>
+
+<!-- ── Status toast ─────────────────────────────────────────────────────────── -->
+<div class="status-bar" id="statusBar"></div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// ── Configurazione ────────────────────────────────────────────────────────────
+const TIMONI_META = {
+  nuovotv:   { label:'NuovoTV',     tipo:'tv',      colore:'#FF6B35', icona:'📺',
+               giorni:['sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi','compleanni'] },
+  dipiutv:   { label:'DipiùTV',     tipo:'tv',      colore:'#7C3AED', icona:'📺',
+               giorni:['sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi','biscotti'] },
+  tvmia:     { label:'TvMia',       tipo:'tv',      colore:'#0891B2', icona:'📺',
+               giorni:['sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi'] },
+  nuovo:     { label:'Nuovo',       tipo:'rivista', colore:'#059669', icona:'📰' },
+  dipiu:     { label:'Dipiu',       tipo:'rivista', colore:'#DB2777', icona:'📰' },
+  divadonna: { label:'Diva e Donna',tipo:'rivista', colore:'#E11D48', icona:'📰' },
+};
+
+const GIORNI_LABEL = {
+  sabato:'Sabato', domenica:'Domenica', lunedi:'Lunedì',
+  martedi:'Martedì', mercoledi:'Mercoledì', giovedi:'Giovedì', venerdi:'Venerdì',
+  compleanni:'Compleanni', biscotti:'Biscotti'
+};
+
+const CANALE_COLORS = {
+  'RAI 1':                 '#1565C0', 'RAI 2':                 '#2E7D32',
+  'RAI 3':                 '#C62828', 'LA7':                   '#E65100',
+  'CANALE 5':              '#283593', 'ITALIA 1':              '#F57C00',
+  'RETE 4':                '#6A1B9A', 'LA7 D':                 '#AD1457',
+  'TV8':                   '#00695C', 'NOVE':                  '#4527A0',
+  '20':                    '#37474F', 'RAI 4':                 '#00838F',
+  'IRIS':                  '#558B2F', 'RAI MOVIE':             '#0277BD',
+  'RAI PREMIUM':           '#01579B', 'CIELO':                 '#006064',
+  'LA5':                   '#D81B60', 'REAL TIME':             '#00897B',
+  'CINE34':                '#5D4037', 'FOCUS':                 '#0288D1',
+  'GIALLO':                '#F57F17', 'TOP CRIME':             '#BF360C',
+  'ITALIA2':               '#4527A0', 'DMAX':                  '#827717',
+  'SKY Cinema 1':          '#1A237E', 'SKY Cinema Stories':    '#4A148C',
+  'SKY Cinema Collection': '#1B5E20', 'SKY Cinema Family':     '#880E4F',
+  // Giorni (card Compleanni)
+  'SABATO':    '#E91E63', 'DOMENICA':  '#9C27B0',
+  'LUNEDÌ':    '#3F51B5', 'MARTEDÌ':   '#009688',
+  'MERCOLEDÌ': '#FF5722', 'GIOVEDÌ':   '#FF9800', 'VENERDÌ':   '#607D8B',
+  // Sezioni Diva e Donna
+  'Foto': '#E11D48', 'Box': '#7C3AED',
+  // DipiùTV specifici
+  'Sky Cinema':           '#1A237E', 'Radio':                '#2E7D32',
+  'LA 7':                 '#E65100', 'Top Crime':            '#BF360C',
+  'Real Time':            '#00897B', 'Antenna3':             '#558B2F',
+  'Odeon':                '#6A1B9A', 'K2':                   '#0277BD',
+  'Rai Gulp':             '#D81B60', 'Super':                '#F57C00',
+  'SKY - cinema romance': '#880E4F', 'SKY - cinema 1':       '#1A237E',
+  'SKY - cinema 2':       '#4A148C', 'SKY - cinema 3':       '#0D47A1',
+  'Radio 1':              '#2E7D32', 'Radio 2':              '#1565C0',
+  'Radio 3':              '#4A148C', 'RDS':                  '#37474F',
+  'Radio Deejay':         '#E91E63', 'Food Network':         '#FF8F00',
+  'Motor Trend':          '#B71C1C', 'Giallo':               '#F57F17',
+};
+function channelColor(c) { return CANALE_COLORS[c] || '#64748b'; }
+
+const THUMB_PH = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='50'%3E%3Crect width='72' height='50' rx='5' fill='%23f0f2f5'/%3E%3Ctext x='50%25' y='54%25' text-anchor='middle' dy='.3em' fill='%23c8d0db' font-size='22'%3E%F0%9F%96%BC%3C/text%3E%3C/svg%3E";
+
+// Colonne per TV
+const COLS_TV = [
+  { key:'codice',      label:'',               w:'88px',  input:'codice' },
+  { key:'canale',      label:'Canale',         w:'90px',  input:'canale' },
+  { key:'orario',      label:'Orario',         w:'76px',  input:'orario' },
+  { key:'tipo',        label:'Tipo',           w:'108px', input:'tipo' },
+  { key:'titolo',      label:'Titolo',         w:'auto',  input:'text',  placeholder:'Titolo del programma…' },
+  { key:'personaggio', label:'Personaggio',    w:'150px', input:'text',  placeholder:'Protagonista…' },
+  { key:'anno',        label:'Anno',           w:'62px',  input:'text',  placeholder:'—' },
+  { key:'stagione',    label:'Stagione',       w:'62px',  input:'text',  placeholder:'—' },
+  { key:'trama',       label:'Trama',          w:'150px', input:'trama', placeholder:'Trama…' },
+  { key:'note',        label:'Note Redaz.',    w:'150px', input:'trama', placeholder:'Note…' },
+];
+
+// Colonne per riviste
+const COLS_RIVISTA = [
+  { key:'codice',      label:'',               w:'88px',  input:'codice' },
+  { key:'rubrica',     label:'Rubrica',        w:'120px', input:'text',  placeholder:'Rubrica / Sezione…' },
+  { key:'titolo',      label:'Titolo / Servizio', w:'auto', input:'text', placeholder:'Titolo dell\'articolo…' },
+  { key:'personaggio', label:'Personaggio',    w:'150px', input:'text',  placeholder:'Protagonista…' },
+  { key:'trama',       label:'Trama',          w:'150px', input:'trama', placeholder:'Trama…' },
+  { key:'note',        label:'Note Redaz.',    w:'150px', input:'trama', placeholder:'Note…' },
+];
+
+// Colonne per Compleanni
+const COLS_COMPLEANNI = [
+  { key:'codice',      label:'',               w:'88px',  input:'codice' },
+  { key:'personaggio', label:'Personaggio',    w:'auto',  input:'text',  placeholder:'Chi compie gli anni…' },
+  { key:'trama',       label:'Trama',          w:'220px', input:'trama', placeholder:'Trama…' },
+  { key:'note',        label:'Note Redaz.',    w:'180px', input:'trama', placeholder:'Note…' },
+];
+
+// Colonne per Biscotti (DipiùTV) — senza Orario, Tipo, Anno, Stagione
+const COLS_BISCOTTI = [
+  { key:'codice',      label:'',               w:'88px',  input:'codice' },
+  { key:'canale',      label:'Giorno',         w:'110px', input:'canale' },
+  { key:'titolo',      label:'Titolo',         w:'auto',  input:'text',  placeholder:'Titolo…' },
+  { key:'personaggio', label:'Personaggio',    w:'160px', input:'text',  placeholder:'Protagonista…' },
+  { key:'trama',       label:'Trama',          w:'200px', input:'trama', placeholder:'Trama…' },
+  { key:'note',        label:'Note Redaz.',    w:'180px', input:'trama', placeholder:'Note…' },
+];
+
+// ── Percorsi fissi per timone/giorno ─────────────────────────────────────────
+const CARTELLE_FOTO = {
+  nuovotv: {
+    sabato:     '/Volumes/EDITORIALE/NUOVOTV/IN LAVORAZIONE/NUOVOTV_foto/1-foto_SAB',
+    domenica:   '/Volumes/EDITORIALE/NUOVOTV/IN LAVORAZIONE/NUOVOTV_foto/2-foto_DOM',
+    lunedi:     '/Volumes/EDITORIALE/NUOVOTV/IN LAVORAZIONE/NUOVOTV_foto/3-foto_LUN',
+    martedi:    '/Volumes/EDITORIALE/NUOVOTV/IN LAVORAZIONE/NUOVOTV_foto/4-foto_MART',
+    mercoledi:  '/Volumes/EDITORIALE/NUOVOTV/IN LAVORAZIONE/NUOVOTV_foto/5-foto_MERC',
+    giovedi:    '/Volumes/EDITORIALE/NUOVOTV/IN LAVORAZIONE/NUOVOTV_foto/6-foto_GIO',
+    venerdi:    '/Volumes/EDITORIALE/NUOVOTV/IN LAVORAZIONE/NUOVOTV_foto/7-foto_VEN',
+    compleanni: '/Volumes/EDITORIALE/NUOVOTV/IN LAVORAZIONE/nuovotv_foto/9-compleanni',
+  },
+  dipiutv: {
+    sabato:    '/Volumes/EDITORIALE/DIPIUTV/IN LAVORAZIONE/DIPIUTV_foto/1-fotoSAB',
+    domenica:  '/Volumes/EDITORIALE/DIPIUTV/IN LAVORAZIONE/DIPIUTV_foto/2-fotoDOM',
+    lunedi:    '/Volumes/EDITORIALE/DIPIUTV/IN LAVORAZIONE/DIPIUTV_foto/3-fotoLUN',
+    martedi:   '/Volumes/EDITORIALE/DIPIUTV/IN LAVORAZIONE/DIPIUTV_foto/4-fotoMAR',
+    mercoledi: '/Volumes/EDITORIALE/DIPIUTV/IN LAVORAZIONE/DIPIUTV_foto/5-fotoMER',
+    giovedi:   '/Volumes/EDITORIALE/DIPIUTV/IN LAVORAZIONE/DIPIUTV_foto/6-fotoGIO',
+    venerdi:   '/Volumes/EDITORIALE/DIPIUTV/IN LAVORAZIONE/DIPIUTV_foto/7-fotoVEN',
+    biscotti:  '/Volumes/EDITORIALE/DIPIUTV/IN LAVORAZIONE/DIPIUTV_foto/foto_biscotti',
+  },
+  tvmia: {
+    sabato:    '/Volumes/EDITORIALE/TVMIA/IN LAVORAZIONE/TVMIA_foto/1-fotoSAB',
+    domenica:  '/Volumes/EDITORIALE/TVMIA/IN LAVORAZIONE/TVMIA_foto/2-fotoDOM',
+    lunedi:    '/Volumes/EDITORIALE/TVMIA/IN LAVORAZIONE/TVMIA_foto/3-fotoLUN',
+    martedi:   '/Volumes/EDITORIALE/TVMIA/IN LAVORAZIONE/TVMIA_foto/4-fotoMAR',
+    mercoledi: '/Volumes/EDITORIALE/TVMIA/IN LAVORAZIONE/TVMIA_foto/5-fotoMER',
+    giovedi:   '/Volumes/EDITORIALE/TVMIA/IN LAVORAZIONE/TVMIA_foto/6-fotoGIO',
+    venerdi:   '/Volumes/EDITORIALE/TVMIA/IN LAVORAZIONE/TVMIA_foto/7-fotoVEN',
+  },
+  nuovo:     '/Volumes/EDITORIALE/NUOVO/IN LAVORAZIONE/NUOVO_foto',
+  dipiu:     '/Volumes/EDITORIALE/DIpiù/IN LAVORAZIONE/DIpiù_foto',
+  divadonna: '/Volumes/EDITORIALE/DIVAeDONNA/IN LAVORAZIONE/DIVAeDONNA_foto',
+};
+
+// ── Template righe fisse per timone/giorno ────────────────────────────────────
+const TEMPLATES = {
+  nuovotv_sabato: [
+    { codice:'sab1a', canale:'RAI 1'    },
+    { codice:'sab1b', canale:'RAI 1'    },
+    { codice:'sab1c', canale:'RAI 1'    },
+    { codice:'sab2a', canale:'RAI 2'    },
+    { codice:'sab2b', canale:'RAI 2'    },
+    { codice:'sab2c', canale:'RAI 2'    },
+    { codice:'sab3a', canale:'RAI 3'    },
+    { codice:'sab3b', canale:'RAI 3'    },
+    { codice:'sab3c', canale:'RAI 3'    },
+    { codice:'sab4a', canale:'LA7'      },
+    { codice:'sab4b', canale:'LA7'      },
+    { codice:'sab4c', canale:'LA7'      },
+    { codice:'sab5a', canale:'CANALE 5' },
+    { codice:'sab5b', canale:'CANALE 5' },
+    { codice:'sab5c', canale:'CANALE 5' },
+    { codice:'sab6a', canale:'ITALIA 1' },
+    { codice:'sab6b', canale:'ITALIA 1' },
+    { codice:'sab6c', canale:'ITALIA 1' },
+    { codice:'sab7a', canale:'RETE 4'   },
+    { codice:'sab7b', canale:'RETE 4'   },
+    { codice:'sab7c', canale:'RETE 4'   },
+    { codice:'sab8a', canale:'LA7 D'    },
+    { codice:'sab8b', canale:'LA7 D'    },
+    { codice:'sab8c', canale:'LA7 D'    },
+    // ── separatore ──────────────────────────────────────────────────────────
+    { _separator: true, id: 'sep_nuovotv_sabato_1' },
+    // ── seconda parte (una riga per canale, solo titolo) ────────────────────
+    { codice:'sab9',    canale:'TV8'              },
+    { codice:'sab10',   canale:'NOVE'             },
+    { codice:'sab10b',  canale:'20'               },
+    { codice:'sab10c',  canale:'RAI 4'            },
+    { codice:'sab11',   canale:'IRIS'             },
+    { codice:'sab12',   canale:'RAI MOVIE'        },
+    { codice:'sab13',   canale:'RAI PREMIUM'      },
+    { codice:'sab14',   canale:'CIELO'            },
+    { codice:'sab15',   canale:'LA5'              },
+    { codice:'sab16',   canale:'REAL TIME'        },
+    { codice:'sab17',   canale:'CINE34'           },
+    { codice:'sab17bis',canale:'FOCUS'            },
+    { codice:'sab19',   canale:'GIALLO'           },
+    { codice:'sab20',   canale:'TOP CRIME'        },
+    { codice:'sab21',   canale:'ITALIA2'          },
+    { codice:'sab22',   canale:'DMAX'             },
+    { codice:'sab23',   canale:'SKY Cinema 1'     },
+    { codice:'sab24',   canale:'SKY Cinema Stories'    },
+    { codice:'sab25',   canale:'SKY Cinema Collection' },
+    { codice:'sab26',   canale:'SKY Cinema Family'     },
+  ],
+};
+
+// Template Compleanni NuovoTV (14 foto, 2 per giorno)
+TEMPLATES['nuovotv_compleanni'] = [
+  { codice:'1_auguri_sab1', canale:'SABATO'    },
+  { codice:'1_auguri_sab2', canale:'SABATO'    },
+  { codice:'2_auguri_dom1', canale:'DOMENICA'  },
+  { codice:'2_auguri_dom2', canale:'DOMENICA'  },
+  { codice:'3_auguri_lun1', canale:'LUNEDÌ'    },
+  { codice:'3_auguri_lun2', canale:'LUNEDÌ'    },
+  { codice:'4_auguri_mar1', canale:'MARTEDÌ'   },
+  { codice:'4_auguri_mar2', canale:'MARTEDÌ'   },
+  { codice:'5_auguri_mer1', canale:'MERCOLEDÌ' },
+  { codice:'5_auguri_mer2', canale:'MERCOLEDÌ' },
+  { codice:'6_auguri_gio1', canale:'GIOVEDÌ'   },
+  { codice:'6_auguri_gio2', canale:'GIOVEDÌ'   },
+  { codice:'7_auguri_ven1', canale:'VENERDÌ'   },
+  { codice:'7_auguri_ven2', canale:'VENERDÌ'   },
+];
+
+// Template Biscotti DipiùTV (42 foto, 6 per giorno)
+TEMPLATES['dipiutv_biscotti'] = [
+  { codice:'SAB_A', canale:'SABATO'    },
+  { codice:'SAB_B', canale:'SABATO'    },
+  { codice:'SAB_C', canale:'SABATO'    },
+  { codice:'SAB_D', canale:'SABATO'    },
+  { codice:'SAB_E', canale:'SABATO'    },
+  { codice:'SAB_F', canale:'SABATO'    },
+  { codice:'DOM_A', canale:'DOMENICA'  },
+  { codice:'DOM_B', canale:'DOMENICA'  },
+  { codice:'DOM_C', canale:'DOMENICA'  },
+  { codice:'DOM_D', canale:'DOMENICA'  },
+  { codice:'DOM_E', canale:'DOMENICA'  },
+  { codice:'DOM_F', canale:'DOMENICA'  },
+  { codice:'LUN_A', canale:'LUNEDÌ'    },
+  { codice:'LUN_B', canale:'LUNEDÌ'    },
+  { codice:'LUN_C', canale:'LUNEDÌ'    },
+  { codice:'LUN_D', canale:'LUNEDÌ'    },
+  { codice:'LUN_E', canale:'LUNEDÌ'    },
+  { codice:'LUN_F', canale:'LUNEDÌ'    },
+  { codice:'MAR_A', canale:'MARTEDÌ'   },
+  { codice:'MAR_B', canale:'MARTEDÌ'   },
+  { codice:'MAR_C', canale:'MARTEDÌ'   },
+  { codice:'MAR_D', canale:'MARTEDÌ'   },
+  { codice:'MAR_E', canale:'MARTEDÌ'   },
+  { codice:'MAR_F', canale:'MARTEDÌ'   },
+  { codice:'MER_A', canale:'MERCOLEDÌ' },
+  { codice:'MER_B', canale:'MERCOLEDÌ' },
+  { codice:'MER_C', canale:'MERCOLEDÌ' },
+  { codice:'MER_D', canale:'MERCOLEDÌ' },
+  { codice:'MER_E', canale:'MERCOLEDÌ' },
+  { codice:'MER_F', canale:'MERCOLEDÌ' },
+  { codice:'GIO_A', canale:'GIOVEDÌ'   },
+  { codice:'GIO_B', canale:'GIOVEDÌ'   },
+  { codice:'GIO_C', canale:'GIOVEDÌ'   },
+  { codice:'GIO_D', canale:'GIOVEDÌ'   },
+  { codice:'GIO_E', canale:'GIOVEDÌ'   },
+  { codice:'GIO_F', canale:'GIOVEDÌ'   },
+  { codice:'VEN_A', canale:'VENERDÌ'   },
+  { codice:'VEN_B', canale:'VENERDÌ'   },
+  { codice:'VEN_C', canale:'VENERDÌ'   },
+  { codice:'VEN_D', canale:'VENERDÌ'   },
+  { codice:'VEN_E', canale:'VENERDÌ'   },
+  { codice:'VEN_F', canale:'VENERDÌ'   },
+];
+
+// Template Diva e Donna (10 foto + separatore + 3 box)
+TEMPLATES['divadonna'] = [
+  { codice:'foto1',  canale:'Foto' },
+  { codice:'foto2',  canale:'Foto' },
+  { codice:'foto3',  canale:'Foto' },
+  { codice:'foto4',  canale:'Foto' },
+  { codice:'foto5',  canale:'Foto' },
+  { codice:'foto6',  canale:'Foto' },
+  { codice:'foto7',  canale:'Foto' },
+  { codice:'foto8',  canale:'Foto' },
+  { codice:'foto9',  canale:'Foto' },
+  { codice:'foto10', canale:'Foto' },
+  { _separator: true, id: 'sep_divadonna_1' },
+  { codice:'box1',   canale:'Box', asterisco: true },
+  { codice:'box2',   canale:'Box' },
+  { codice:'box3',   canale:'Box' },
+];
+
+// Genera i template degli altri giorni dal sabato sostituendo il prefisso
+(function() {
+  const prefissi = { domenica:'dom', lunedi:'lun', martedi:'mar', mercoledi:'mer', giovedi:'gio', venerdi:'ven' };
+  const base = TEMPLATES['nuovotv_sabato'];
+  Object.entries(prefissi).forEach(([giorno, pfx]) => {
+    TEMPLATES[`nuovotv_${giorno}`] = base.map(r =>
+      r._separator ? { ...r, id: `sep_nuovotv_${giorno}_1` }
+                   : { ...r, codice: r.codice.replace(/^sab/, pfx) }
+    );
+  });
+})();
+
+// Template DipiùTV Sabato
+TEMPLATES['dipiutv_sabato'] = [
+  { codice:'sab_1a',        canale:'RAI 1'    },
+  { codice:'sab_1b__scont', canale:'RAI 1'    },
+  { codice:'sab_2a',        canale:'RAI 2'    },
+  { codice:'sab_2b_scont',  canale:'RAI 2'    },
+  { codice:'sab_2c',        canale:'RAI 2'    },
+  { codice:'sab_3a_scont',  canale:'RAI 3'    },
+  { codice:'sab_3b',        canale:'RAI 3'    },
+  { codice:'sab_3c',        canale:'RAI 3'    },
+  { codice:'sab_4a',        canale:'RETE 4'   },
+  { codice:'sab_4b_scont',  canale:'RETE 4'   },
+  { codice:'sab_5a',        canale:'CANALE 5' },
+  { codice:'sab_5b',        canale:'CANALE 5' },
+  { codice:'sab_5c',        canale:'CANALE 5' },
+  { codice:'sab_5d_scont',  canale:'CANALE 5' },
+  { codice:'sab_6a',        canale:'ITALIA 1' },
+  { codice:'sab_6b',        canale:'ITALIA 1' },
+  { codice:'sab_7a_scont',  canale:'LA 7'     },
+  { codice:'sab_7b',        canale:'LA 7'     },
+  { codice:'sab_7c',        canale:'LA 7'     },
+  { codice:'sab_8a',        canale:'LA7 D'    },
+  { codice:'sab_8b',        canale:'LA7 D'    },
+  // ── separatore ──────────────────────────────────────────────────────────
+  { _separator: true, id: 'sep_dipiutv_sabato_1' },
+  // ── seconda parte (una riga per canale) ─────────────────────────────────
+  { codice:'sab_9',  canale:'Real Time'          },
+  { codice:'sab_10', canale:'Antenna3'            },
+  { codice:'sab_11', canale:'Odeon'               },
+  { codice:'sab_12', canale:'Top Crime'           },
+  { codice:'sab_13', canale:'K2'                  },
+  { codice:'sab_14', canale:'Rai Gulp'            },
+  { codice:'sab_16', canale:'Super'               },
+  { codice:'sab_17', canale:'Sky Cinema', sotto_canale:'romance' },
+  { codice:'sab_18', canale:'Sky Cinema', sotto_canale:'1'      },
+  { codice:'sab_19', canale:'Sky Cinema', sotto_canale:'2'      },
+  { codice:'sab_20', canale:'Radio', sotto_canale:'Radio 1' },
+  { codice:'sab_21', canale:'Radio', sotto_canale:'Radio 2' },
+  { codice:'sab_22', canale:'Radio', sotto_canale:'RDS'     },
+];
+
+// Template DipiùTV Lunedì (definito manualmente perché diverso dal Sabato)
+TEMPLATES['dipiutv_lunedi'] = [
+  { codice:'lun_1a',        canale:'RAI 1'    },
+  { codice:'lun_1b_scont',  canale:'RAI 1'    },
+  { codice:'lun_2a',        canale:'RAI 2'    },
+  { codice:'lun_2b_scont',  canale:'RAI 2'    },
+  { codice:'lun_2c',        canale:'RAI 2'    },
+  { codice:'lun_3a',        canale:'RAI 3'    },
+  { codice:'lun_3b',        canale:'RAI 3'    },
+  { codice:'lun_3c',        canale:'RAI 3'    },
+  { codice:'lun_3c_scont',  canale:'RAI 3'    },
+  { codice:'lun_4a',        canale:'RETE 4'   },
+  { codice:'lun_4b_scont',  canale:'RETE 4'   },
+  { codice:'lun_5a',        canale:'CANALE 5' },
+  { codice:'lun_5b',        canale:'CANALE 5' },
+  { codice:'lun_5b_bis',    canale:'CANALE 5' },
+  { codice:'lun_5c',        canale:'CANALE 5' },
+  { codice:'lun_5d',        canale:'CANALE 5' },
+  { codice:'lun_6a',        canale:'ITALIA 1' },
+  { codice:'lun_6b_scont',  canale:'ITALIA 1' },
+  { codice:'lun_7a_scont',  canale:'LA 7'     },
+  { codice:'lun_7b',        canale:'LA 7'     },
+  { codice:'lun_7c_scont',  canale:'LA 7'     },
+  { codice:'lun_8a',        canale:'LA7 D'    },
+  { codice:'lun_8b',        canale:'LA7 D'    },
+  // ── separatore ──────────────────────────────────────────────────────────
+  { _separator: true, id: 'sep_dipiutv_lunedi_1' },
+  // ── seconda parte (una riga per canale) ─────────────────────────────────
+  { codice:'lun_9',  canale:'Food Network'         },
+  { codice:'lun_10', canale:'Antenna 3'            },
+  { codice:'lun_11', canale:'RtvSan Marino'        },
+  { codice:'lun_12', canale:'Top Crime'            },
+  { codice:'lun_13', canale:'K2'                   },
+  { codice:'lun_14', canale:'Rai Gulp'             },
+  { codice:'lun_16', canale:'Super'                },
+  { codice:'lun_17', canale:'Sky Cinema', sotto_canale:'family'  },
+  { codice:'lun_18', canale:'Sky Cinema', sotto_canale:'1'      },
+  { codice:'lun_19', canale:'Sky Cinema', sotto_canale:'stories'},
+  { codice:'lun_20', canale:'Radio', sotto_canale:'Radio 1' },
+  { codice:'lun_21', canale:'Radio', sotto_canale:'Radio 2' },
+  { codice:'lun_22', canale:'Radio', sotto_canale:'RTL'     },
+];
+
+// Template DipiùTV Martedì
+TEMPLATES['dipiutv_martedi'] = [
+  { codice:'mar_1a',        canale:'RAI 1'    },
+  { codice:'mar_1b_scont',  canale:'RAI 1'    },
+  { codice:'mar_2a',        canale:'RAI 2'    },
+  { codice:'mar_2b_scont',  canale:'RAI 2'    },
+  { codice:'mar_2c',        canale:'RAI 2'    },
+  { codice:'mar_3a',        canale:'RAI 3'    },
+  { codice:'mar_3b_scont',  canale:'RAI 3'    },
+  { codice:'mar_3c',        canale:'RAI 3'    },
+  { codice:'mar_4a',        canale:'RETE 4'   },
+  { codice:'mar_4b',        canale:'RETE 4'   },
+  { codice:'mar_5a',        canale:'CANALE 5' },
+  { codice:'mar_5b',        canale:'CANALE 5' },
+  { codice:'mar_5b_bis',    canale:'CANALE 5' },
+  { codice:'mar_5c',        canale:'CANALE 5' },
+  { codice:'mar_5d_scont',  canale:'CANALE 5' },
+  { codice:'mar_6a',        canale:'ITALIA 1' },
+  { codice:'mar_6b_scont',  canale:'ITALIA 1' },
+  { codice:'mar_7a_scont',  canale:'LA 7'     },
+  { codice:'mar_7b',        canale:'LA 7'     },
+  { codice:'mar_7c',        canale:'LA 7'     },
+  { codice:'mar_8a',        canale:'LA7 D'    },
+  { codice:'mar_8b',        canale:'LA7 D'    },
+  { _separator: true, id: 'sep_dipiutv_martedi_1' },
+  { codice:'mar_9',  canale:'Telelombardia'                                   },
+  { codice:'mar_10', canale:'Food Network'                                    },
+  { codice:'mar_11', canale:'Giallo'                                          },
+  { codice:'mar_12', canale:'Top Crime'                                       },
+  { codice:'mar_13', canale:'K2'                                              },
+  { codice:'mar_14', canale:'Rai Gulp'                                        },
+  { codice:'mar_16', canale:'Super'                                           },
+  { codice:'mar_17', canale:'Sky Cinema', sotto_canale:'romance' },
+  { codice:'mar_18', canale:'Sky Cinema', sotto_canale:'drama'   },
+  { codice:'mar_19', canale:'Sky Cinema', sotto_canale:'stories' },
+  { codice:'mar_20', canale:'Radio', sotto_canale:'Radio 1'           },
+  { codice:'mar_21', canale:'Radio', sotto_canale:'Radio 3'           },
+  { codice:'mar_22', canale:'Radio', sotto_canale:'Radio Monte Carlo' },
+];
+
+// Template DipiùTV Mercoledì
+TEMPLATES['dipiutv_mercoledi'] = [
+  { codice:'mer_1a',        canale:'RAI 1'    },
+  { codice:'mer_1b',        canale:'RAI 1'    },
+  { codice:'mer_2a',        canale:'RAI 2'    },
+  { codice:'mer_2b_scont',  canale:'RAI 2'    },
+  { codice:'mer_2c',        canale:'RAI 2'    },
+  { codice:'mer_3a',        canale:'RAI 3'    },
+  { codice:'mer_3b',        canale:'RAI 3'    },
+  { codice:'mer_3b_scont',  canale:'RAI 3'    },
+  { codice:'mer_3c',        canale:'RAI 3'    },
+  { codice:'mer_4a',        canale:'RETE 4'   },
+  { codice:'mer_4b_scont',  canale:'RETE 4'   },
+  { codice:'mer_5a',        canale:'CANALE 5' },
+  { codice:'mer_5b',        canale:'CANALE 5' },
+  { codice:'mer_5b_bis',    canale:'CANALE 5' },
+  { codice:'mer_5c',        canale:'CANALE 5' },
+  { codice:'mer_5d',        canale:'CANALE 5' },
+  { codice:'mer_6a_scont',  canale:'ITALIA 1' },
+  { codice:'mer_6b',        canale:'ITALIA 1' },
+  { codice:'mer_7a',        canale:'LA 7'     },
+  { codice:'mer_7b',        canale:'LA 7'     },
+  { codice:'mer_7c_scont',  canale:'LA 7'     },
+  { codice:'mer_8a',        canale:'LA7 D'    },
+  { codice:'mer_8b',        canale:'LA7 D'    },
+  { _separator: true, id: 'sep_dipiutv_mercoledi_1' },
+  { codice:'mer_9',  canale:'Cine 34'                                         },
+  { codice:'mer_10', canale:'Antenna3'                                        },
+  { codice:'mer_11', canale:'Giallo'                                          },
+  { codice:'mer_12', canale:'Top Crime'                                       },
+  { codice:'mer_13', canale:'K2'                                              },
+  { codice:'mer_14', canale:'Rai Gulp'                                        },
+  { codice:'mer_16', canale:'Super'                                           },
+  { codice:'mer_17', canale:'Sky Cinema', sotto_canale:'' },
+  { codice:'mer_18', canale:'Sky Cinema', sotto_canale:'' },
+  { codice:'mer_19', canale:'Sky Cinema', sotto_canale:'' },
+  { codice:'mer_20', canale:'Radio', sotto_canale:'Radio 1'   },
+  { codice:'mer_21', canale:'Radio', sotto_canale:'Radio 2'   },
+  { codice:'mer_22', canale:'Radio', sotto_canale:'Radio 105' },
+];
+
+// Template DipiùTV Giovedì
+TEMPLATES['dipiutv_giovedi'] = [
+  { codice:'gio_1a',        canale:'RAI 1'    },
+  { codice:'gio_1b',        canale:'RAI 1'    },
+  { codice:'gio_2a',        canale:'RAI 2'    },
+  { codice:'gio_2b_scont',  canale:'RAI 2'    },
+  { codice:'gio_2c',        canale:'RAI 2'    },
+  { codice:'gio_3a_scont',  canale:'RAI 3'    },
+  { codice:'gio_3b',        canale:'RAI 3'    },
+  { codice:'gio_3c',        canale:'RAI 3'    },
+  { codice:'gio_4a',        canale:'RETE 4'   },
+  { codice:'gio_4b_scont',  canale:'RETE 4'   },
+  { codice:'gio_5a',        canale:'CANALE 5' },
+  { codice:'gio_5b',        canale:'CANALE 5' },
+  { codice:'gio_5b_bis',    canale:'CANALE 5' },
+  { codice:'gio_5c',        canale:'CANALE 5' },
+  { codice:'gio_5d_scont',  canale:'CANALE 5' },
+  { codice:'gio_6a',        canale:'ITALIA 1' },
+  { codice:'gio_6b',        canale:'ITALIA 1' },
+  { codice:'gio_7a',        canale:'LA 7'     },
+  { codice:'gio_7b_scont',  canale:'LA 7'     },
+  { codice:'gio_7c',        canale:'LA 7'     },
+  { codice:'gio_8a',        canale:'LA7 D'    },
+  { codice:'gio_8b',        canale:'LA7 D'    },
+  { _separator: true, id: 'sep_dipiutv_giovedi_1' },
+  { codice:'gio_9',  canale:'Food Network'                                    },
+  { codice:'gio_10', canale:'Espansione Tv'                                   },
+  { codice:'gio_11', canale:'Giallo'                                          },
+  { codice:'gio_12', canale:'Top Crime'                                       },
+  { codice:'gio_13', canale:'K2'                                              },
+  { codice:'gio_14', canale:'Rai Gulp'                                        },
+  { codice:'gio_16', canale:'Super'                                           },
+  { codice:'gio_17', canale:'Sky Cinema', sotto_canale:'comedy'  },
+  { codice:'gio_18', canale:'Sky Cinema', sotto_canale:'drama'   },
+  { codice:'gio_19', canale:'Sky Cinema', sotto_canale:'stories' },
+  { codice:'gio_20', canale:'Radio', sotto_canale:'Radio 1'     },
+  { codice:'gio_21', canale:'Radio', sotto_canale:'Radio 3'     },
+  { codice:'gio_22', canale:'Radio', sotto_canale:'Radio Italia' },
+];
+
+// Template DipiùTV Venerdì
+TEMPLATES['dipiutv_venerdi'] = [
+  { codice:'ven_1a',        canale:'RAI 1'    },
+  { codice:'ven_1b_scont',  canale:'RAI 1'    },
+  { codice:'ven_2a',        canale:'RAI 2'    },
+  { codice:'ven_2b',        canale:'RAI 2'    },
+  { codice:'ven_2c_scont',  canale:'RAI 2'    },
+  { codice:'ven_3a_scont',  canale:'RAI 3'    },
+  { codice:'ven_3b',        canale:'RAI 3'    },
+  { codice:'ven_3c',        canale:'RAI 3'    },
+  { codice:'ven_4a',        canale:'RETE 4'   },
+  { codice:'ven_4b',        canale:'RETE 4'   },
+  { codice:'ven_5a',        canale:'CANALE 5' },
+  { codice:'ven_5b',        canale:'CANALE 5' },
+  { codice:'ven_5b_bis',    canale:'CANALE 5' },
+  { codice:'ven_5c',        canale:'CANALE 5' },
+  { codice:'ven_5d_scont',  canale:'CANALE 5' },
+  { codice:'ven_6a',        canale:'ITALIA 1' },
+  { codice:'ven_6b',        canale:'ITALIA 1' },
+  { codice:'ven_7a',        canale:'LA 7'     },
+  { codice:'ven_7b_scont',  canale:'LA 7'     },
+  { codice:'ven_7c',        canale:'LA 7'     },
+  { codice:'ven_8a',        canale:'LA7 D'    },
+  { codice:'ven_8b',        canale:'LA7 D'    },
+  { _separator: true, id: 'sep_dipiutv_venerdi_1' },
+  { codice:'ven_9',  canale:'Antenna 3'                                       },
+  { codice:'ven_10', canale:'Giallo'                                          },
+  { codice:'ven_11', canale:'Cine 34'                                         },
+  { codice:'ven_12', canale:'Top Crime'                                       },
+  { codice:'ven_13', canale:'K2'                                              },
+  { codice:'ven_14', canale:'Rai Gulp'                                        },
+  { codice:'ven_16', canale:'Super'                                           },
+  { codice:'ven_17', canale:'Sky Cinema', sotto_canale:'' },
+  { codice:'ven_18', canale:'Sky Cinema', sotto_canale:'' },
+  { codice:'ven_19', canale:'Sky Cinema', sotto_canale:'' },
+  { codice:'ven_20', canale:'Radio', sotto_canale:'Radio 1'       },
+  { codice:'ven_21', canale:'Radio', sotto_canale:'Radio 3'       },
+  { codice:'ven_22', canale:'Radio', sotto_canale:'Radio Kiss Kiss'},
+];
+
+// Template DipiùTV Domenica (definito manualmente perché diverso dal Sabato)
+TEMPLATES['dipiutv_domenica'] = [
+  { codice:'dom_1a',        canale:'RAI 1'    },
+  { codice:'dom_1b_scont',  canale:'RAI 1'    },
+  { codice:'dom_1c',        canale:'RAI 1'    },
+  { codice:'dom_2a',        canale:'RAI 2'    },
+  { codice:'dom_2b_scont',  canale:'RAI 2'    },
+  { codice:'dom_2c',        canale:'RAI 2'    },
+  { codice:'dom_3a_scont',  canale:'RAI 3'    },
+  { codice:'dom_3b',        canale:'RAI 3'    },
+  { codice:'dom_3c',        canale:'RAI 3'    },
+  { codice:'dom_4a',        canale:'RETE 4'   },
+  { codice:'dom_4b',        canale:'RETE 4'   },
+  { codice:'dom_5a',        canale:'CANALE 5' },
+  { codice:'dom_5b',        canale:'CANALE 5' },
+  { codice:'dom_5c',        canale:'CANALE 5' },
+  { codice:'dom_5cbis',     canale:'CANALE 5' },
+  { codice:'dom_5d_scont',  canale:'CANALE 5' },
+  { codice:'dom_6a',        canale:'ITALIA 1' },
+  { codice:'dom_6b_scont',  canale:'ITALIA 1' },
+  { codice:'dom_7a',        canale:'LA 7'     },
+  { codice:'dom_7b',        canale:'LA 7'     },
+  { codice:'dom_7c_scont',  canale:'LA 7'     },
+  { codice:'dom_8a',        canale:'LA7 D'    },
+  { codice:'dom_8b',        canale:'LA7 D'    },
+  // ── separatore ──────────────────────────────────────────────────────────
+  { _separator: true, id: 'sep_dipiutv_domenica_1' },
+  // ── seconda parte (una riga per canale) ─────────────────────────────────
+  { codice:'dom_9',  canale:'Food Network'     },
+  { codice:'dom_10', canale:'Motor Trend'      },
+  { codice:'dom_11', canale:'Giallo'           },
+  { codice:'dom_12', canale:'Top Crime'        },
+  { codice:'dom_13', canale:'K2'               },
+  { codice:'dom_14', canale:'Rai Gulp'         },
+  { codice:'dom_16', canale:'Super'            },
+  { codice:'dom_17', canale:'Sky Cinema', sotto_canale:'1'       },
+  { codice:'dom_18', canale:'Sky Cinema', sotto_canale:'2'       },
+  { codice:'dom_19', canale:'Sky Cinema', sotto_canale:'3'       },
+  { codice:'dom_20', canale:'Radio', sotto_canale:'Radio 1'      },
+  { codice:'dom_21', canale:'Radio', sotto_canale:'Radio 3'      },
+  { codice:'dom_22', canale:'Radio', sotto_canale:'Radio Deejay' },
+];
+
+function applyTemplate(key, savedRows) {
+  const template = TEMPLATES[key];
+  if (!template) return savedRows;
+  const templateCodici = new Set(template.filter(t => t.codice).map(t => t.codice));
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
+  const merged = template.map(tpl => {
+    if (tpl._separator) return { ...tpl };
+    const saved = savedRows.find(r => r.codice === tpl.codice);
+    if (saved) return { ...saved, codice: tpl.codice, canale: tpl.canale, sotto_canale: (tpl.sotto_canale !== undefined) ? (saved.sotto_canale !== undefined ? saved.sotto_canale : tpl.sotto_canale) : undefined, ...(tpl.asterisco ? { asterisco: true } : {}) };
+    return { id: newId(), tipo: 'Programma TV', ...tpl };
+  });
+  const extras = savedRows.filter(r => r.codice && !templateCodici.has(r.codice));
+  return [...merged, ...extras];
+}
+
+// ── Copia celle / colonne ─────────────────────────────────────────────────────
+const COPY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+
+function copiaCella(testo) {
+  if (!testo.trim()) { showStatus('Cella vuota', 'warn'); return; }
+  navigator.clipboard.writeText(testo).then(() => {
+    showStatus('Copiato ✓', 'success');
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = testo; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    showStatus('Copiato ✓', 'success');
+  });
+}
+
+function copiaColonna(key, rows) {
+  const src  = rows || currentRows;
+  const vals = src.filter(r => !r._separator && !r.nascosta && (r[key] || '').trim()).map(r => (r[key] || '').trim());
+  if (!vals.length) { showStatus('Colonna vuota', 'warn'); return; }
+  const text = vals.join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    showStatus(`${vals.length} ${vals.length === 1 ? 'valore copiato' : 'valori copiati'} ✓`, 'success');
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    showStatus(`${vals.length} ${vals.length === 1 ? 'valore copiato' : 'valori copiati'} ✓`, 'success');
+  });
+}
+
+const PASTE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>`;
+
+function incollaColonna(key, rows) {
+  const src = rows || currentRows;
+  const targetRows = src.filter(r => !r._separator && !r.nascosta);
+  if (!targetRows.length) { showStatus('Nessuna riga', 'warn'); return; }
+  navigator.clipboard.readText().then(testo => {
+    const lines = testo.split('\n').map(l => l.trim()).filter(l => l);
+    if (!lines.length) { showStatus('Appunti vuoti', 'warn'); return; }
+    let count = 0;
+    lines.forEach((line, i) => {
+      if (i < targetRows.length) { targetRows[i][key] = line; count++; }
+    });
+    renderTable();
+    markDirty();
+    showStatus(`${count} ${count === 1 ? 'cella incollata' : 'celle incollate'} ✓`, 'success');
+  }).catch(() => showStatus('Impossibile leggere gli appunti', 'error'));
+}
+
+// ── Stato ─────────────────────────────────────────────────────────────────────
+let currentTimone    = null;
+let currentDay       = null;
+let currentRows      = [];
+let isDirty          = false;
+let _saveTimer       = null;
+let savedCounts      = {};   // chiave → conteggio righe
+let expandedChannels = new Set(); // canali espansi nella vista a card
+
+// ── Chiave storage ────────────────────────────────────────────────────────────
+function storageKey() {
+  if (!currentTimone) return null;
+  const meta = TIMONI_META[currentTimone];
+  if (meta.tipo === 'tv' && currentDay) return `${currentTimone}_${currentDay}`;
+  if (meta.tipo === 'rivista')          return currentTimone;
+  return null;
+}
+
+// ── Navigazione ───────────────────────────────────────────────────────────────
+function toggleDayMenu(timone, evt) {
+  evt.stopPropagation();
+  const all = document.querySelectorAll('.days-dropdown');
+  all.forEach(d => { if (d.id !== `dd-${timone}`) d.classList.remove('show'); });
+  document.querySelectorAll('.nav-tab-wrap[id]').forEach(w => {
+    if (w.id !== `wrap-${timone}`) w.classList.remove('open');
+  });
+  const dd   = document.getElementById(`dd-${timone}`);
+  const wrap = document.getElementById(`wrap-${timone}`);
+  const open = dd.classList.toggle('show');
+  if (wrap) wrap.classList.toggle('open', open);
+
+  // Posiziona il dropdown con fixed per sfuggire all'overflow della navbar
+  if (open && wrap) {
+    const rect = wrap.getBoundingClientRect();
+    dd.style.top  = (rect.bottom + 6) + 'px';
+    dd.style.left = rect.left + 'px';
+  }
+}
+
+// ── Timone home ────────────────────────────────────────────────────────────────
+function openTimoneHome(timone) {
+  closeAllDropdowns();
+  const meta = TIMONI_META[timone];
+  if (!meta) return;
+
+  if (isDirty) { salvaTimone(true); }
+
+  currentTimone = timone;
+  currentDay    = null;
+  expandedChannels.clear();
+
+  updateAccentColor(meta.colore);
+  updateNavActive(timone);
+  hideDayBar();
+
+  // Intestazione
+  document.getElementById('thDot').style.background = meta.colore;
+  document.getElementById('thTitle').textContent    = meta.label;
+
+  // Settimana salvata
+  const saved = loadWeek(timone);
+  document.getElementById('weekDal').value = saved.dal || '';
+  document.getElementById('weekAl').value  = saved.al  || '';
+  document.getElementById('weekSavedBadge').classList.remove('show');
+
+  // Giorni (TV) o pulsante (rivista)
+  const daysWrap    = document.getElementById('thDaysWrap');
+  const rivistaWrap = document.getElementById('thRivistaWrap');
+  const daysGrid    = document.getElementById('thDaysGrid');
+
+  if (meta.tipo === 'tv') {
+    daysWrap.style.display    = '';
+    rivistaWrap.style.display = 'none';
+    daysGrid.innerHTML = (meta.giorni || []).map(g =>
+      `<button class="th-day-btn" onclick="selectTimoneDay('${timone}','${g}')">${GIORNI_LABEL[g] || g}</button>`
+    ).join('');
+  } else {
+    daysWrap.style.display    = 'none';
+    rivistaWrap.style.display = '';
+    const btn = document.getElementById('thWorkBtn');
+    btn.onclick = () => selectTimone(timone);
+  }
+
+  // Badge header
+  document.getElementById('currentBadge').classList.add('visible');
+  document.getElementById('badgeText').textContent = meta.label;
+  document.getElementById('btnSave').disabled   = true;
+  document.getElementById('btnExport').disabled = true;
+
+  // Mostra schermata
+  document.getElementById('welcome').style.display        = 'none';
+  document.getElementById('timone-home').style.display    = 'block';
+  document.getElementById('timone-section').style.display = 'none';
+}
+
+function loadWeek(timone) {
+  try { return JSON.parse(localStorage.getItem(`settimana_${timone}`)) || {}; }
+  catch { return {}; }
+}
+
+function formatWeekLabel(timone) {
+  const w = loadWeek(timone);
+  if (!w.dal && !w.al) return '';
+  const fmt = d => d
+    ? new Date(d + 'T00:00:00').toLocaleDateString('it-IT', { day:'numeric', month:'short' })
+    : '?';
+  return `${fmt(w.dal)} – ${fmt(w.al)}`;
+}
+
+function saveWeek() {
+  if (!currentTimone) return;
+  const dal = document.getElementById('weekDal').value;
+  const al  = document.getElementById('weekAl').value;
+  localStorage.setItem(`settimana_${currentTimone}`, JSON.stringify({ dal, al }));
+  const badge = document.getElementById('weekSavedBadge');
+  badge.classList.add('show');
+  clearTimeout(badge._t);
+  badge._t = setTimeout(() => badge.classList.remove('show'), 2200);
+}
+
+function selectTimoneDay(timone, day) {
+  closeAllDropdowns();
+  const meta = TIMONI_META[timone];
+  if (!meta) return;
+
+  if (isDirty) { salvaTimone(true); }  // auto-save prima di cambiare
+
+  currentTimone = timone;
+  currentDay    = day;
+  expandedChannels.clear();
+
+  updateAccentColor(meta.colore);
+  updateNavActive(timone);
+  if (day === 'biscotti') hideDayBar(); else updateDayBar(timone, day);
+  caricaTimone();
+}
+
+function selectTimone(timone) {
+  closeAllDropdowns();
+  const meta = TIMONI_META[timone];
+  if (!meta) return;
+
+  if (isDirty) { salvaTimone(true); }
+
+  currentTimone = timone;
+  currentDay    = null;
+  expandedChannels.clear();
+
+  updateAccentColor(meta.colore);
+  updateNavActive(timone);
+  hideDayBar();
+  caricaTimone();
+}
+
+function changeDay(day) {
+  if (!currentTimone) return;
+  if (isDirty) { salvaTimone(true); }
+  currentDay = day;
+  expandedChannels.clear();
+  updateDayBar(currentTimone, day);
+  caricaTimone();
+}
+
+function updateNavActive(timone) {
+  document.querySelectorAll('.nav-tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.timone === timone));
+  // TV tabs usano nav-tab-wrap per l'active state
+  document.querySelectorAll('.nav-tab-wrap[id]').forEach(w => {
+    w.classList.toggle('active', w.id === `wrap-${timone}`);
+  });
+}
+
+function updateDayBar(timone, day) {
+  const bar = document.getElementById('dayBar');
+  bar.classList.add('visible');
+  bar.querySelectorAll('.day-pill').forEach(p =>
+    p.classList.toggle('active', p.dataset.day === day));
+}
+
+function hideDayBar() {
+  document.getElementById('dayBar').classList.remove('visible');
+}
+
+function closeAllDropdowns() {
+  document.querySelectorAll('.days-dropdown').forEach(d => d.classList.remove('show'));
+  document.querySelectorAll('.nav-tab[data-tipo="tv"]').forEach(t => t.classList.remove('open'));
+}
+
+function updateAccentColor(color) {
+  document.documentElement.style.setProperty('--accent', color);
+  document.documentElement.style.setProperty('--accent-dark', shadeColor(color, -20));
+  document.documentElement.style.setProperty('--accent-light', hexToRgba(color, .12));
+  document.getElementById('badgeDot').style.background = color;
+}
+
+// ── Carica / Salva ────────────────────────────────────────────────────────────
+async function caricaTimone() {
+  const key  = storageKey();
+  if (!key) return;
+
+  stopMtimePolling();
+  stopRemotePolling();
+  hideDiffPanel();
+
+  try {
+    const res  = await fetch(`/api/load/${key}`);
+    const data = await res.json();
+    currentRows = applyTemplate(key, data.rows || []);
+  } catch (e) {
+    currentRows = applyTemplate(key, []);
+  }
+
+  _ackedMtime = await fetchMtime(key);
+
+  renderTable();
+  updateBadge();
+  setDirty(false);
+  document.getElementById('btnSave').disabled   = false;
+  document.getElementById('btnExport').disabled = false;
+  document.getElementById('welcome').style.display        = 'none';
+  document.getElementById('timone-home').style.display    = 'none';
+  document.getElementById('timone-section').style.display = 'block';
+  document.getElementById('currentBadge').classList.add('visible');
+
+  updateThumbnailSrcs();
+  if (currentRows.length && getCartella()) startMtimePolling();
+  startRemotePolling(key);
+}
+
+async function salvaTimone(silent = false) {
+  const key = storageKey();
+  if (!key) return;
+  clearTimeout(_saveTimer);
+  try {
+    await fetch(`/api/save/${key}`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ rows: currentRows.filter(r => !r._separator) })
+    });
+    setDirty(false);
+    _ackedMtime = await fetchMtime(key);
+    if (!silent) showStatus('Salvato ✓', 'success');
+    aggiornaConteggiWelcome();
+  } catch (e) {
+    showStatus('Errore salvataggio', 'error');
+  }
+}
+
+function scheduleSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => salvaTimone(true), 2000);
+}
+
+function setDirty(val) {
+  isDirty = val;
+  document.getElementById('unsavedDot').classList.toggle('show', val);
+}
+
+// ── Render tabella ────────────────────────────────────────────────────────────
+function getCols() {
+  if (currentTimone === 'nuovotv' && currentDay === 'compleanni') return COLS_COMPLEANNI;
+  if (currentTimone === 'dipiutv' && currentDay === 'biscotti')   return COLS_BISCOTTI;
+  if (currentTimone === 'divadonna')                               return COLS_TV;
+  return TIMONI_META[currentTimone]?.tipo === 'tv' ? COLS_TV : COLS_RIVISTA;
+}
+
+function renderTable() {
+  const meta  = TIMONI_META[currentTimone];
+  const cols  = getCols();
+
+  // Titolo sezione
+  document.getElementById('sectionTitle').textContent = meta.label;
+  document.getElementById('sectionDot').style.background = meta.colore;
+  const dayLbl = currentDay ? GIORNI_LABEL[currentDay] || currentDay : '';
+  document.getElementById('sectionDayLabel').textContent =
+    dayLbl ? `Settimana · ${dayLbl}` : 'Segnalazioni';
+  document.getElementById('sectionWeekLabel').textContent = formatWeekLabel(currentTimone);
+
+  // Badge
+  updateBadge();
+
+  const channelsCont = document.getElementById('channelsContainer');
+  const tableWrap    = document.querySelector('.table-wrap');
+  const isGrouped    = currentTimone === 'nuovotv' || currentTimone === 'dipiutv' || currentTimone === 'divadonna';
+
+  if (isGrouped) {
+    tableWrap.style.display    = 'none';
+    channelsCont.style.display = '';
+    // Pulsante Espandi/Comprimi tutto nella section-actions
+    const secActions = document.querySelector('.section-actions');
+    secActions.innerHTML = '';
+    const btnAll = document.createElement('button');
+    btnAll.className = 'btn-expand-all';
+    const allCanali = currentRows.filter(r => !r._separator && r.canale).map(r => r.canale);
+    const uniqueCanali = [...new Set(allCanali)];
+    const tuttiEspansi = uniqueCanali.every(c => expandedChannels.has(c));
+    btnAll.textContent = tuttiEspansi ? '⊖ Comprimi tutto' : '⊕ Espandi tutto';
+    btnAll.addEventListener('click', () => {
+      if (tuttiEspansi) expandedChannels.clear();
+      else uniqueCanali.forEach(c => expandedChannels.add(c));
+      renderTable();
+    });
+    secActions.appendChild(btnAll);
+    const hiddenCount = currentRows.filter(r => !r._separator && r.nascosta).length;
+    if (hiddenCount > 0) secActions.appendChild(_makeScopriTuttoBtn());
+    const hasCodicGrouped = currentRows.some(r => !r._separator && !r.nascosta && r.codice && r.codice.trim());
+    if (hasCodicGrouped) secActions.appendChild(_makeApriTutteBtn());
+    buildChannelGroupView(channelsCont);
+    return;
+  }
+
+  tableWrap.style.display    = '';
+  channelsCont.style.display = 'none';
+  channelsCont.innerHTML     = '';
+
+  // Pulsante Scopri tutto nella section-actions (vista non raggruppata)
+  const secActionsFlat = document.querySelector('.section-actions');
+  secActionsFlat.innerHTML = '';
+  const hiddenCountFlat = currentRows.filter(r => !r._separator && r.nascosta).length;
+  if (hiddenCountFlat > 0) secActionsFlat.appendChild(_makeScopriTuttoBtn());
+  const hasCodicFlat = currentRows.some(r => !r._separator && !r.nascosta && r.codice && r.codice.trim());
+  if (hasCodicFlat) secActionsFlat.appendChild(_makeApriTutteBtn());
+
+  // Intestazione
+  const thead = document.getElementById('theadRow');
+  thead.innerHTML = '';
+  const thN = document.createElement('th'); thN.textContent = '#'; thead.appendChild(thN);
+  cols.forEach(col => {
+    const th = document.createElement('th');
+    if (col.w && col.w !== 'auto') th.style.width = col.w;
+    if (col.key === 'titolo' || col.key === 'personaggio') {
+      const inner = document.createElement('div');
+      inner.style.cssText = 'display:flex;align-items:center;gap:2px;';
+      const lbl = document.createElement('span'); lbl.textContent = col.label;
+      const btnCol = document.createElement('button');
+      btnCol.className = 'btn-copy-col';
+      btnCol.title = `Copia colonna ${col.label}`;
+      btnCol.innerHTML = COPY_SVG;
+      btnCol.addEventListener('click', e => { e.stopPropagation(); copiaColonna(col.key); });
+      const btnPasteCol = document.createElement('button');
+      btnPasteCol.className = 'btn-copy-col';
+      btnPasteCol.title = `Incolla colonna ${col.label}`;
+      btnPasteCol.innerHTML = PASTE_SVG;
+      btnPasteCol.addEventListener('click', e => { e.stopPropagation(); incollaColonna(col.key); });
+      inner.appendChild(lbl); inner.appendChild(btnCol); inner.appendChild(btnPasteCol);
+      th.appendChild(inner);
+    } else {
+      th.textContent = col.label;
+    }
+    thead.appendChild(th);
+  });
+  const thA = document.createElement('th'); thA.className = 'col-azioni'; thA.textContent = ''; thead.appendChild(thA);
+
+  // Corpo
+  const tbody = document.getElementById('timoneBody');
+  tbody.innerHTML = '';
+
+  if (!currentRows.length) {
+    const tr = document.createElement('tr'); tr.className = 'empty-row';
+    const td = document.createElement('td'); td.colSpan = cols.length + 2;
+    td.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:8px"><span style="font-size:32px">📋</span><span>Nessuna segnalazione ancora.</span></div>';
+    tr.appendChild(td); tbody.appendChild(tr);
+    return;
+  }
+
+  currentRows.forEach((row, i) => buildRow(row, i, tbody));
+}
+
+function _makeScopriTuttoBtn() {
+  const btn = document.createElement('button');
+  btn.className = 'btn-expand-all';
+  btn.textContent = '👁 Scopri tutto';
+  btn.addEventListener('click', () => {
+    currentRows.forEach(r => { if (!r._separator) r.nascosta = false; });
+    renderTable();
+    markDirty();
+  });
+  return btn;
+}
+
+function _makeApriTutteBtn() {
+  const btn = document.createElement('button');
+  btn.className = 'btn-expand-all';
+  btn.textContent = '🖼 Apri tutte le canvas';
+  btn.addEventListener('click', () => apriTutteLeCanvas());
+  return btn;
+}
+
+function buildRow(row, i, tbody, colsOverride) {
+  if (row._separator) {
+    const tr = document.createElement('tr'); tr.className = 'row-separator';
+    const td = document.createElement('td'); td.colSpan = (colsOverride || getCols()).length + 2;
+    tr.appendChild(td); tbody.appendChild(tr);
+    return;
+  }
+
+  if (row.nascosta) {
+    const tr = document.createElement('tr');
+    tr.className = 'row-hidden-placeholder' + (row.colore ? ` row-${row.colore}` : '');
+    tr.dataset.id = row.id;
+    const td = document.createElement('td'); td.colSpan = (colsOverride || getCols()).length + 2;
+    const inner = document.createElement('div'); inner.className = 'row-hidden-inner';
+    inner.innerHTML = `<span>—</span><span>Riga nascosta${row.codice ? ' · <span class="row-hidden-codice">' + row.codice + '</span>' : ''}</span>`;
+    const btnS = document.createElement('button'); btnS.className = 'btn-scopri';
+    btnS.textContent = 'Scopri';
+    btnS.addEventListener('click', () => { row.nascosta = false; renderTable(); markDirty(); });
+    inner.appendChild(btnS);
+    td.appendChild(inner); tr.appendChild(td); tbody.appendChild(tr);
+    return;
+  }
+
+  const cols = colsOverride || getCols();
+  const tr   = document.createElement('tr');
+  tr.dataset.id = row.id;
+  if (row.colore) tr.classList.add(`row-${row.colore}`);
+
+  // Numero
+  const tdN = document.createElement('td'); tdN.className = 'td-num';
+  tdN.textContent = i + 1;
+  tr.appendChild(tdN);
+
+  // Colonne dati
+  cols.forEach(col => {
+    const td = document.createElement('td');
+
+    if (col.input === 'codice') {
+      td.className = 'td-codice';
+      const wrap = document.createElement('div'); wrap.className = 'codice-wrap';
+      const img = document.createElement('img');
+      img.className = 'codice-thumb'; img.alt = ''; img.src = THUMB_PH;
+      img.dataset.codice = row.codice || '';
+      img.onerror = () => { img.src = THUMB_PH; };
+      img.title = 'Apri canvas';
+      img.addEventListener('click', (e) => { e.stopPropagation(); if (row.codice) openTif(row.codice); });
+
+      const cod = document.createElement('div');
+      cod.contentEditable = 'true'; cod.className = 'codice-editable';
+      cod.setAttribute('data-placeholder', 'codice'); cod.spellcheck = false;
+      cod.textContent = row.codice || '';
+      cod.addEventListener('input', () => {
+        row.codice = cod.textContent.trim();
+        img.dataset.codice = row.codice;
+        updateSingleThumb(img, row.codice);
+        markDirty();
+      });
+      wrap.appendChild(img); wrap.appendChild(cod);
+      if (row.sotto_canale !== undefined) {
+        const sc = document.createElement('input');
+        sc.type = 'text'; sc.className = 'sotto-canale-input';
+        sc.value = row.sotto_canale || '';
+        sc.placeholder = '—';
+        sc.addEventListener('input', () => { row.sotto_canale = sc.value; markDirty(); });
+        wrap.appendChild(sc);
+      }
+      if (row.asterisco) {
+        const ast = document.createElement('span');
+        ast.className = 'asterisco-badge'; ast.textContent = '✱';
+        ast.title = 'Asterisco grafico';
+        wrap.appendChild(ast);
+      }
+      td.appendChild(wrap);
+
+    } else if (col.input === 'canale') {
+      td.className = 'td-canale';
+      if (row.canale_editabile) {
+        const inp = document.createElement('input');
+        inp.type = 'text'; inp.className = 'canale-input';
+        inp.value = row.canale || '';
+        inp.placeholder = 'Sky Cinema';
+        inp.addEventListener('input', () => { row.canale = inp.value; markDirty(); });
+        td.appendChild(inp);
+      } else {
+        td.textContent = row.canale || '';
+      }
+
+    } else if (col.input === 'orario') {
+      td.className = 'td-orario';
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.className = 'orario-input';
+      inp.placeholder = '21:20'; inp.value = row[col.key] || '';
+      inp.maxLength = 5;
+      inp.addEventListener('input', () => { row[col.key] = inp.value; markDirty(); });
+      td.appendChild(inp);
+
+    } else if (col.input === 'tipo') {
+      const sel = document.createElement('select');
+      sel.className = 'tipo-select';
+      [['Programma TV','📺 TV'],['Film','🎬 Film']].forEach(([v,lbl]) => {
+        const opt = document.createElement('option');
+        opt.value = v; opt.textContent = lbl;
+        if (row.tipo === v) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.addEventListener('change', () => { row.tipo = sel.value; markDirty(); });
+      td.appendChild(sel);
+
+    } else if (col.input === 'trama') {
+      const ta = document.createElement('textarea');
+      ta.className = 'trama-cell'; ta.placeholder = col.placeholder || '';
+      ta.value = row[col.key] || '';
+      ta.addEventListener('input', () => { row[col.key] = ta.value; markDirty(); });
+      td.appendChild(ta);
+
+    } else if (col.key === 'titolo' || col.key === 'personaggio') {
+      if (col.key === 'titolo') td.classList.add('td-titolo');
+      if (col.key === 'personaggio') td.classList.add('td-personaggio');
+      td.dataset.key = col.key;
+      td.style.padding = '0';
+
+      const wrap = document.createElement('div');
+      wrap.className = 'cell-copy-wrap';
+
+      const editDiv = document.createElement('div');
+      editDiv.contentEditable = 'true';
+      editDiv.className = 'cell-editable-inner';
+      editDiv.setAttribute('data-placeholder', col.placeholder || '');
+      editDiv.textContent = row[col.key] || '';
+      editDiv.spellcheck = false;
+      editDiv.addEventListener('input', () => {
+        row[col.key] = editDiv.textContent.trim();
+        syncGoogleLink(tr, row);
+        markDirty();
+      });
+      editDiv.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          const all = [...tr.querySelectorAll('[contenteditable]:not(.codice-editable)')];
+          const idx = all.indexOf(editDiv);
+          if (idx < all.length - 1) all[idx + 1].focus();
+          else addRow();
+        }
+      });
+      if (col.key === 'titolo')      setupTitoloAutocomplete(editDiv, tr, row);
+      if (col.key === 'personaggio') setupPersonaggioAutocomplete(editDiv, tr, row);
+
+      const btnC = document.createElement('button');
+      btnC.className = 'btn-copy-cell';
+      btnC.title = 'Copia';
+      btnC.innerHTML = COPY_SVG;
+      btnC.addEventListener('mousedown', e => {
+        e.preventDefault();
+        copiaCella(row[col.key] || '');
+      });
+
+      const btnP = document.createElement('button');
+      btnP.className = 'btn-copy-cell';
+      btnP.title = 'Incolla';
+      btnP.innerHTML = PASTE_SVG;
+      btnP.addEventListener('mousedown', e => {
+        e.preventDefault();
+        navigator.clipboard.readText().then(testo => {
+          testo = testo.trim();
+          if (!testo) { showStatus('Appunti vuoti', 'warn'); return; }
+          editDiv.textContent = testo;
+          row[col.key] = testo;
+          syncGoogleLink(tr, row);
+          markDirty();
+          showStatus('Incollato ✓', 'success');
+        }).catch(() => showStatus('Impossibile leggere gli appunti', 'error'));
+      });
+
+      wrap.appendChild(editDiv);
+      wrap.appendChild(btnC);
+      wrap.appendChild(btnP);
+      td.appendChild(wrap);
+
+    } else {
+      td.contentEditable = 'true';
+      td.setAttribute('data-placeholder', col.placeholder || '');
+      td.dataset.key = col.key;
+      td.textContent = row[col.key] || '';
+      td.spellcheck = false;
+      td.addEventListener('input', () => {
+        row[col.key] = td.textContent.trim();
+        markDirty();
+      });
+      td.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          const tds = [...tr.querySelectorAll('[contenteditable]:not(.codice-editable)')];
+          const idx = tds.indexOf(td);
+          if (idx < tds.length - 1) tds[idx + 1].focus();
+          else addRow();
+        }
+      });
+    }
+
+    tr.appendChild(td);
+  });
+
+  // ── Azioni ──────────────────────────────────────────────────────────────────
+  const tdA = document.createElement('td');
+  const divA = document.createElement('div'); divA.className = 'row-actions';
+
+  // Bollino colore (cicla: bianco → giallo → grigio)
+  const dot = document.createElement('div');
+  dot.className = 'color-dot'; dot.title = 'Cambia colore riga';
+  dot.addEventListener('click', () => {
+    const cycle = ['', 'giallo', 'grigio'];
+    const next  = cycle[(cycle.indexOf(row.colore || '') + 1) % cycle.length];
+    setRowColor(tr, row, next); markDirty();
+    // Aggiorna la mini-strip corrispondente senza re-render
+    const card = tr.closest('.channel-card');
+    if (card) {
+      const allTrs = [...card.querySelectorAll('tbody tr')];
+      const idx    = allTrs.indexOf(tr);
+      const strip  = card.querySelectorAll('.ch-strip')[idx];
+      if (strip) strip.className = 'ch-strip ' + (next === 'giallo' ? 'strip-giallo' : next === 'grigio' ? 'strip-grigio' : 'strip-vuota');
+    }
+  });
+
+  // Google Immagini
+  const btnG = document.createElement('a');
+  btnG.className = 'btn-google'; btnG.target = '_blank'; btnG.rel = 'noopener';
+  btnG.title = 'Cerca su Google Immagini';
+  btnG.innerHTML = '🔍';
+  syncGoogleLink(tr, row, btnG);
+
+  // Nascondi riga (la esclude da copia/incolla ma la conserva)
+  const btnDel = document.createElement('button');
+  btnDel.className = 'btn-nascondi'; btnDel.title = 'Nascondi riga';
+  btnDel.textContent = 'Nascondi';
+  btnDel.addEventListener('click', () => {
+    row.nascosta = true;
+    renderTable(); markDirty();
+  });
+
+  divA.appendChild(dot); divA.appendChild(btnG); divA.appendChild(btnDel);
+  tdA.appendChild(divA);
+  tr.appendChild(tdA);
+  tbody.appendChild(tr);
+
+  // Carica thumbnail se c'è già cartella+codice
+  if (row.codice) updateSingleThumb(tr.querySelector('img.codice-thumb'), row.codice);
+}
+
+function addRow() {
+  const cols = getCols();
+  const row  = { id: Date.now() + Math.random().toString(36).slice(2), tipo: 'Programma TV' };
+  cols.forEach(col => { row[col.key] = ''; });
+  currentRows.push(row);
+  renderTable();
+  markDirty();
+  // Focus prima cella editabile dell'ultima riga
+  const lastRow = document.getElementById('timoneBody').lastElementChild;
+  if (lastRow) {
+    const first = lastRow.querySelector('[contenteditable], input, select');
+    if (first) { first.focus(); }
+  }
+}
+
+// ── Vista raggruppata per canale (NuovoTV) ───────────────────────────────────
+function buildChannelGroupView(container) {
+  container.innerHTML = '';
+
+  const colsNoCanale = getCols().filter(c => c.key !== 'canale');
+
+  // Raggruppa righe consecutive per canale
+  const groups = [];
+  let cur = null;
+  for (const row of currentRows) {
+    if (row._separator) {
+      if (cur) { groups.push(cur); cur = null; }
+      groups.push({ _separator: true });
+      continue;
+    }
+    const canale = row.canale || '';
+    if (!canale) continue;
+    if (!cur || cur.canale !== canale) {
+      if (cur) groups.push(cur);
+      cur = { canale, rows: [] };
+    }
+    cur.rows.push(row);
+  }
+  if (cur) groups.push(cur);
+
+  groups.forEach(group => {
+    if (group._separator) {
+      const sep = document.createElement('div');
+      sep.className = 'channel-separator';
+      sep.innerHTML = '<span>Seconda parte</span>';
+      container.appendChild(sep);
+      return;
+    }
+
+    const color    = channelColor(group.canale);
+    const isOpen   = expandedChannels.has(group.canale);
+    const card     = document.createElement('div');
+    card.className = 'channel-card' + (isOpen ? ' expanded' : '');
+    card.style.setProperty('--ch', color);
+
+    // ── Header cliccabile ────────────────────────────────────────────────────
+    const hdr = document.createElement('div');
+    hdr.className = 'channel-card-hdr';
+    const emoji = (currentDay === 'compleanni') ? '🎂'
+                : (currentDay === 'biscotti')   ? '🍪'
+                : (currentTimone === 'divadonna') ? (group.canale === 'Foto' ? '📷' : '📦')
+                : '📺';
+    hdr.innerHTML = `<span>${emoji} ${group.canale}</span><span class="ch-count">${group.rows.length}</span><span class="ch-chevron">▶</span>`;
+    hdr.addEventListener('click', () => {
+      if (expandedChannels.has(group.canale)) expandedChannels.delete(group.canale);
+      else expandedChannels.add(group.canale);
+      card.classList.toggle('expanded');
+      // Risincronizza colori righe e mini-strip dai dati
+      const allTrs = [...card.querySelectorAll('tbody tr')];
+      const allStrips = [...card.querySelectorAll('.ch-strip')];
+      group.rows.forEach((row, idx) => {
+        const tr = allTrs[idx];
+        if (tr) {
+          tr.className = tr.className.replace(/\brow-\w+\b/g, '').trim();
+          if (row.colore) tr.classList.add(`row-${row.colore}`);
+        }
+        const strip = allStrips[idx];
+        if (strip) strip.className = 'ch-strip ' + (row.nascosta ? 'strip-nascosta' : row.colore === 'giallo' ? 'strip-giallo' : row.colore === 'grigio' ? 'strip-grigio' : 'strip-vuota');
+      });
+      // aggiorna testo pulsante globale senza re-render completo
+      const uniqueCanali = [...new Set(currentRows.filter(r => !r._separator && r.canale).map(r => r.canale))];
+      const btnAll = document.querySelector('.btn-expand-all');
+      if (btnAll) btnAll.textContent = uniqueCanali.every(c => expandedChannels.has(c)) ? '⊖ Comprimi tutto' : '⊕ Espandi tutto';
+    });
+    card.appendChild(hdr);
+
+    // ── Mini-strips (una per riga, colorate come il bollino) ─────────────────
+    const strips = document.createElement('div');
+    strips.className = 'channel-mini-strips';
+    group.rows.forEach(row => {
+      const s = document.createElement('div');
+      s.className = 'ch-strip ' + (row.nascosta ? 'strip-nascosta' : row.colore === 'giallo' ? 'strip-giallo' : row.colore === 'grigio' ? 'strip-grigio' : 'strip-vuota');
+      strips.appendChild(s);
+    });
+    card.appendChild(strips);
+
+    // ── Body collassabile ────────────────────────────────────────────────────
+    const body   = document.createElement('div');
+    body.className = 'channel-card-body';
+    const scroll = document.createElement('div');
+    scroll.className = 'table-scroll';
+    const table  = document.createElement('table');
+    table.className = 'timone-table';
+
+    const thead    = document.createElement('thead');
+    const theadTr  = document.createElement('tr');
+    const thNum    = document.createElement('th'); thNum.textContent = '#';
+    theadTr.appendChild(thNum);
+    colsNoCanale.forEach(col => {
+      const th = document.createElement('th');
+      if (col.w && col.w !== 'auto') th.style.width = col.w;
+      if (col.key === 'titolo' || col.key === 'personaggio') {
+        const inner = document.createElement('div');
+        inner.style.cssText = 'display:flex;align-items:center;gap:2px;';
+        const lbl = document.createElement('span'); lbl.textContent = col.label;
+        const btnCol = document.createElement('button');
+        btnCol.className = 'btn-copy-col';
+        btnCol.title = `Copia colonna ${col.label}`;
+        btnCol.innerHTML = COPY_SVG;
+        const groupRows = group.rows;
+        btnCol.addEventListener('click', e => { e.stopPropagation(); copiaColonna(col.key, groupRows); });
+        const btnPasteCol = document.createElement('button');
+        btnPasteCol.className = 'btn-copy-col';
+        btnPasteCol.title = `Incolla colonna ${col.label}`;
+        btnPasteCol.innerHTML = PASTE_SVG;
+        btnPasteCol.addEventListener('click', e => { e.stopPropagation(); incollaColonna(col.key, groupRows); });
+        inner.appendChild(lbl); inner.appendChild(btnCol); inner.appendChild(btnPasteCol);
+        th.appendChild(inner);
+      } else {
+        th.textContent = col.label;
+      }
+      theadTr.appendChild(th);
+    });
+    const thAz = document.createElement('th'); thAz.className = 'col-azioni';
+    theadTr.appendChild(thAz);
+    thead.appendChild(theadTr);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    group.rows.forEach((row, localIdx) => buildRow(row, localIdx, tbody, colsNoCanale));
+    table.appendChild(tbody);
+
+    scroll.appendChild(table);
+    body.appendChild(scroll);
+    card.appendChild(body);
+    container.appendChild(card);
+  });
+}
+
+function markDirty() {
+  setDirty(true);
+  scheduleSave();
+}
+
+// ── Badge ─────────────────────────────────────────────────────────────────────
+function updateBadge() {
+  const meta  = TIMONI_META[currentTimone] || {};
+  const day   = currentDay ? ` · ${GIORNI_LABEL[currentDay] || currentDay}` : '';
+  document.getElementById('badgeText').textContent = (meta.label || '') + day;
+}
+
+// ── Esporta ───────────────────────────────────────────────────────────────────
+function esportaTimone() {
+  if (!currentRows.length) { showStatus('Nessuna riga da esportare', 'warn'); return; }
+  const cols = getCols();
+  const lines = currentRows.map((row, i) => {
+    return cols.map(c => row[c.key] || '').join('\t');
+  });
+  const header = cols.map(c => c.label).join('\t');
+  const text = [header, ...lines].join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    showStatus(`${currentRows.length} righe copiate ✓`, 'success');
+  }).catch(() => {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    showStatus(`${currentRows.length} righe copiate ✓`, 'success');
+  });
+}
+
+// ── Colore riga ───────────────────────────────────────────────────────────────
+function setRowColor(tr, row, color) {
+  row.colore = color;
+  tr.className = tr.className.replace(/\brow-\w+\b/g, '').trim();
+  if (color) tr.classList.add(`row-${color}`);
+  // Il CSS aggiorna automaticamente il dot tramite tr.row-* > .color-dot
+}
+
+// ── Google Immagini ───────────────────────────────────────────────────────────
+function googleImgUrl(row) {
+  const q = (row.personaggio || row.titolo || '').trim();
+  return q
+    ? `https://www.google.com/search?q=${encodeURIComponent(q + ' 2026')}&tbs=qdr:y&tbm=isch`
+    : null;
+}
+
+function syncGoogleLink(tr, row, btnOverride) {
+  const btn = btnOverride || tr.querySelector('.btn-google');
+  if (!btn) return;
+  const url = googleImgUrl(row);
+  if (url) { btn.href = url; btn.classList.remove('disabled'); }
+  else      { btn.removeAttribute('href'); btn.classList.add('disabled'); }
+}
+
+// ── Apri .tif ────────────────────────────────────────────────────────────────
+async function openTif(codice, silent = false) {
+  const cartella = getCartella();
+  if (!cartella) { if (!silent) showStatus('Seleziona prima la cartella .tif', 'warn'); return false; }
+  if (!codice)   { if (!silent) showStatus('Codice non inserito', 'warn'); return false; }
+  try {
+    const res = await fetch('/open_tif', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ codice, cartella })
+    });
+    if (res.ok) {
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = `${codice}.tif`; a.click();
+      URL.revokeObjectURL(url);
+      if (!silent) showStatus(`${codice}.tif scaricato`, 'success');
+      return true;
+    } else {
+      if (!silent) showStatus(`Non trovato: ${codice}.tif`, 'warn');
+      return false;
+    }
+  } catch (e) { if (!silent) showStatus('Errore apertura file', 'error'); return false; }
+}
+
+async function apriTutteLeCanvas() {
+  const cartella = getCartella();
+  if (!cartella) { showStatus('Seleziona prima la cartella .tif', 'warn'); return; }
+  const righe = getRigheVisibili().filter(r => r.codice && r.codice.trim());
+  if (!righe.length) { showStatus('Nessuna canvas visibile da aprire', 'warn'); return; }
+  showStatus(`Apertura ${righe.length} canvas…`, 'info');
+  let ok = 0, notFound = 0;
+  for (const r of righe) {
+    const esito = await openTif(r.codice.trim(), true);
+    if (esito) ok++; else notFound++;
+    await new Promise(res => setTimeout(res, 150));
+  }
+  const msg = notFound
+    ? `Aperte ${ok}/${righe.length} canvas (${notFound} non trovate)`
+    : `${ok} canvas aperte`;
+  showStatus(msg, notFound ? 'warn' : 'success');
+}
+
+// ── Thumbnail ─────────────────────────────────────────────────────────────────
+function thumbUrl(codice) {
+  const cartella = getCartella();
+  if (!cartella || !codice) return null;
+  return `/tif_thumb?cartella=${encodeURIComponent(cartella)}&codice=${encodeURIComponent(codice)}&t=${Date.now()}`;
+}
+
+function updateThumbnailSrcs() {
+  document.querySelectorAll('img.codice-thumb').forEach(img => {
+    const codice = img.dataset.codice;
+    img.src = (codice && getCartella()) ? thumbUrl(codice) : THUMB_PH;
+  });
+}
+
+function updateSingleThumb(img, codice) {
+  if (!img) return;
+  img.dataset.codice = codice || '';
+  img.src = (codice && getCartella()) ? thumbUrl(codice) : THUMB_PH;
+}
+
+// ── Cartella (percorso fisso per timone/giorno) ───────────────────────────────
+function getCartella() {
+  if (!currentTimone) return null;
+  const entry = CARTELLE_FOTO[currentTimone];
+  if (!entry) return null;
+  if (typeof entry === 'string') return entry;
+  return entry[currentDay] || null;
+}
+
+// ── Polling mtime (auto-grigio) ───────────────────────────────────────────────
+let _mtimeTimer    = null;
+let _initialMtimes = {};
+
+function startMtimePolling() {
+  stopMtimePolling();
+  const cartella = getCartella();
+  if (!cartella || !currentRows.length) return;
+  fetchInitialMtimes(cartella).then(() => {
+    _mtimeTimer = setInterval(() => checkMtimes(cartella), 3000);
+  });
+}
+
+function stopMtimePolling() {
+  if (_mtimeTimer) { clearInterval(_mtimeTimer); _mtimeTimer = null; }
+  _initialMtimes = {};
+}
+
+async function fetchInitialMtimes(cartella) {
+  const files = currentRows.filter(r => r.codice).map(r => ({ cartella, codice: r.codice }));
+  if (!files.length) return;
+  try {
+    const res = await fetch('/tif_mtime', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ files })
+    });
+    _initialMtimes = await res.json();
+  } catch {}
+}
+
+async function checkMtimes(cartella) {
+  const files = currentRows.filter(r => r.codice).map(r => ({ cartella, codice: r.codice }));
+  if (!files.length) return;
+  try {
+    const res  = await fetch('/tif_mtime', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ files })
+    });
+    const current = await res.json();
+    Object.entries(current).forEach(([codice, mtime]) => {
+      if (mtime === null) return;
+      const init = _initialMtimes[codice];
+      if (init === undefined) { _initialMtimes[codice] = mtime; return; }
+      if (mtime !== init) {
+        // Il file è stato modificato → riga diventa grigia
+        const row = currentRows.find(r => r.codice === codice);
+        const tr  = document.querySelector(`tr[data-id="${row?.id}"]`);
+        if (row && tr && (row.colore === '' || row.colore === 'giallo' || !row.colore)) {
+          setRowColor(tr, row, 'grigio');
+          markDirty();
+        }
+        _initialMtimes[codice] = mtime;
+        // Aggiorna la thumbnail
+        const img = tr?.querySelector('img.codice-thumb');
+        updateSingleThumb(img, codice);
+      }
+    });
+  } catch {}
+}
+
+// ── Autocomplete titoli ───────────────────────────────────────────────────────
+let _acTimer   = null;
+let _acItems   = [];
+let _acIdx     = -1;
+let _acTd      = null;
+let _acTr      = null;
+let _acRow     = null;
+let _acApplyFn = null;
+const _acDd    = document.getElementById('ac-dropdown');
+
+function setupTitoloAutocomplete(td, tr, row) {
+  td.addEventListener('input', () => {
+    const text = td.textContent.trim();
+    clearTimeout(_acTimer);
+    if (text.length < 2) { hideAc(); return; }
+    _acTimer = setTimeout(() => fetchAc(td, tr, row, text), 260);
+  });
+  td.addEventListener('keydown', (e) => {
+    if (_acDd.style.display !== 'block') return;
+    if      (e.key === 'ArrowDown')              { e.preventDefault(); moveAc(1); }
+    else if (e.key === 'ArrowUp')                { e.preventDefault(); moveAc(-1); }
+    else if (e.key === 'Enter' && _acIdx >= 0)   { e.preventDefault(); _acApplyFn?.(_acItems[_acIdx]); }
+    else if (e.key === 'Escape')                 { e.preventDefault(); hideAc(); }
+  });
+  td.addEventListener('blur', () => setTimeout(hideAc, 180));
+}
+
+function setupPersonaggioAutocomplete(td, tr, row) {
+  td.addEventListener('input', () => {
+    const text = td.textContent.trim();
+    clearTimeout(_acTimer);
+    if (text.length < 2) { hideAc(); return; }
+    _acTimer = setTimeout(() => fetchPersonaggioAc(td, tr, row, text), 260);
+  });
+  td.addEventListener('keydown', (e) => {
+    if (_acDd.style.display !== 'block') return;
+    if      (e.key === 'ArrowDown')              { e.preventDefault(); moveAc(1); }
+    else if (e.key === 'ArrowUp')                { e.preventDefault(); moveAc(-1); }
+    else if (e.key === 'Enter' && _acIdx >= 0)   { e.preventDefault(); _acApplyFn?.(_acItems[_acIdx]); }
+    else if (e.key === 'Escape')                 { e.preventDefault(); hideAc(); }
+  });
+  td.addEventListener('blur', () => setTimeout(hideAc, 180));
+}
+
+async function fetchAc(td, tr, row, term) {
+  _acApplyFn = applyAc;
+  try {
+    const res  = await fetch('/autocomplete_titoli', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ q: term })
+    });
+    const data = await res.json();
+    if (!Array.isArray(data) || !data.length) { hideAc(); return; }
+    _acTd = td; _acTr = tr; _acRow = row;
+    renderAcDropdown(data, td);
+  } catch { hideAc(); }
+}
+
+async function fetchPersonaggioAc(td, tr, row, term) {
+  _acApplyFn = applyPersonaggioAc;
+  try {
+    const res  = await fetch('/autocomplete_personaggi', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ q: term })
+    });
+    const data = await res.json();
+    if (!Array.isArray(data) || !data.length) { hideAc(); return; }
+    _acTd = td; _acTr = tr; _acRow = row;
+    renderPersonaggioDropdown(data, td);
+  } catch { hideAc(); }
+}
+
+function esc(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderAcDropdown(items, td) {
+  _acItems = items; _acIdx = -1;
+  const rect = td.getBoundingClientRect();
+  _acDd.style.left  = rect.left + 'px';
+  _acDd.style.top   = (rect.bottom + 4) + 'px';
+  _acDd.style.width = Math.max(320, rect.width) + 'px';
+  _acDd.innerHTML   = '';
+  items.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'ac-item';
+    const parts = [item.tipo, item.edizione ? `Stag. ${item.edizione}` : '', item.anno].filter(Boolean);
+    div.innerHTML =
+      `<span class="ac-item-title">${esc(item.titolo)}</span>` +
+      (parts.length ? `<span class="ac-item-meta">${esc(parts.join(' · '))}</span>` : '');
+    div.addEventListener('mousedown', (e) => { e.preventDefault(); applyAc(item); });
+    div.addEventListener('mouseover', () => { _acIdx = i; highlightAc(); });
+    _acDd.appendChild(div);
+  });
+  _acDd.style.display = 'block';
+}
+
+function moveAc(dir) {
+  _acIdx = Math.max(0, Math.min(_acItems.length - 1, _acIdx + dir));
+  highlightAc();
+  _acDd.children[_acIdx]?.scrollIntoView({ block: 'nearest' });
+}
+
+function highlightAc() {
+  Array.from(_acDd.children).forEach((el, i) =>
+    el.classList.toggle('ac-sel', i === _acIdx));
+}
+
+function applyAc(item) {
+  if (!_acTd || !_acTr || !_acRow) return;
+
+  // Titolo
+  _acTd.textContent = item.titolo;
+  _acRow.titolo = item.titolo;
+
+  // Tipo
+  const sel = _acTr.querySelector('.tipo-select');
+  if (sel) {
+    const val = item.codtipo === 'FILM' ? 'Film' : 'Programma TV';
+    sel.value = val;
+    _acRow.tipo = val;
+  }
+
+  // Anno
+  const tdAnno = _acTr.querySelector('[data-key="anno"]');
+  if (tdAnno && item.anno) { tdAnno.textContent = String(item.anno); _acRow.anno = String(item.anno); }
+
+  // Stagione
+  const tdStag = _acTr.querySelector('[data-key="stagione"]');
+  if (tdStag && item.edizione) {
+    const m = String(item.edizione).match(/(\d+)/);
+    if (m) { tdStag.textContent = m[1]; _acRow.stagione = m[1]; }
+  }
+
+  markDirty();
+  hideAc();
+
+  // Sposta il cursore alla fine del testo inserito
+  const range = document.createRange();
+  range.selectNodeContents(_acTd);
+  range.collapse(false);
+  const sel2 = window.getSelection();
+  sel2.removeAllRanges();
+  sel2.addRange(range);
+}
+
+function renderPersonaggioDropdown(items, td) {
+  _acItems = items; _acIdx = -1;
+  const rect = td.getBoundingClientRect();
+  _acDd.style.left  = rect.left + 'px';
+  _acDd.style.top   = (rect.bottom + 4) + 'px';
+  _acDd.style.width = Math.max(260, rect.width) + 'px';
+  _acDd.innerHTML   = '';
+  items.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'ac-item';
+    div.innerHTML = `<span class="ac-item-title">${esc(item.nome)}</span>` +
+      (item.professione ? `<span class="ac-item-meta">${esc(item.professione)}</span>` : '');
+    div.addEventListener('mousedown', (e) => { e.preventDefault(); applyPersonaggioAc(item); });
+    div.addEventListener('mouseover', () => { _acIdx = i; highlightAc(); });
+    _acDd.appendChild(div);
+  });
+  _acDd.style.display = 'block';
+}
+
+function applyPersonaggioAc(item) {
+  if (!_acTd || !_acTr || !_acRow) return;
+  _acTd.textContent  = item.nome;
+  _acRow.personaggio = item.nome;
+  markDirty();
+  hideAc();
+  const range = document.createRange();
+  range.selectNodeContents(_acTd);
+  range.collapse(false);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+function hideAc() {
+  _acDd.style.display = 'none';
+  _acItems = []; _acIdx = -1; _acTd = null; _acTr = null; _acRow = null;
+}
+
+document.addEventListener('mousedown', (e) => {
+  if (!_acDd.contains(e.target)) hideAc();
+});
+
+// ── Rilevamento modifiche remote ─────────────────────────────────────────────
+let _ackedMtime     = null;
+let _remoteTimer    = null;
+let _pendingNewRows = null;
+let _pendingNewMtime = null;
+
+const CAMPO_LABEL = {
+  orario:'Orario', tipo:'Tipo', titolo:'Titolo', personaggio:'Personaggio',
+  rubrica:'Rubrica', anno:'Anno', stagione:'Stagione', trama:'Trama',
+  note:'Note', colore:'Colore',
+};
+
+async function fetchMtime(key) {
+  try {
+    const r = await fetch(`/api/mtime/${key}`);
+    const d = await r.json();
+    return d.mtime;
+  } catch { return null; }
+}
+
+function startRemotePolling(key) {
+  stopRemotePolling();
+  _remoteTimer = setInterval(async () => {
+    const mtime = await fetchMtime(key);
+    if (!mtime || !_ackedMtime || mtime <= _ackedMtime + 0.5) return;
+    // Qualcuno ha salvato — scarica e confronta
+    try {
+      const res     = await fetch(`/api/load/${key}`);
+      const data    = await res.json();
+      const newRows = applyTemplate(key, data.rows || []);
+      const diff    = computeDiff(currentRows, newRows);
+      if (diff.length) {
+        showDiffPanel(diff, newRows, mtime);
+      } else {
+        _ackedMtime = mtime; // salvataggio senza differenze visibili
+      }
+    } catch {}
+  }, 8000);
+}
+
+function stopRemotePolling() {
+  if (_remoteTimer) { clearInterval(_remoteTimer); _remoteTimer = null; }
+}
+
+function computeDiff(oldRows, newRows) {
+  const FIELDS = Object.keys(CAMPO_LABEL);
+  const changes = [];
+  for (const nr of newRows) {
+    if (nr._separator) continue;
+    const or = oldRows.find(r => r.codice === nr.codice);
+    if (!or) continue;
+    const diffs = FIELDS
+      .filter(f => (or[f] || '') !== (nr[f] || ''))
+      .map(f => ({ campo: f, da: or[f] || '', a: nr[f] || '' }));
+    if (diffs.length) changes.push({ codice: nr.codice, canale: nr.canale || '', diffs });
+  }
+  return changes;
+}
+
+function showDiffPanel(diff, newRows, newMtime) {
+  _pendingNewRows  = newRows;
+  _pendingNewMtime = newMtime;
+
+  const d = new Date(newMtime * 1000);
+  document.getElementById('rcTime').textContent =
+    d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+
+  const list = document.getElementById('rcDiffList');
+  list.innerHTML = '';
+  const shown = diff.slice(0, 8);
+  shown.forEach(ch => {
+    const div = document.createElement('div'); div.className = 'rc-row-change';
+    const head = document.createElement('div'); head.className = 'rc-row-head';
+    head.textContent = `${ch.codice}${ch.canale ? '  ·  ' + ch.canale : ''}`;
+    div.appendChild(head);
+    ch.diffs.forEach(fd => {
+      const row = document.createElement('div'); row.className = 'rc-field-change';
+      row.innerHTML =
+        `<span class="rc-campo">${CAMPO_LABEL[fd.campo] || fd.campo}</span>` +
+        (fd.da ? `<span class="rc-da">${esc(fd.da)}</span><span class="rc-arrow">→</span>` : '') +
+        `<span class="rc-a">${esc(fd.a) || '<em style="color:#cbd5e1">vuoto</em>'}</span>`;
+      div.appendChild(row);
+    });
+    list.appendChild(div);
+  });
+  if (diff.length > 8) {
+    const more = document.createElement('div');
+    more.style.cssText = 'font-size:11px;color:var(--muted);padding:4px 0';
+    more.textContent = `… e altre ${diff.length - 8} righe modificate`;
+    list.appendChild(more);
+  }
+
+  document.getElementById('remoteChangeBanner').classList.add('show');
+}
+
+function hideDiffPanel() {
+  document.getElementById('remoteChangeBanner').classList.remove('show');
+  _pendingNewRows = null; _pendingNewMtime = null;
+}
+
+function rcReload() {
+  if (_pendingNewRows) {
+    currentRows = _pendingNewRows;
+    _ackedMtime = _pendingNewMtime;
+    renderTable(); setDirty(false);
+    updateThumbnailSrcs();
+    if (currentRows.length && getCartella()) startMtimePolling();
+    showStatus('Timone aggiornato ✓', 'success');
+  }
+  hideDiffPanel();
+}
+
+function rcIgnore() {
+  _ackedMtime = _pendingNewMtime;
+  hideDiffPanel();
+}
+
+// ── Conteggi welcome ──────────────────────────────────────────────────────────
+async function aggiornaConteggiWelcome() {
+  try {
+    const res  = await fetch('/api/list');
+    const data = await res.json();
+    savedCounts = data;
+    // Aggiorna contatori nelle card
+    Object.entries(TIMONI_META).forEach(([key, meta]) => {
+      const el = document.getElementById(`cnt-${key}`);
+      if (!el) return;
+      if (meta.tipo === 'tv') {
+        const days = ['sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi'];
+        const tot  = days.reduce((s, d) => s + (data[`${key}_${d}`]?.gialli || 0), 0);
+        el.textContent = tot || '0';
+      } else {
+        el.textContent = data[key]?.gialli || '0';
+      }
+    });
+  } catch {}
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+let _statusTimer;
+function showStatus(msg, type = 'success') {
+  const bar = document.getElementById('statusBar');
+  bar.textContent = msg;
+  bar.className   = `status-bar show ${type}`;
+  clearTimeout(_statusTimer);
+  _statusTimer = setTimeout(() => { bar.classList.remove('show'); }, 2600);
+}
+
+// ── Colori ────────────────────────────────────────────────────────────────────
+function shadeColor(hex, percent) {
+  const num  = parseInt(hex.replace('#', ''), 16);
+  const r    = Math.min(255, Math.max(0, (num >> 16) + percent));
+  const g    = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + percent));
+  const b    = Math.min(255, Math.max(0, (num & 0xff) + percent));
+  return `#${((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1)}`;
+}
+function hexToRgba(hex, alpha) {
+  const num = parseInt(hex.replace('#',''), 16);
+  return `rgba(${num>>16},${(num>>8)&255},${num&255},${alpha})`;
+}
+
+// ── Click fuori dai dropdown ──────────────────────────────────────────────────
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.nav-tab-wrap')) closeAllDropdowns();
+});
+
+function getRigheVisibili() {
+  const isGrouped = currentTimone === 'nuovotv' ||
+    currentTimone === 'dipiutv' ||
+    currentTimone === 'divadonna';
+  return currentRows.filter(r => {
+    if (r._separator || r.nascosta) return false;
+    if (isGrouped && r.canale && !expandedChannels.has(r.canale)) return false;
+    return true;
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+aggiornaConteggiWelcome();
+</script>
+</body>
+</html>

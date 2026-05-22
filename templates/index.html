@@ -2635,12 +2635,15 @@ async function openTif(codice, silent = false) {
       body: JSON.stringify({ codice, cartella })
     });
     if (res.ok) {
-      const blob = await res.blob();
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href = url; a.download = `${codice}.tif`; a.click();
-      URL.revokeObjectURL(url);
-      if (!silent) showStatus(`${codice}.tif scaricato`, 'success');
+      const ct = res.headers.get('Content-Type') || '';
+      if (ct.includes('image/tiff')) {
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url; a.download = `${codice}.tif`; a.click();
+        URL.revokeObjectURL(url);
+      }
+      if (!silent) showStatus(`Aperto: ${codice}.tif`, 'success');
       return true;
     } else {
       if (!silent) showStatus(`Non trovato: ${codice}.tif`, 'warn');

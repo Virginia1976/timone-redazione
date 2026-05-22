@@ -12,6 +12,7 @@ import os
 import pathlib
 import re
 import subprocess
+import sys
 from datetime import timedelta
 
 import requests
@@ -362,6 +363,9 @@ def open_tif():
     if not os.path.isfile(path):
         return jsonify({'ok': False, 'path': path})
     try:
+        if sys.platform == 'darwin':
+            subprocess.Popen(['open', path])
+            return jsonify({'ok': True, 'method': 'local'})
         return Response(
             open(path, 'rb').read(),
             mimetype='image/tiff',

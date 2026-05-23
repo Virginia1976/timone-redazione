@@ -29,6 +29,8 @@ EDITOR_USERNAME    = os.environ.get('EDITOR_USERNAME', '')
 EDITOR_PASSWORD    = os.environ.get('EDITOR_PASSWORD', '')
 REDAZIONE_USERNAME = os.environ.get('REDAZIONE_USERNAME', '')
 REDAZIONE_PASSWORD = os.environ.get('REDAZIONE_PASSWORD', '')
+ADMIN_USERNAME     = os.environ.get('ADMIN_USERNAME', '')
+ADMIN_PASSWORD     = os.environ.get('ADMIN_PASSWORD', '')
 
 _attivi_raw = os.environ.get('TIMONI_ATTIVI', '')
 TIMONI_ATTIVI = [t.strip() for t in _attivi_raw.split(',') if t.strip()] if _attivi_raw else []
@@ -176,7 +178,11 @@ def login():
     if request.method == 'POST':
         u = request.form.get('username', '')
         pw = request.form.get('password', '')
-        if u and pw and u == EDITOR_USERNAME and pw == EDITOR_PASSWORD:
+        if u and pw and ADMIN_USERNAME and u == ADMIN_USERNAME and pw == ADMIN_PASSWORD:
+            session.permanent = True
+            session['ruolo'] = 'admin'
+            return redirect(url_for('index'))
+        elif u and pw and u == EDITOR_USERNAME and pw == EDITOR_PASSWORD:
             session.permanent = True
             session['ruolo'] = 'editor'
             return redirect(url_for('index'))
@@ -197,9 +203,11 @@ def logout():
 
 @app.route('/api/config')
 def get_config():
+    ruolo = session.get('ruolo', '')
+    timoni = list(KNOWN_TIMONI) if ruolo == 'admin' else TIMONI_ATTIVI
     return jsonify({
-        'ruolo':         session.get('ruolo', ''),
-        'timoni_attivi': TIMONI_ATTIVI,
+        'ruolo':         ruolo,
+        'timoni_attivi': timoni,
     })
 
 
@@ -314,7 +322,7 @@ def chiudi_week(timone):
 
 @app.route('/api/week/<timone>/riapri', methods=['POST'])
 def riapri_week(timone):
-    if session.get('ruolo') != 'editor':
+    if session.get('ruolo') not in ('editor', 'admin'):
         return jsonify({'ok': False, 'error': 'non autorizzato'}), 403
     if timone not in KNOWN_TIMONI:
         return jsonify({'error': 'timone non valido'}), 400
@@ -430,7 +438,7 @@ def tif_thumb():
 
 @app.route('/open_tif', methods=['POST'])
 def open_tif():
-    if session.get('ruolo') != 'editor':
+    if session.get('ruolo') not in ('editor', 'admin'):
         return jsonify({'ok': False, 'error': 'non autorizzato'}), 403
     data     = request.json or {}
     cartella = data.get('cartella', '').strip()
@@ -439,20 +447,21 @@ def open_tif():
     if not path:
         return jsonify({'ok': False, 'error': 'parametri non validi'}), 400
 
+    if os.path.isfile(path):
+        try:
+            subprocess.Popen(['open', path])
+            return jsonify({'ok': True, 'method': 'local'})
+        except Exception as e:
+            print(f'[OPEN_TIF] {e}')
+            return jsonify({'ok': False, 'error': str(e)}), 500
+
     if EDITORIALE_SMB:
         idx = cartella.upper().find('/EDITORIALE/')
         rel = cartella[idx + len('/EDITORIALE'):] if idx >= 0 else '/' + os.path.basename(cartella)
         smb_url = EDITORIALE_SMB.rstrip('/') + rel.rstrip('/') + '/' + codice + '.tif'
         return jsonify({'ok': True, 'method': 'smb', 'url': smb_url})
 
-    if not os.path.isfile(path):
-        return jsonify({'ok': False, 'path': path})
-    try:
-        subprocess.Popen(['open', path])
-        return jsonify({'ok': True, 'method': 'local'})
-    except Exception as e:
-        print(f'[OPEN_TIF] {e}')
-        return jsonify({'ok': False, 'error': str(e)}), 500
+    return jsonify({'ok': False, 'path': path})
 
 
 @app.route('/tif_mtime', methods=['POST'])

@@ -102,6 +102,11 @@ body {
 }
 .btn-export:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 .btn-export:disabled { opacity: .4; cursor: not-allowed; }
+.btn-logout {
+  background: none; border: 1.5px solid var(--border); color: var(--muted);
+  font-size: 13px;
+}
+.btn-logout:hover { border-color: #dc2626; color: #dc2626; background: #fef2f2; }
 
 /* ── Main nav ──────────────────────────────────────────────────────────────── */
 .main-nav {
@@ -722,6 +727,13 @@ tr.row-grigio .color-dot { background: #94a3b8; border-color: #64748b; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
 .rc-arrow { color: var(--muted); flex-shrink: 0; }
 
+/* ── Giorno badge (Nuovo timone) ─────────────────────────────────────────── */
+.td-giorno { white-space: nowrap; text-align: center; }
+.giorno-badge {
+  display: inline-block; padding: 2px 9px; border-radius: 10px;
+  font-size: 11px; font-weight: 700; letter-spacing: .02em; white-space: nowrap;
+}
+
 /* ── Channel groups (NuovoTV) ─────────────────────────────────────────────── */
 .channels-container { display: flex; flex-direction: column; gap: 18px; }
 .channel-card {
@@ -978,6 +990,11 @@ tr.row-grigio .color-dot { background: #94a3b8; border-color: #64748b; }
     <button class="btn-header btn-save" id="btnSave" disabled onclick="salvaTimone()">
       💾 Salva
     </button>
+    <form method="post" action="/logout" style="margin:0">
+      <button type="submit" class="btn-header btn-logout" title="Esci dall'account">
+        Esci
+      </button>
+    </form>
   </div>
 </header>
 
@@ -1049,7 +1066,7 @@ tr.row-grigio .color-dot { background: #94a3b8; border-color: #64748b; }
   <div class="nav-sep"></div>
 
   <!-- Riviste (senza giorni) -->
-  <button class="nav-tab" data-timone="nuovo" data-tipo="rivista" onclick="openTimoneHome('nuovo')">
+  <button class="nav-tab" data-timone="nuovo" data-tipo="tv-unico" onclick="openTimoneHome('nuovo')">
     <span class="nav-dot"></span>
     Nuovo
   </button>
@@ -1098,7 +1115,7 @@ tr.row-grigio .color-dot { background: #94a3b8; border-color: #64748b; }
       <div class="card-count"><strong id="cnt-tvmia">—</strong> <span class="card-count-label">giallini</span></div>
     </div>
     <div class="timone-card" data-timone="nuovo" onclick="openTimoneHome('nuovo')" style="cursor:pointer">
-      <div class="card-icon">📰</div>
+      <div class="card-icon">📺</div>
       <div class="card-label">Nuovo</div>
       <div class="card-count"><strong id="cnt-nuovo">—</strong> <span class="card-count-label">giallini</span></div>
     </div>
@@ -1211,7 +1228,7 @@ const TIMONI_META = {
                giorni:['sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi','biscotti'] },
   tvmia:     { label:'TvMia',       tipo:'tv',      colore:'#0891B2', icona:'📺',
                giorni:['sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi'] },
-  nuovo:     { label:'Nuovo',       tipo:'rivista', colore:'#059669', icona:'📰' },
+  nuovo:     { label:'Nuovo',       tipo:'tv-unico', colore:'#059669', icona:'📺' },
   dipiu:     { label:'Dipiu',       tipo:'rivista', colore:'#DB2777', icona:'📰' },
   divadonna: { label:'Diva e Donna',tipo:'rivista', colore:'#E11D48', icona:'📰' },
 };
@@ -1260,6 +1277,12 @@ function channelColor(c) { return CANALE_COLORS[c] || '#64748b'; }
 
 const THUMB_PH = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='50'%3E%3Crect width='72' height='50' rx='5' fill='%23f0f2f5'/%3E%3Ctext x='50%25' y='54%25' text-anchor='middle' dy='.3em' fill='%23c8d0db' font-size='22'%3E%F0%9F%96%BC%3C/text%3E%3C/svg%3E";
 
+const GIORNO_COLORS = {
+  'Sabato':    '#E91E63', 'Domenica':  '#9C27B0',
+  'Lunedì':   '#3F51B5', 'Martedì':   '#009688',
+  'Mercoledì':'#FF5722', 'Giovedì':   '#FF9800', 'Venerdì':  '#607D8B',
+};
+
 // Colonne per TV
 const COLS_TV = [
   { key:'codice',      label:'',               w:'88px',  input:'codice' },
@@ -1290,6 +1313,21 @@ const COLS_COMPLEANNI = [
   { key:'personaggio', label:'Personaggio',    w:'auto',  input:'text',  placeholder:'Chi compie gli anni…' },
   { key:'trama',       label:'Trama',          w:'220px', input:'trama', placeholder:'Trama…' },
   { key:'note',        label:'Note Redaz.',    w:'180px', input:'trama', placeholder:'Note…' },
+];
+
+// Colonne per Nuovo (TV con giorno + canale in un unico timone)
+const COLS_NUOVO = [
+  { key:'codice',      label:'',               w:'88px',  input:'codice' },
+  { key:'giorno',      label:'Giorno',         w:'100px', input:'giorno' },
+  { key:'canale',      label:'Canale',         w:'90px',  input:'canale' },
+  { key:'orario',      label:'Orario',         w:'76px',  input:'orario' },
+  { key:'tipo',        label:'Tipo',           w:'108px', input:'tipo' },
+  { key:'titolo',      label:'Titolo',         w:'auto',  input:'text',  placeholder:'Titolo del programma…' },
+  { key:'personaggio', label:'Personaggio',    w:'150px', input:'text',  placeholder:'Protagonista…' },
+  { key:'anno',        label:'Anno',           w:'62px',  input:'text',  placeholder:'—' },
+  { key:'stagione',    label:'Stagione',       w:'62px',  input:'text',  placeholder:'—' },
+  { key:'trama',       label:'Trama',          w:'150px', input:'trama', placeholder:'Trama…' },
+  { key:'note',        label:'Note Redaz.',    w:'150px', input:'trama', placeholder:'Note…' },
 ];
 
 // Colonne per Biscotti (DipiùTV) — senza Orario, Tipo, Anno, Stagione
@@ -1471,6 +1509,72 @@ TEMPLATES['divadonna'] = [
   { codice:'box1',   canale:'Box', asterisco: true },
   { codice:'box2',   canale:'Box' },
   { codice:'box3',   canale:'Box' },
+];
+
+// Template Nuovo (un unico timone con tutti e 7 i giorni)
+TEMPLATES['nuovo'] = [
+  { codice:'SAB1', giorno:'Sabato',    canale:'RAI 1'    },
+  { codice:'SAB2', giorno:'Sabato',    canale:'RAI 2'    },
+  { codice:'SAB3', giorno:'Sabato',    canale:'RAI 3'    },
+  { codice:'SAB4', giorno:'Sabato',    canale:'CANALE 5' },
+  { codice:'SAB5', giorno:'Sabato',    canale:'ITALIA 1' },
+  { codice:'SAB6', giorno:'Sabato',    canale:'RETE 4'   },
+  { codice:'SAB7', giorno:'Sabato',    canale:'LA7'      },
+  { codice:'SAB9', giorno:'Sabato',    canale:'LA7 D'    },
+  { _separator: true, id: 'sep_nuovo_dom' },
+  { codice:'DOM1', giorno:'Domenica',  canale:'RAI 1'    },
+  { codice:'DOM2', giorno:'Domenica',  canale:'RAI 2'    },
+  { codice:'DOM3', giorno:'Domenica',  canale:'RAI 3'    },
+  { codice:'DOM4', giorno:'Domenica',  canale:'CANALE 5' },
+  { codice:'DOM5', giorno:'Domenica',  canale:'ITALIA 1' },
+  { codice:'DOM6', giorno:'Domenica',  canale:'RETE 4'   },
+  { codice:'DOM7', giorno:'Domenica',  canale:'LA7'      },
+  { codice:'DOM9', giorno:'Domenica',  canale:'LA7 D'    },
+  { _separator: true, id: 'sep_nuovo_lun' },
+  { codice:'LUN1', giorno:'Lunedì',    canale:'RAI 1'    },
+  { codice:'LUN2', giorno:'Lunedì',    canale:'RAI 2'    },
+  { codice:'LUN3', giorno:'Lunedì',    canale:'RAI 3'    },
+  { codice:'LUN4', giorno:'Lunedì',    canale:'CANALE 5' },
+  { codice:'LUN5', giorno:'Lunedì',    canale:'ITALIA 1' },
+  { codice:'LUN6', giorno:'Lunedì',    canale:'RETE 4'   },
+  { codice:'LUN7', giorno:'Lunedì',    canale:'LA7'      },
+  { codice:'LUN9', giorno:'Lunedì',    canale:'LA7 D'    },
+  { _separator: true, id: 'sep_nuovo_mar' },
+  { codice:'MAR1', giorno:'Martedì',   canale:'RAI 1'    },
+  { codice:'MAR2', giorno:'Martedì',   canale:'RAI 2'    },
+  { codice:'MAR3', giorno:'Martedì',   canale:'RAI 3'    },
+  { codice:'MAR4', giorno:'Martedì',   canale:'CANALE 5' },
+  { codice:'MAR5', giorno:'Martedì',   canale:'ITALIA 1' },
+  { codice:'MAR6', giorno:'Martedì',   canale:'RETE 4'   },
+  { codice:'MAR7', giorno:'Martedì',   canale:'LA7'      },
+  { codice:'MAR9', giorno:'Martedì',   canale:'LA7 D'    },
+  { _separator: true, id: 'sep_nuovo_mer' },
+  { codice:'MER1', giorno:'Mercoledì', canale:'RAI 1'    },
+  { codice:'MER2', giorno:'Mercoledì', canale:'RAI 2'    },
+  { codice:'MER3', giorno:'Mercoledì', canale:'RAI 3'    },
+  { codice:'MER4', giorno:'Mercoledì', canale:'CANALE 5' },
+  { codice:'MER5', giorno:'Mercoledì', canale:'ITALIA 1' },
+  { codice:'MER6', giorno:'Mercoledì', canale:'RETE 4'   },
+  { codice:'MER7', giorno:'Mercoledì', canale:'LA7'      },
+  { codice:'MER9', giorno:'Mercoledì', canale:'LA7 D'    },
+  { _separator: true, id: 'sep_nuovo_gio' },
+  { codice:'GIO1', giorno:'Giovedì',   canale:'RAI 1'    },
+  { codice:'GIO2', giorno:'Giovedì',   canale:'RAI 2'    },
+  { codice:'GIO3', giorno:'Giovedì',   canale:'RAI 3'    },
+  { codice:'GIO4', giorno:'Giovedì',   canale:'CANALE 5' },
+  { codice:'GIO5', giorno:'Giovedì',   canale:'ITALIA 1' },
+  { codice:'GIO6', giorno:'Giovedì',   canale:'RETE 4'   },
+  { codice:'GIO7', giorno:'Giovedì',   canale:'LA7'      },
+  { codice:'GIO9', giorno:'Giovedì',   canale:'LA7 D'    },
+  { _separator: true, id: 'sep_nuovo_ven' },
+  { codice:'VEN1', giorno:'Venerdì',   canale:'RAI 1'    },
+  { codice:'VEN2', giorno:'Venerdì',   canale:'RAI 2'    },
+  { codice:'VEN3', giorno:'Venerdì',   canale:'RAI 3'    },
+  { codice:'VEN4', giorno:'Venerdì',   canale:'CANALE 5' },
+  { codice:'VEN5', giorno:'Venerdì',   canale:'ITALIA 1' },
+  { codice:'VEN6', giorno:'Venerdì',   canale:'RETE 4'   },
+  { codice:'VEN7', giorno:'Venerdì',   canale:'LA7'      },
+  { codice:'VEN9', giorno:'Venerdì',   canale:'LA7 D'    },
 ];
 
 // Genera i template degli altri giorni dal sabato sostituendo il prefisso
@@ -1781,7 +1885,7 @@ function applyTemplate(key, savedRows) {
   const merged = template.map(tpl => {
     if (tpl._separator) return { ...tpl };
     const saved = savedRows.find(r => r.codice === tpl.codice);
-    if (saved) return { ...saved, codice: tpl.codice, canale: tpl.canale, sotto_canale: (tpl.sotto_canale !== undefined) ? (saved.sotto_canale !== undefined ? saved.sotto_canale : tpl.sotto_canale) : undefined, ...(tpl.asterisco ? { asterisco: true } : {}) };
+    if (saved) return { ...saved, codice: tpl.codice, canale: tpl.canale, ...(tpl.giorno !== undefined ? { giorno: tpl.giorno } : {}), sotto_canale: (tpl.sotto_canale !== undefined) ? (saved.sotto_canale !== undefined ? saved.sotto_canale : tpl.sotto_canale) : undefined, ...(tpl.asterisco ? { asterisco: true } : {}) };
     return { id: newId(), tipo: 'Programma TV', ...tpl };
   });
   const extras = savedRows.filter(r => r.codice && !templateCodici.has(r.codice));
@@ -1851,8 +1955,8 @@ let expandedChannels = new Set(); // canali espansi nella vista a card
 function storageKey() {
   if (!currentTimone) return null;
   const meta = TIMONI_META[currentTimone];
-  if (meta.tipo === 'tv' && currentDay) return `${currentTimone}_${currentDay}`;
-  if (meta.tipo === 'rivista')          return currentTimone;
+  if (meta.tipo === 'tv' && currentDay)              return `${currentTimone}_${currentDay}`;
+  if (meta.tipo === 'rivista' || meta.tipo === 'tv-unico') return currentTimone;
   return null;
 }
 
@@ -1971,7 +2075,7 @@ function updateWeekUI(week) {
       chip.textContent = '🔒 Settimana chiusa';
       chip.className   = 'week-status-chip chiusa';
       btnChiudi.style.display = 'none';
-      btnRiapri.style.display = (_ruolo === 'editor') ? '' : 'none';
+      btnRiapri.style.display = (_ruolo === 'editor' || _ruolo === 'admin') ? '' : 'none';
     } else {
       chip.textContent = '🟢 Aperta';
       chip.className   = 'week-status-chip';
@@ -2026,7 +2130,7 @@ async function chiudiSettimana() {
   const label = (w?.dal || w?.al)
     ? [w.dal, w.al].filter(Boolean).join(' – ')
     : 'questa settimana';
-  const puo_riaprire = (_ruolo === 'editor') ? 'Potrai riaprirla in qualsiasi momento.' : 'Solo gli editor potranno riaprirla.';
+  const puo_riaprire = (_ruolo === 'editor' || _ruolo === 'admin') ? 'Potrai riaprirla in qualsiasi momento.' : 'Solo gli editor potranno riaprirla.';
   const ok = confirm(`Chiudere la settimana (${label})?\n\nI dati diventeranno accessibili solo in lettura.\n${puo_riaprire}`);
   if (!ok) return;
   try {
@@ -2226,6 +2330,7 @@ function getCols() {
   if (currentTimone === 'nuovotv' && currentDay === 'compleanni') return COLS_COMPLEANNI;
   if (currentTimone === 'dipiutv' && currentDay === 'biscotti')   return COLS_BISCOTTI;
   if (currentTimone === 'divadonna')                               return COLS_TV;
+  if (currentTimone === 'nuovo')                                   return COLS_NUOVO;
   return TIMONI_META[currentTimone]?.tipo === 'tv' ? COLS_TV : COLS_RIVISTA;
 }
 
@@ -2238,7 +2343,8 @@ function renderTable() {
   document.getElementById('sectionDot').style.background = meta.colore;
   const dayLbl = currentDay ? GIORNI_LABEL[currentDay] || currentDay : '';
   document.getElementById('sectionDayLabel').textContent =
-    dayLbl ? `Settimana · ${dayLbl}` : 'Segnalazioni';
+    dayLbl ? `Settimana · ${dayLbl}` :
+    meta?.tipo === 'tv-unico' ? 'Settimana · Sab–Ven' : 'Segnalazioni';
   document.getElementById('sectionWeekLabel').textContent = formatWeekLabel();
 
   // Badge
@@ -2246,7 +2352,8 @@ function renderTable() {
 
   const channelsCont = document.getElementById('channelsContainer');
   const tableWrap    = document.querySelector('.table-wrap');
-  const isGrouped    = currentTimone === 'nuovotv' || currentTimone === 'dipiutv' || currentTimone === 'divadonna';
+  const isGrouped    = currentTimone === 'nuovotv' || currentTimone === 'dipiutv' || currentTimone === 'divadonna' || currentTimone === 'nuovo';
+  const groupField   = currentTimone === 'nuovo' ? 'giorno' : 'canale';
 
   if (isGrouped) {
     tableWrap.style.display    = 'none';
@@ -2256,13 +2363,12 @@ function renderTable() {
     secActions.innerHTML = '';
     const btnAll = document.createElement('button');
     btnAll.className = 'btn-expand-all';
-    const allCanali = currentRows.filter(r => !r._separator && r.canale).map(r => r.canale);
-    const uniqueCanali = [...new Set(allCanali)];
-    const tuttiEspansi = uniqueCanali.every(c => expandedChannels.has(c));
+    const uniqueVals = [...new Set(currentRows.filter(r => !r._separator && r[groupField]).map(r => r[groupField]))];
+    const tuttiEspansi = uniqueVals.every(v => expandedChannels.has(v));
     btnAll.textContent = tuttiEspansi ? '⊖ Comprimi tutto' : '⊕ Espandi tutto';
     btnAll.addEventListener('click', () => {
       if (tuttiEspansi) expandedChannels.clear();
-      else uniqueCanali.forEach(c => expandedChannels.add(c));
+      else uniqueVals.forEach(v => expandedChannels.add(v));
       renderTable();
     });
     secActions.appendChild(btnAll);
@@ -2270,7 +2376,7 @@ function renderTable() {
     if (hiddenCount > 0) secActions.appendChild(_makeScopriTuttoBtn());
     const hasCodicGrouped = currentRows.some(r => !r._separator && !r.nascosta && r.codice && r.codice.trim());
     if (hasCodicGrouped) { const b = _makeApriTutteBtn(); if (b) secActions.appendChild(b); }
-    buildChannelGroupView(channelsCont);
+    buildChannelGroupView(channelsCont, groupField);
     return;
   }
 
@@ -2442,6 +2548,16 @@ function buildRow(row, i, tbody, colsOverride) {
       } else {
         td.textContent = row.canale || '';
       }
+
+    } else if (col.input === 'giorno') {
+      td.className = 'td-giorno';
+      const badge = document.createElement('span');
+      badge.className = 'giorno-badge';
+      badge.textContent = row.giorno || '';
+      const gc = GIORNO_COLORS[row.giorno] || '#64748b';
+      badge.style.background = hexToRgba(gc, .15);
+      badge.style.color = gc;
+      td.appendChild(badge);
 
     } else if (col.input === 'orario') {
       td.className = 'td-orario';
@@ -2618,26 +2734,27 @@ function addRow() {
   }
 }
 
-// ── Vista raggruppata per canale (NuovoTV) ───────────────────────────────────
-function buildChannelGroupView(container) {
+// ── Vista raggruppata per canale (NuovoTV) o per giorno (Nuovo) ──────────────
+function buildChannelGroupView(container, groupField = 'canale') {
   container.innerHTML = '';
 
-  const colsNoCanale = getCols().filter(c => c.key !== 'canale');
+  const isGiorno   = groupField === 'giorno';
+  const colsFilt   = getCols().filter(c => c.key !== groupField);
 
-  // Raggruppa righe consecutive per canale
+  // Raggruppa righe consecutive per groupField (salta separatori se per giorno)
   const groups = [];
   let cur = null;
   for (const row of currentRows) {
     if (row._separator) {
       if (cur) { groups.push(cur); cur = null; }
-      groups.push({ _separator: true });
+      if (!isGiorno) groups.push({ _separator: true });
       continue;
     }
-    const canale = row.canale || '';
-    if (!canale) continue;
-    if (!cur || cur.canale !== canale) {
+    const val = row[groupField] || '';
+    if (!val) continue;
+    if (!cur || cur.val !== val) {
       if (cur) groups.push(cur);
-      cur = { canale, rows: [] };
+      cur = { val, rows: [] };
     }
     cur.rows.push(row);
   }
@@ -2652,23 +2769,24 @@ function buildChannelGroupView(container) {
       return;
     }
 
-    const color    = channelColor(group.canale);
-    const isOpen   = expandedChannels.has(group.canale);
-    const card     = document.createElement('div');
+    const color  = isGiorno ? (GIORNO_COLORS[group.val] || '#64748b') : channelColor(group.val);
+    const isOpen = expandedChannels.has(group.val);
+    const card   = document.createElement('div');
     card.className = 'channel-card' + (isOpen ? ' expanded' : '');
     card.style.setProperty('--ch', color);
 
     // ── Header cliccabile ────────────────────────────────────────────────────
     const hdr = document.createElement('div');
     hdr.className = 'channel-card-hdr';
-    const emoji = (currentDay === 'compleanni') ? '🎂'
+    const emoji = isGiorno ? '📅'
+                : (currentDay === 'compleanni') ? '🎂'
                 : (currentDay === 'biscotti')   ? '🍪'
-                : (currentTimone === 'divadonna') ? (group.canale === 'Foto' ? '📷' : '📦')
+                : (currentTimone === 'divadonna') ? (group.val === 'Foto' ? '📷' : '📦')
                 : '📺';
-    hdr.innerHTML = `<span>${emoji} ${group.canale}</span><span class="ch-count">${group.rows.length}</span><span class="ch-chevron">▶</span>`;
+    hdr.innerHTML = `<span>${emoji} ${group.val}</span><span class="ch-count">${group.rows.length}</span><span class="ch-chevron">▶</span>`;
     hdr.addEventListener('click', () => {
-      if (expandedChannels.has(group.canale)) expandedChannels.delete(group.canale);
-      else expandedChannels.add(group.canale);
+      if (expandedChannels.has(group.val)) expandedChannels.delete(group.val);
+      else expandedChannels.add(group.val);
       card.classList.toggle('expanded');
       // Risincronizza colori righe e mini-strip dai dati
       const allTrs = [...card.querySelectorAll('tbody tr')];
@@ -2683,9 +2801,9 @@ function buildChannelGroupView(container) {
         if (strip) strip.className = 'ch-strip ' + (row.nascosta ? 'strip-nascosta' : row.colore === 'giallo' ? 'strip-giallo' : row.colore === 'grigio' ? 'strip-grigio' : 'strip-vuota');
       });
       // aggiorna testo pulsante globale senza re-render completo
-      const uniqueCanali = [...new Set(currentRows.filter(r => !r._separator && r.canale).map(r => r.canale))];
+      const uniqueVals = [...new Set(currentRows.filter(r => !r._separator && r[groupField]).map(r => r[groupField]))];
       const btnAll = document.querySelector('.btn-expand-all');
-      if (btnAll) btnAll.textContent = uniqueCanali.every(c => expandedChannels.has(c)) ? '⊖ Comprimi tutto' : '⊕ Espandi tutto';
+      if (btnAll) btnAll.textContent = uniqueVals.every(v => expandedChannels.has(v)) ? '⊖ Comprimi tutto' : '⊕ Espandi tutto';
     });
     card.appendChild(hdr);
 
@@ -2707,11 +2825,11 @@ function buildChannelGroupView(container) {
     const table  = document.createElement('table');
     table.className = 'timone-table';
 
-    const thead    = document.createElement('thead');
-    const theadTr  = document.createElement('tr');
-    const thNum    = document.createElement('th'); thNum.textContent = '#';
+    const thead   = document.createElement('thead');
+    const theadTr = document.createElement('tr');
+    const thNum   = document.createElement('th'); thNum.textContent = '#';
     theadTr.appendChild(thNum);
-    colsNoCanale.forEach(col => {
+    colsFilt.forEach(col => {
       const th = document.createElement('th');
       if (col.w && col.w !== 'auto') th.style.width = col.w;
       if (col.key === 'titolo' || col.key === 'personaggio') {
@@ -2742,7 +2860,7 @@ function buildChannelGroupView(container) {
     table.appendChild(thead);
 
     const tbody = document.createElement('tbody');
-    group.rows.forEach((row, localIdx) => buildRow(row, localIdx, tbody, colsNoCanale));
+    group.rows.forEach((row, localIdx) => buildRow(row, localIdx, tbody, colsFilt));
     table.appendChild(tbody);
 
     scroll.appendChild(table);
@@ -3296,12 +3414,12 @@ document.addEventListener('click', (e) => {
 });
 
 function getRigheVisibili() {
-  const isGrouped = currentTimone === 'nuovotv' ||
-    currentTimone === 'dipiutv' ||
-    currentTimone === 'divadonna';
+  const isGrouped = currentTimone === 'nuovotv' || currentTimone === 'dipiutv' ||
+    currentTimone === 'divadonna' || currentTimone === 'nuovo';
+  const groupField = currentTimone === 'nuovo' ? 'giorno' : 'canale';
   return currentRows.filter(r => {
     if (r._separator || r.nascosta) return false;
-    if (isGrouped && r.canale && !expandedChannels.has(r.canale)) return false;
+    if (isGrouped && r[groupField] && !expandedChannels.has(r[groupField])) return false;
     return true;
   });
 }
@@ -3320,7 +3438,7 @@ async function initRuolo() {
   } catch {}
 }
 
-function canOpenTif() { return _ruolo === 'editor'; }
+function canOpenTif() { return _ruolo === 'editor' || _ruolo === 'admin'; }
 
 function isTimoneAttivo(id) {
   return _timoniAttivi.length === 0 || _timoniAttivi.includes(id);

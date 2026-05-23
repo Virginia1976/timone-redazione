@@ -873,6 +873,57 @@ tr.row-grigio .color-dot { background: #94a3b8; border-color: #64748b; }
   .channels-container { gap: 12px; }
 }
 
+/* ── Settimana: pulsante applica + status ─────────────────────────────────── */
+.btn-week-apply {
+  padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 700;
+  background: var(--accent); color: #fff; border: none; cursor: pointer;
+  transition: all var(--transition); white-space: nowrap; flex-shrink: 0;
+}
+.btn-week-apply:hover { background: var(--accent-dark); transform: translateY(-1px); }
+
+.week-actions-row {
+  display: none; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap;
+}
+.week-actions-row.visible { display: flex; }
+
+.week-status-chip {
+  font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px;
+  background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; white-space: nowrap;
+}
+.week-status-chip.chiusa {
+  background: #fee2e2; color: #991b1b; border-color: #fca5a5;
+}
+
+.btn-week-action {
+  padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700;
+  background: none; border: 1.5px solid var(--border); color: var(--text-soft);
+  cursor: pointer; transition: all var(--transition); white-space: nowrap;
+}
+.btn-week-action:hover { border-color: #ef4444; color: #dc2626; background: #fef2f2; }
+.btn-week-reopen { }
+.btn-week-reopen:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light) !important; }
+
+/* ── Banner settimana chiusa (in sezione timone) ─────────────────────────── */
+.week-closed-banner {
+  display: none; align-items: center; justify-content: center; gap: 10px;
+  padding: 12px 20px; margin-bottom: 18px; border-radius: 12px;
+  background: #fef2f2; color: #991b1b; font-size: 14px; font-weight: 700;
+  border: 1.5px solid #fca5a5;
+}
+.week-closed-banner.show { display: flex; }
+
+/* ── Read-only: settimana chiusa ─────────────────────────────────────────── */
+#timone-section.settimana-chiusa td[contenteditable],
+#timone-section.settimana-chiusa .cell-editable-inner,
+#timone-section.settimana-chiusa .codice-editable { pointer-events: none; opacity: .78; }
+#timone-section.settimana-chiusa .orario-input,
+#timone-section.settimana-chiusa .tipo-select,
+#timone-section.settimana-chiusa .trama-cell,
+#timone-section.settimana-chiusa .sotto-canale-input { pointer-events: none; opacity: .78; }
+#timone-section.settimana-chiusa .btn-row,
+#timone-section.settimana-chiusa .btn-nascondi,
+#timone-section.settimana-chiusa .color-dot { pointer-events: none; opacity: .25; }
+
 </style>
 </head>
 <body>
@@ -1076,12 +1127,18 @@ tr.row-grigio .color-dot { background: #94a3b8; border-color: #64748b; }
     <div class="week-picker-label">Settimana di lavorazione</div>
     <div class="week-picker-row">
       <span class="week-picker-from-to">Dal</span>
-      <input type="date" class="week-date-input" id="weekDal" onchange="saveWeek()">
+      <input type="date" class="week-date-input" id="weekDal">
       <span class="week-picker-sep">—</span>
       <span class="week-picker-from-to">Al</span>
-      <input type="date" class="week-date-input" id="weekAl" onchange="saveWeek()">
+      <input type="date" class="week-date-input" id="weekAl">
+      <button class="btn-week-apply" id="btnApplyWeek" onclick="applicaSettimana()">Applica</button>
     </div>
-    <div class="week-saved-badge" id="weekSavedBadge">Settimana salvata ✓</div>
+    <div class="week-actions-row" id="weekActionsRow">
+      <span class="week-status-chip" id="weekStatusChip"></span>
+      <button class="btn-week-action" id="btnChiudiSettimana" onclick="chiudiSettimana()">🔒 Chiudi settimana</button>
+      <button class="btn-week-action btn-week-reopen" id="btnRiapriSettimana" onclick="riapriSettimana()" style="display:none">🔓 Riapri settimana</button>
+    </div>
+    <div class="week-saved-badge" id="weekSavedBadge"></div>
   </div>
 
   <!-- Giorni (solo TV) -->
@@ -1098,6 +1155,9 @@ tr.row-grigio .color-dot { background: #94a3b8; border-color: #64748b; }
 
 <!-- ── Sezione timone ─────────────────────────────────────────────────────── -->
 <div id="timone-section">
+  <div class="week-closed-banner" id="weekClosedBanner">
+    🔒 Settimana chiusa — modalità sola lettura
+  </div>
   <div class="section-header">
     <div class="section-title-wrap">
       <div class="section-title">
@@ -1781,6 +1841,7 @@ function incollaColonna(key, rows) {
 let currentTimone    = null;
 let currentDay       = null;
 let currentRows      = [];
+let currentWeek      = null;   // metadati settimana corrente {dal,al,week_id,chiusa}
 let isDirty          = false;
 let _saveTimer       = null;
 let savedCounts      = {};   // chiave → conteggio righe
@@ -1817,7 +1878,7 @@ function toggleDayMenu(timone, evt) {
 }
 
 // ── Timone home ────────────────────────────────────────────────────────────────
-function openTimoneHome(timone) {
+async function openTimoneHome(timone) {
   closeAllDropdowns();
   const meta = TIMONI_META[timone];
   if (!meta) return;
@@ -1837,11 +1898,15 @@ function openTimoneHome(timone) {
   document.getElementById('thDot').style.background = meta.colore;
   document.getElementById('thTitle').textContent    = meta.label;
 
-  // Settimana salvata
-  const saved = loadWeek(timone);
-  document.getElementById('weekDal').value = saved.dal || '';
-  document.getElementById('weekAl').value  = saved.al  || '';
-  document.getElementById('weekSavedBadge').classList.remove('show');
+  // Settimana — carica dal server
+  const week = await fetchWeek(timone);
+  currentWeek = week;
+  document.getElementById('weekDal').value = week.dal || '';
+  document.getElementById('weekAl').value  = week.al  || '';
+  const badge = document.getElementById('weekSavedBadge');
+  badge.textContent = '';
+  badge.classList.remove('show');
+  updateWeekUI(week);
 
   // Giorni (TV) o pulsante (rivista)
   const daysWrap    = document.getElementById('thDaysWrap');
@@ -1873,29 +1938,142 @@ function openTimoneHome(timone) {
   document.getElementById('timone-section').style.display = 'none';
 }
 
-function loadWeek(timone) {
-  try { return JSON.parse(localStorage.getItem(`settimana_${timone}`)) || {}; }
-  catch { return {}; }
+// ── Settimana (API-based) ─────────────────────────────────────────────────────
+async function fetchWeek(timone) {
+  try {
+    const res = await fetch(`/api/week/${timone}`);
+    return await res.json();
+  } catch {
+    return { dal: '', al: '', week_id: '', chiusa: false };
+  }
 }
 
-function formatWeekLabel(timone) {
-  const w = loadWeek(timone);
-  if (!w.dal && !w.al) return '';
+function formatWeekLabel() {
+  const w = currentWeek;
+  if (!w || (!w.dal && !w.al)) return '';
   const fmt = d => d
     ? new Date(d + 'T00:00:00').toLocaleDateString('it-IT', { day:'numeric', month:'short' })
     : '?';
   return `${fmt(w.dal)} – ${fmt(w.al)}`;
 }
 
-function saveWeek() {
+function updateWeekUI(week) {
+  currentWeek = week;
+  const actionsRow = document.getElementById('weekActionsRow');
+  const chip       = document.getElementById('weekStatusChip');
+  const btnChiudi  = document.getElementById('btnChiudiSettimana');
+  const btnRiapri  = document.getElementById('btnRiapriSettimana');
+  if (!actionsRow) return;
+
+  if (week && (week.dal || week.al || week.week_id)) {
+    actionsRow.classList.add('visible');
+    if (week.chiusa) {
+      chip.textContent = '🔒 Settimana chiusa';
+      chip.className   = 'week-status-chip chiusa';
+      btnChiudi.style.display = 'none';
+      btnRiapri.style.display = (_ruolo === 'editor') ? '' : 'none';
+    } else {
+      chip.textContent = '🟢 Aperta';
+      chip.className   = 'week-status-chip';
+      btnChiudi.style.display = '';
+      btnRiapri.style.display = 'none';
+    }
+  } else {
+    actionsRow.classList.remove('visible');
+  }
+}
+
+async function applicaSettimana() {
   if (!currentTimone) return;
   const dal = document.getElementById('weekDal').value;
   const al  = document.getElementById('weekAl').value;
-  localStorage.setItem(`settimana_${currentTimone}`, JSON.stringify({ dal, al }));
-  const badge = document.getElementById('weekSavedBadge');
-  badge.classList.add('show');
-  clearTimeout(badge._t);
-  badge._t = setTimeout(() => badge.classList.remove('show'), 2200);
+  if (!dal && !al) { showStatus('Inserisci almeno la data di inizio settimana', 'warn'); return; }
+
+  const current        = currentWeek;
+  const hasCurrentWeek = !!(current?.week_id);
+  const changed        = dal !== (current?.week_id || '');
+
+  if (changed && hasCurrentWeek) {
+    const dalFmt = dal ? new Date(dal + 'T00:00:00').toLocaleDateString('it-IT', {day:'numeric', month:'long', year:'numeric'}) : '?';
+    const alFmt  = al  ? new Date(al  + 'T00:00:00').toLocaleDateString('it-IT', {day:'numeric', month:'long', year:'numeric'}) : '?';
+    const ok = confirm(
+      `Stai passando a una nuova settimana (${dalFmt} – ${alFmt}).\n\n` +
+      `I dati della settimana corrente restano salvati nell\'archivio.\n` +
+      `Il timone verrà azzerato per la nuova settimana.\n\n` +
+      `Continuare?`
+    );
+    if (!ok) return;
+  }
+  try {
+    const res  = await fetch(`/api/week/${currentTimone}`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ dal, al })
+    });
+    const data = await res.json();
+    updateWeekUI(data);
+    const badge = document.getElementById('weekSavedBadge');
+    badge.textContent = changed ? 'Nuova settimana applicata ✓' : 'Settimana salvata ✓';
+    badge.classList.add('show');
+    clearTimeout(badge._t);
+    badge._t = setTimeout(() => badge.classList.remove('show'), 2400);
+    if (changed) showStatus('Nuova settimana — timone azzerato', 'warn');
+  } catch { showStatus('Errore nel salvataggio della settimana', 'error'); }
+}
+
+async function chiudiSettimana() {
+  if (!currentTimone) return;
+  const w = currentWeek;
+  const label = (w?.dal || w?.al)
+    ? [w.dal, w.al].filter(Boolean).join(' – ')
+    : 'questa settimana';
+  const puo_riaprire = (_ruolo === 'editor') ? 'Potrai riaprirla in qualsiasi momento.' : 'Solo gli editor potranno riaprirla.';
+  const ok = confirm(`Chiudere la settimana (${label})?\n\nI dati diventeranno accessibili solo in lettura.\n${puo_riaprire}`);
+  if (!ok) return;
+  try {
+    await fetch(`/api/week/${currentTimone}/chiudi`, { method: 'POST' });
+    updateWeekUI({ ...currentWeek, chiusa: true });
+    showStatus('Settimana chiusa 🔒', 'success');
+    // Aggiorna il banner nella sezione timone se è visibile
+    applyClosedState(true);
+  } catch { showStatus('Errore', 'error'); }
+}
+
+async function riapriSettimana() {
+  if (!currentTimone) return;
+  try {
+    const res  = await fetch(`/api/week/${currentTimone}/riapri`, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      updateWeekUI({ ...currentWeek, chiusa: false });
+      showStatus('Settimana riaperta 🔓', 'success');
+      applyClosedState(false);
+    } else {
+      showStatus(data.error || 'Non autorizzato', 'error');
+    }
+  } catch { showStatus('Errore', 'error'); }
+}
+
+function applyClosedState(chiusa) {
+  const section = document.getElementById('timone-section');
+  const banner  = document.getElementById('weekClosedBanner');
+  const btnSave = document.getElementById('btnSave');
+  if (chiusa) {
+    section.classList.add('settimana-chiusa');
+    banner.classList.add('show');
+    btnSave.disabled = true;
+    section.querySelectorAll('[contenteditable="true"]').forEach(el => {
+      el.contentEditable = 'false';
+    });
+    section.querySelectorAll('input:not([type="hidden"]), select, textarea').forEach(el => {
+      el.disabled = true;
+    });
+  } else {
+    section.classList.remove('settimana-chiusa');
+    banner.classList.remove('show');
+    // Gli elementi vengono ri-resi dalla prossima renderTable
+    renderTable();
+    btnSave.disabled = false;
+  }
 }
 
 function selectTimoneDay(timone, day) {
@@ -1983,6 +2161,9 @@ async function caricaTimone() {
   stopRemotePolling();
   hideDiffPanel();
 
+  // Aggiorna sempre la settimana per avere lo stato più recente
+  currentWeek = await fetchWeek(currentTimone);
+
   try {
     const res  = await fetch(`/api/load/${key}`);
     const data = await res.json();
@@ -1996,12 +2177,16 @@ async function caricaTimone() {
   renderTable();
   updateBadge();
   setDirty(false);
-  document.getElementById('btnSave').disabled   = false;
+
+  const chiusa = currentWeek?.chiusa === true;
+  document.getElementById('btnSave').disabled   = chiusa;
   document.getElementById('btnExport').disabled = false;
   document.getElementById('welcome').style.display        = 'none';
   document.getElementById('timone-home').style.display    = 'none';
   document.getElementById('timone-section').style.display = 'block';
   document.getElementById('currentBadge').classList.add('visible');
+
+  applyClosedState(chiusa);
 
   updateThumbnailSrcs();
   if (currentRows.length && getCartella()) startMtimePolling();
@@ -2054,7 +2239,7 @@ function renderTable() {
   const dayLbl = currentDay ? GIORNI_LABEL[currentDay] || currentDay : '';
   document.getElementById('sectionDayLabel').textContent =
     dayLbl ? `Settimana · ${dayLbl}` : 'Segnalazioni';
-  document.getElementById('sectionWeekLabel').textContent = formatWeekLabel(currentTimone);
+  document.getElementById('sectionWeekLabel').textContent = formatWeekLabel();
 
   // Badge
   updateBadge();

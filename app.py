@@ -35,10 +35,45 @@ TIMONI_ATTIVI = [t.strip() for t in _attivi_raw.split(',') if t.strip()] if _att
 
 DATA_DIR        = pathlib.Path(__file__).parent / 'data'
 DATA_DIR.mkdir(exist_ok=True)
+WEEKS_DIR       = DATA_DIR / '_weeks'
+WEEKS_DIR.mkdir(exist_ok=True)
 EDITORIALE_BASE = os.environ.get('EDITORIALE_BASE', '/Volumes/EDITORIALE')
 EDITORIALE_SMB  = os.environ.get('EDITORIALE_SMB', '')
 
-VALID_KEY = re.compile(r'^[a-z0-9_]{1,60}$')
+VALID_KEY    = re.compile(r'^[a-z0-9_]{1,60}$')
+KNOWN_TIMONI = {'nuovotv', 'dipiutv', 'tvmia', 'nuovo', 'dipiu', 'divadonna'}
+
+
+def timone_from_key(key: str) -> str | None:
+    for t in KNOWN_TIMONI:
+        if key == t or key.startswith(t + '_'):
+            return t
+    return None
+
+
+def get_week_meta(timone: str) -> dict:
+    path = WEEKS_DIR / f'{timone}.json'
+    if path.exists():
+        try:
+            return json.loads(path.read_text('utf-8'))
+        except Exception:
+            pass
+    return {'dal': '', 'al': '', 'week_id': '', 'chiusa': False}
+
+
+def set_week_meta(timone: str, meta: dict) -> None:
+    (WEEKS_DIR / f'{timone}.json').write_text(
+        json.dumps(meta, ensure_ascii=False, indent=2), encoding='utf-8'
+    )
+
+
+def week_data_dir(timone: str) -> pathlib.Path:
+    wid = (get_week_meta(timone).get('week_id') or '').strip()
+    if not wid:
+        return DATA_DIR   # compatibilità con file esistenti nella root
+    d = DATA_DIR / wid
+    d.mkdir(exist_ok=True)
+    return d
 
 TIMONI_META = {
     'nuovotv':   {'label': 'NuovoTV',     'percorso': 'NUOVOTV',   'tipo': 'tv'},
@@ -186,9 +221,14 @@ def index():
 def save(key):
     if not VALID_KEY.match(key):
         return jsonify({'error': 'chiave non valida'}), 400
+    timone = timone_from_key(key)
+    if timone and get_week_meta(timone).get('chiusa'):
+        return jsonify({'error': 'settimana chiusa', 'chiusa': True}), 403
     data = request.get_json(force=True, silent=True) or {}
-    path = DATA_DIR / f'{key}.json'
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+    d    = week_data_dir(timone) if timone else DATA_DIR
+    (d / f'{key}.json').write_text(
+        json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8'
+    )
     return jsonify({'ok': True})
 
 
@@ -196,7 +236,9 @@ def save(key):
 def load(key):
     if not VALID_KEY.match(key):
         return jsonify({'error': 'chiave non valida'}), 400
-    path = DATA_DIR / f'{key}.json'
+    timone = timone_from_key(key)
+    d      = week_data_dir(timone) if timone else DATA_DIR
+    path   = d / f'{key}.json'
     if path.exists():
         return jsonify(json.loads(path.read_text('utf-8')))
     return jsonify({'rows': []})
@@ -206,24 +248,80 @@ def load(key):
 def data_mtime(key):
     if not VALID_KEY.match(key):
         return jsonify({'error': 'chiave non valida'}), 400
-    path = DATA_DIR / f'{key}.json'
+    timone = timone_from_key(key)
+    d      = week_data_dir(timone) if timone else DATA_DIR
+    path   = d / f'{key}.json'
     return jsonify({'mtime': path.stat().st_mtime if path.exists() else None})
 
 
 @app.route('/api/list')
 def list_timoni():
-    saved = {}
-    for f in DATA_DIR.glob('*.json'):
-        try:
-            d = json.loads(f.read_text('utf-8'))
-            rows = d.get('rows', [])
-            saved[f.stem] = {
-                'total':  len(rows),
-                'gialli': sum(1 for r in rows if r.get('colore') == 'giallo'),
-            }
-        except Exception:
-            pass
+    saved   = {}
+    checked = set()
+    for timone in KNOWN_TIMONI:
+        d = week_data_dir(timone)
+        if d in checked:
+            continue
+        checked.add(d)
+        for f in d.glob('*.json'):
+            try:
+                data = json.loads(f.read_text('utf-8'))
+                rows = data.get('rows', [])
+                saved[f.stem] = {
+                    'total':  len(rows),
+                    'gialli': sum(1 for r in rows if r.get('colore') == 'giallo'),
+                }
+            except Exception:
+                pass
     return jsonify(saved)
+
+
+# ── Gestione settimana ────────────────────────────────────────────────────────
+
+@app.route('/api/week/<timone>', methods=['GET'])
+def get_week(timone):
+    if timone not in KNOWN_TIMONI:
+        return jsonify({'error': 'timone non valido'}), 400
+    return jsonify(get_week_meta(timone))
+
+
+@app.route('/api/week/<timone>', methods=['POST'])
+def set_week(timone):
+    if timone not in KNOWN_TIMONI:
+        return jsonify({'error': 'timone non valido'}), 400
+    body    = request.get_json(force=True, silent=True) or {}
+    dal     = body.get('dal', '').strip()
+    al      = body.get('al', '').strip()
+    current = get_week_meta(timone)
+    new_wid = dal   # la data di inizio è l'identificatore della settimana
+    changed = new_wid != current.get('week_id', '')
+    new_meta = {'dal': dal, 'al': al, 'week_id': new_wid, 'chiusa': False}
+    set_week_meta(timone, new_meta)
+    if new_wid:
+        (DATA_DIR / new_wid).mkdir(exist_ok=True)
+    return jsonify({'ok': True, 'changed': changed, **new_meta})
+
+
+@app.route('/api/week/<timone>/chiudi', methods=['POST'])
+def chiudi_week(timone):
+    if timone not in KNOWN_TIMONI:
+        return jsonify({'error': 'timone non valido'}), 400
+    meta = get_week_meta(timone)
+    meta['chiusa'] = True
+    set_week_meta(timone, meta)
+    return jsonify({'ok': True})
+
+
+@app.route('/api/week/<timone>/riapri', methods=['POST'])
+def riapri_week(timone):
+    if session.get('ruolo') != 'editor':
+        return jsonify({'ok': False, 'error': 'non autorizzato'}), 403
+    if timone not in KNOWN_TIMONI:
+        return jsonify({'error': 'timone non valido'}), 400
+    meta = get_week_meta(timone)
+    meta['chiusa'] = False
+    set_week_meta(timone, meta)
+    return jsonify({'ok': True})
 
 
 @app.route('/autocomplete_titoli', methods=['POST'])
@@ -375,4 +473,4 @@ def tif_mtime():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5010, debug=True)
+    app.run(host='0.0.0.0', port=5010, debug=True, use_reloader=False)

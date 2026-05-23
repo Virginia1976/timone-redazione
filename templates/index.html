@@ -995,10 +995,15 @@ tr.row-grigio .color-dot { background: #94a3b8; border-color: #64748b; }
 }
 .scont-result-item {
   display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border);
+  padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border);
   background: var(--bg); transition: all .12s;
 }
 .scont-result-item:hover { border-color: #7C3AED; background: rgba(124,58,237,.05); }
+.scont-result-thumb {
+  width: 72px; height: 54px; object-fit: cover; flex-shrink: 0;
+  border-radius: 6px; background: #e2e8f0;
+  border: 1px solid var(--border);
+}
 .scont-result-info { flex: 1; min-width: 0; }
 .scont-result-nome {
   font-size: 13px; font-weight: 700; color: var(--text);
@@ -3674,15 +3679,25 @@ function showScontModal(results, query, row, tr) {
     results.forEach(r => {
       const item = document.createElement('div');
       item.className = 'scont-result-item';
+
+      const thumb = document.createElement('img');
+      thumb.className = 'scont-result-thumb';
+      thumb.alt = '';
+      thumb.loading = 'lazy';
+      thumb.src = `/tlp_thumb?rel=${encodeURIComponent(r.relativo)}`;
+      thumb.onerror = () => { thumb.style.display = 'none'; };
+
       const info = document.createElement('div'); info.className = 'scont-result-info';
       const nome = document.createElement('div'); nome.className = 'scont-result-nome'; nome.textContent = r.nome;
       const path = document.createElement('div'); path.className = 'scont-result-path'; path.textContent = r.relativo;
       info.appendChild(nome); info.appendChild(path);
+
       const btn = document.createElement('button');
       btn.className = 'btn-scont-apri';
       btn.textContent = '▶ Apri e segna come fatto';
       btn.addEventListener('click', () => apriScontorno(r.path, row, tr));
-      item.appendChild(info); item.appendChild(btn);
+
+      item.appendChild(thumb); item.appendChild(info); item.appendChild(btn);
       body.appendChild(item);
     });
   }

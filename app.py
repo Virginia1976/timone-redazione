@@ -550,6 +550,56 @@ def scont_thumb():
     return '', 404
 
 
+@app.route('/tlp_thumb')
+def tlp_thumb():
+    rel = request.args.get('rel', '').strip()
+    if not rel or '..' in rel:
+        return '', 400
+    path = str(TLP_SCONTORNI / rel)
+    try:
+        pathlib.Path(path).resolve().relative_to(TLP_SCONTORNI.resolve())
+    except ValueError:
+        return '', 400
+    if not os.path.isfile(path):
+        return '', 404
+
+    ext = pathlib.Path(path).suffix.lower()
+    if ext == '.psd':
+        tmp_dir = tempfile.mkdtemp(prefix='tlp_ql_')
+        try:
+            basename = os.path.basename(path)
+            subprocess.run(
+                ['qlmanage', '-t', '-s', '100', '-o', tmp_dir, path],
+                capture_output=True, timeout=15,
+            )
+            thumb = os.path.join(tmp_dir, basename + '.png')
+            if os.path.isfile(thumb):
+                with Image.open(thumb) as img:
+                    img.thumbnail((100, 75))
+                    buf = io.BytesIO()
+                    img.convert('RGB').save(buf, format='JPEG', quality=80)
+                    buf.seek(0)
+                    jpeg = buf.read()
+                return Response(jpeg, mimetype='image/jpeg',
+                                headers={'Cache-Control': 'max-age=3600'})
+        except Exception as e:
+            print(f'[TLP_THUMB qlmanage] {e}')
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+    else:
+        try:
+            with Image.open(path) as img:
+                img.thumbnail((100, 75))
+                buf = io.BytesIO()
+                img.convert('RGB').save(buf, format='JPEG', quality=80)
+                buf.seek(0)
+                return Response(buf.read(), mimetype='image/jpeg',
+                                headers={'Cache-Control': 'max-age=3600'})
+        except Exception as e:
+            print(f'[TLP_THUMB PIL] {e}')
+    return '', 404
+
+
 @app.route('/cerca_scontorno_titolo', methods=['POST'])
 def cerca_scontorno_titolo():
     if session.get('ruolo') not in ('editor', 'admin'):

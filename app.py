@@ -11,7 +11,9 @@ import json
 import os
 import pathlib
 import re
+import shutil
 import subprocess
+import tempfile
 from datetime import timedelta
 
 import requests
@@ -44,6 +46,23 @@ EDITORIALE_SMB  = os.environ.get('EDITORIALE_SMB', '')
 
 VALID_KEY    = re.compile(r'^[a-z0-9_]{1,60}$')
 KNOWN_TIMONI = {'nuovotv', 'dipiutv', 'tvmia', 'nuovo', 'dipiu', 'divadonna'}
+
+TLP_SCONTORNI = pathlib.Path('/Volumes/TLPserver/ARCHIVIO_FOTO/__SCONTORNI')
+
+CATEGORIE_TLP: dict[str, str] = {
+    'film':        '__FILM',
+    'serie':       '__SERIE',
+    'cartoni':     '__CARTONI',
+    'soap':        '__SOAP',
+    'documentari': '__DOCUMENTARIO-DOCUFILM',
+    'tv':          '__TV',
+    'sport':       '__SPORT',
+    'teatro':      '__TEATRO',
+    'monumenti':   '__MONUMENTI - OGGETTI',
+}
+
+def strip_parens(name: str) -> str:
+    return re.sub(r'\s*\([^)]*\)', '', name).strip()
 
 
 def timone_from_key(key: str) -> str | None:
@@ -479,6 +498,145 @@ def tif_mtime():
         except Exception:
             result[codice] = None
     return jsonify(result)
+
+
+@app.route('/scont_thumb')
+def scont_thumb():
+    cartella = request.args.get('cartella', '').strip()
+    nome     = request.args.get('nome', '').strip()
+    if '..' in cartella or '..' in nome or not cartella or not nome:
+        return '', 400
+    for ext in ('.psd', '.jpg', '.jpeg', '.png'):
+        path = os.path.join(cartella, nome + ext)
+        if not os.path.isfile(path):
+            continue
+        if ext == '.psd':
+            # PIL legge i PSD in modo errato; sips fallisce su PSD complessi
+            # → usa qlmanage (QuickLook macOS) che gestisce qualsiasi PSD
+            tmp_dir = tempfile.mkdtemp(prefix='scont_ql_')
+            try:
+                basename = os.path.basename(path)
+                subprocess.run(
+                    ['qlmanage', '-t', '-s', '80', '-o', tmp_dir, path],
+                    capture_output=True, timeout=15,
+                )
+                thumb = os.path.join(tmp_dir, basename + '.png')
+                if os.path.isfile(thumb):
+                    with Image.open(thumb) as img:
+                        img.thumbnail((80, 60))
+                        buf = io.BytesIO()
+                        img.convert('RGB').save(buf, format='JPEG', quality=75)
+                        buf.seek(0)
+                        jpeg = buf.read()
+                    return Response(jpeg, mimetype='image/jpeg',
+                                    headers={'Cache-Control': 'no-cache'})
+                print(f'[SCONT_THUMB qlmanage] thumb non trovato in {tmp_dir}')
+            except Exception as e:
+                print(f'[SCONT_THUMB qlmanage] {e}')
+            finally:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+        else:
+            # PIL funziona bene per JPG/PNG
+            try:
+                with Image.open(path) as img:
+                    img.thumbnail((80, 60))
+                    buf = io.BytesIO()
+                    img.convert('RGB').save(buf, format='JPEG', quality=75)
+                    buf.seek(0)
+                    return Response(buf.read(), mimetype='image/jpeg',
+                                    headers={'Cache-Control': 'no-cache'})
+            except Exception as e:
+                print(f'[SCONT_THUMB PIL] {e}')
+    return '', 404
+
+
+@app.route('/cerca_scontorno_titolo', methods=['POST'])
+def cerca_scontorno_titolo():
+    if session.get('ruolo') not in ('editor', 'admin'):
+        return jsonify({'error': 'non autorizzato'}), 403
+    data      = request.json or {}
+    titolo    = data.get('titolo', '').strip()
+    categoria = data.get('categoria', '').strip()
+    if not titolo or categoria not in CATEGORIE_TLP:
+        return jsonify({'results': [], 'error': 'parametri mancanti'}), 400
+
+    cartella = TLP_SCONTORNI / CATEGORIE_TLP[categoria]
+    if not cartella.exists():
+        return jsonify({'results': [], 'error': 'cartella non trovata'})
+
+    titolo_lower = titolo.lower()
+    results: list[dict] = []
+    try:
+        for f in cartella.rglob('*'):
+            if f.suffix.lower() not in ('.psd', '.jpg', '.jpeg'):
+                continue
+            if titolo_lower in strip_parens(f.stem).lower():
+                results.append({
+                    'path':     str(f),
+                    'nome':     f.stem,
+                    'relativo': str(f.relative_to(TLP_SCONTORNI)),
+                })
+            if len(results) >= 100:
+                break
+    except Exception as e:
+        print(f'[CERCA_SCONT_T] {e}')
+    return jsonify({'results': results})
+
+
+@app.route('/cerca_scontorno_personaggio', methods=['POST'])
+def cerca_scontorno_personaggio():
+    if session.get('ruolo') not in ('editor', 'admin'):
+        return jsonify({'error': 'non autorizzato'}), 403
+    data        = request.json or {}
+    personaggio = data.get('personaggio', '').strip()
+    if not personaggio:
+        return jsonify({'results': [], 'error': 'personaggio mancante'}), 400
+
+    # personaggio qui è la singola parola (cognome) scelta dall'utente nel dropdown
+    lettera = personaggio[0].upper() if personaggio else ''
+    base    = TLP_SCONTORNI / '__PERSONAGGI'
+    lett_d  = base / f'{lettera}_personaggi'
+    search  = lett_d if lett_d.exists() else base
+
+    termine = personaggio.lower()
+    results: list[dict] = []
+    try:
+        for f in search.rglob('*'):
+            if f.suffix.lower() not in ('.psd', '.jpg', '.jpeg'):
+                continue
+            if termine in f.stem.lower():
+                results.append({
+                    'path':     str(f),
+                    'nome':     f.stem,
+                    'relativo': str(f.relative_to(TLP_SCONTORNI)),
+                })
+            if len(results) >= 100:
+                break
+    except Exception as e:
+        print(f'[CERCA_SCONT_P] {e}')
+    return jsonify({'results': results})
+
+
+@app.route('/apri_scontorno', methods=['POST'])
+def apri_scontorno():
+    if session.get('ruolo') not in ('editor', 'admin'):
+        return jsonify({'ok': False, 'error': 'non autorizzato'}), 403
+    data = request.json or {}
+    path = data.get('path', '').strip()
+    if not path:
+        return jsonify({'ok': False, 'error': 'percorso mancante'}), 400
+    try:
+        pathlib.Path(path).resolve().relative_to(TLP_SCONTORNI.resolve())
+    except ValueError:
+        return jsonify({'ok': False, 'error': 'percorso non valido'}), 400
+    if not os.path.isfile(path):
+        return jsonify({'ok': False, 'error': 'file non trovato'}), 404
+    try:
+        subprocess.Popen(['open', path])
+        return jsonify({'ok': True})
+    except Exception as e:
+        print(f'[APRI_SCONT] {e}')
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
 
 if __name__ == '__main__':

@@ -936,6 +936,89 @@ tr.row-grigio .color-dot { background: #94a3b8; border-color: #64748b; }
 #timone-section.settimana-chiusa .btn-nascondi,
 #timone-section.settimana-chiusa .color-dot { pointer-events: none; opacity: .25; }
 
+/* ── Scontorni ───────────────────────────────────────────────────────────────── */
+.btn-scont {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 5px; border: none; cursor: pointer;
+  background: rgba(124,58,237,.12); color: #7C3AED;
+  font-size: 13px; line-height: 1; flex-shrink: 0;
+  transition: all .15s; padding: 0; margin-left: 1px;
+}
+.btn-scont:hover { background: #7C3AED; color: #fff; transform: scale(1.1); }
+
+.scont-cat-menu {
+  display: none; position: fixed; z-index: 9100;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-lg);
+  min-width: 200px; overflow: hidden;
+  animation: fadeDown .12s ease;
+}
+.scont-cat-menu.show { display: block; }
+.scont-cat-menu button {
+  display: block; width: 100%; padding: 10px 18px;
+  background: none; border: none; text-align: left;
+  font-size: 14px; font-weight: 600; color: var(--text); cursor: pointer;
+  transition: all .12s;
+}
+.scont-cat-menu button:hover { background: rgba(124,58,237,.1); color: #7C3AED; }
+
+.scont-modal-overlay {
+  position: fixed; inset: 0; z-index: 9200;
+  background: rgba(0,0,0,.45);
+  display: none; align-items: center; justify-content: center;
+}
+.scont-modal-overlay.show { display: flex; animation: fadeIn .15s ease; }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+.scont-modal-box {
+  background: var(--card); border-radius: 18px;
+  box-shadow: var(--shadow-lg); width: 580px; max-width: 95vw;
+  max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
+}
+.scont-modal-hdr {
+  display: flex; align-items: center; gap: 10px;
+  padding: 20px 24px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.scont-modal-hdr-title {
+  flex: 1; font-size: 15px; font-weight: 700; color: var(--text);
+}
+.scont-modal-close {
+  width: 30px; height: 30px; border-radius: 8px; border: none;
+  background: var(--bg); color: var(--muted); font-size: 18px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .12s; flex-shrink: 0;
+}
+.scont-modal-close:hover { background: #fef2f2; color: #dc2626; }
+.scont-modal-body {
+  flex: 1; overflow-y: auto; padding: 12px 16px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.scont-result-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--bg); transition: all .12s;
+}
+.scont-result-item:hover { border-color: #7C3AED; background: rgba(124,58,237,.05); }
+.scont-result-info { flex: 1; min-width: 0; }
+.scont-result-nome {
+  font-size: 13px; font-weight: 700; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.scont-result-path {
+  font-size: 11px; color: var(--muted); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; margin-top: 2px;
+}
+.btn-scont-apri {
+  flex-shrink: 0; padding: 6px 14px; border-radius: 8px;
+  background: #7C3AED; color: #fff; border: none; cursor: pointer;
+  font-size: 12px; font-weight: 700; transition: all .12s; white-space: nowrap;
+}
+.btn-scont-apri:hover { background: #6d28d9; }
+.scont-empty, .scont-searching {
+  text-align: center; padding: 32px 20px; color: var(--muted);
+  font-size: 14px; font-style: italic;
+}
+
 </style>
 </head>
 <body>
@@ -1216,6 +1299,35 @@ tr.row-grigio .color-dot { background: #94a3b8; border-color: #64748b; }
 
 <!-- ── Status toast ─────────────────────────────────────────────────────────── -->
 <div class="status-bar" id="statusBar"></div>
+
+<!-- ── Scontorni: menu parole personaggio ────────────────────────────────────── -->
+<div id="scontParoleMenu" class="scont-cat-menu"></div>
+
+<!-- ── Scontorni: menu categoria ─────────────────────────────────────────────── -->
+<div id="scontCatMenu" class="scont-cat-menu">
+  <button data-cat="film">🎬 Film</button>
+  <button data-cat="serie">📺 Serie TV</button>
+  <button data-cat="cartoni">🎨 Cartoni</button>
+  <button data-cat="soap">💬 Soap</button>
+  <button data-cat="documentari">🎥 Documentari</button>
+  <button data-cat="tv">📡 Programmi TV</button>
+  <button data-cat="sport">⚽ Sport</button>
+  <button data-cat="teatro">🎭 Teatro</button>
+  <button data-cat="monumenti">🏛 Monumenti/Oggetti</button>
+</div>
+
+<!-- ── Scontorni: modal risultati ────────────────────────────────────────────── -->
+<div id="scontModal" class="scont-modal-overlay">
+  <div class="scont-modal-box">
+    <div class="scont-modal-hdr">
+      <span class="scont-modal-hdr-title" id="scontModalTitle">Cerca scontorno</span>
+      <button class="scont-modal-close" onclick="closeScontModal()">×</button>
+    </div>
+    <div class="scont-modal-body" id="scontModalBody">
+      <div class="scont-searching">Ricerca in corso…</div>
+    </div>
+  </div>
+</div>
 
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -2500,9 +2612,10 @@ function buildRow(row, i, tbody, colsOverride) {
       const wrap = document.createElement('div'); wrap.className = 'codice-wrap';
       const img = document.createElement('img');
       img.className = 'codice-thumb'; img.alt = ''; img.src = THUMB_PH;
-      img.dataset.codice = row.codice || '';
+      img.dataset.codice  = row.codice || '';
+      img.dataset.isScont = isScont(row) ? 'true' : 'false';
       img.onerror = () => { img.src = THUMB_PH; };
-      if (canOpenTif()) {
+      if (canOpenTif() && !isScont(row)) {
         img.title = 'Apri canvas';
         img.addEventListener('click', (e) => { e.stopPropagation(); if (row.codice) openTif(row.codice); });
       } else {
@@ -2648,6 +2761,19 @@ function buildRow(row, i, tbody, colsOverride) {
       wrap.appendChild(editDiv);
       wrap.appendChild(btnC);
       wrap.appendChild(btnP);
+      if (isScont(row) && canOpenTif()) {
+        const btnSc = document.createElement('button');
+        btnSc.className = 'btn-scont';
+        if (col.key === 'titolo') {
+          btnSc.title = 'Cerca scontorno per titolo';
+          btnSc.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); mostraCatMenu(row, tr, btnSc); });
+        } else {
+          btnSc.title = 'Cerca scontorno per personaggio';
+          btnSc.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); mostraParoleMenu(row, tr, btnSc); });
+        }
+        btnSc.textContent = '✂';
+        wrap.appendChild(btnSc);
+      }
       td.appendChild(wrap);
 
     } else {
@@ -2979,15 +3105,19 @@ function thumbUrl(codice) {
 
 function updateThumbnailSrcs() {
   document.querySelectorAll('img.codice-thumb').forEach(img => {
-    const codice = img.dataset.codice;
-    img.src = (codice && getCartella()) ? thumbUrl(codice) : THUMB_PH;
+    const codice   = img.dataset.codice;
+    const cartella = getCartella();
+    if (!codice || !cartella) { img.src = THUMB_PH; return; }
+    img.src = img.dataset.isScont === 'true' ? (scontThumbUrl(codice) || THUMB_PH) : thumbUrl(codice);
   });
 }
 
 function updateSingleThumb(img, codice) {
   if (!img) return;
   img.dataset.codice = codice || '';
-  img.src = (codice && getCartella()) ? thumbUrl(codice) : THUMB_PH;
+  const cartella = getCartella();
+  if (!codice || !cartella) { img.src = THUMB_PH; return; }
+  img.src = img.dataset.isScont === 'true' ? (scontThumbUrl(codice) || THUMB_PH) : thumbUrl(codice);
 }
 
 // ── Cartella (percorso fisso per timone/giorno) ───────────────────────────────
@@ -3453,6 +3583,166 @@ function applyTimoniAttivi() {
       el.title = 'Non disponibile in questa versione';
     }
   });
+}
+
+// ── Scontorni ─────────────────────────────────────────────────────────────────
+function isScont(row) {
+  if (!row || !row.codice) return false;
+  if (currentTimone === 'dipiutv') return row.codice.includes('_scont');
+  if (currentTimone === 'nuovotv') return /(?:1c|5c)$/.test(row.codice);
+  return false;
+}
+
+function scontNome(codice) {
+  if (currentTimone === 'nuovotv') return codice + '_scont';
+  return codice;
+}
+
+function scontThumbUrl(codice) {
+  const cartella = getCartella();
+  if (!cartella || !codice) return null;
+  const nome = scontNome(codice);
+  return `/scont_thumb?cartella=${encodeURIComponent(cartella)}&nome=${encodeURIComponent(nome)}&t=${Date.now()}`;
+}
+
+let _scontRow = null, _scontTr = null;
+
+function mostraParoleMenu(row, tr, btn) {
+  if (!row.personaggio) { showStatus('Inserisci prima il personaggio', 'warn'); return; }
+  _scontRow = row; _scontTr = tr;
+  const menu  = document.getElementById('scontParoleMenu');
+  const parole = [...new Set(row.personaggio.split(/\s+/).filter(p => p.length > 1))];
+  menu.innerHTML = '';
+  parole.forEach(parola => {
+    const b = document.createElement('button');
+    b.textContent = parola;
+    b.dataset.parola = parola;
+    menu.appendChild(b);
+  });
+  const rect = btn.getBoundingClientRect();
+  menu.style.top  = (rect.bottom + 4) + 'px';
+  menu.style.left = rect.left + 'px';
+  menu.classList.add('show');
+}
+
+document.getElementById('scontParoleMenu').addEventListener('click', e => {
+  const b = e.target.closest('[data-parola]');
+  if (!b || !_scontRow) return;
+  document.getElementById('scontParoleMenu').classList.remove('show');
+  cercaScontPersonaggio(b.dataset.parola, _scontRow, _scontTr);
+});
+
+function mostraCatMenu(row, tr, btn) {
+  _scontRow = row; _scontTr = tr;
+  const menu = document.getElementById('scontCatMenu');
+  const rect = btn.getBoundingClientRect();
+  menu.style.top  = (rect.bottom + 4) + 'px';
+  menu.style.left = rect.left + 'px';
+  menu.classList.add('show');
+}
+
+document.getElementById('scontCatMenu').addEventListener('click', e => {
+  const b = e.target.closest('[data-cat]');
+  if (!b || !_scontRow) return;
+  document.getElementById('scontCatMenu').classList.remove('show');
+  cercaScontTitolo(_scontRow.titolo, b.dataset.cat, _scontRow, _scontTr);
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#scontCatMenu') && !e.target.closest('#scontParoleMenu') && !e.target.classList.contains('btn-scont')) {
+    document.getElementById('scontCatMenu').classList.remove('show');
+    document.getElementById('scontParoleMenu').classList.remove('show');
+  }
+});
+
+document.getElementById('scontModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('scontModal')) closeScontModal();
+});
+
+function closeScontModal() {
+  document.getElementById('scontModal').classList.remove('show');
+}
+
+function showScontModal(results, query, row, tr) {
+  document.getElementById('scontModalTitle').textContent =
+    results.length ? `"${query}" — ${results.length} trovati` : `"${query}" — nessuno trovato`;
+  const body = document.getElementById('scontModalBody');
+  body.innerHTML = '';
+  if (!results.length) {
+    body.innerHTML = '<div class="scont-empty">Nessuno scontorno trovato per questa ricerca.</div>';
+  } else {
+    results.forEach(r => {
+      const item = document.createElement('div');
+      item.className = 'scont-result-item';
+      const info = document.createElement('div'); info.className = 'scont-result-info';
+      const nome = document.createElement('div'); nome.className = 'scont-result-nome'; nome.textContent = r.nome;
+      const path = document.createElement('div'); path.className = 'scont-result-path'; path.textContent = r.relativo;
+      info.appendChild(nome); info.appendChild(path);
+      const btn = document.createElement('button');
+      btn.className = 'btn-scont-apri';
+      btn.textContent = '▶ Apri e segna come fatto';
+      btn.addEventListener('click', () => apriScontorno(r.path, row, tr));
+      item.appendChild(info); item.appendChild(btn);
+      body.appendChild(item);
+    });
+  }
+  document.getElementById('scontModal').classList.add('show');
+}
+
+async function cercaScontTitolo(titolo, categoria, row, tr) {
+  if (!titolo) { showStatus('Inserisci prima il titolo', 'warn'); return; }
+  document.getElementById('scontModalTitle').textContent = `Ricerca "${titolo}"…`;
+  document.getElementById('scontModalBody').innerHTML = '<div class="scont-searching">Ricerca in corso…</div>';
+  document.getElementById('scontModal').classList.add('show');
+  try {
+    const res  = await fetch('/cerca_scontorno_titolo', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titolo, categoria }),
+    });
+    const data = await res.json();
+    showScontModal(data.results || [], titolo, row, tr);
+  } catch {
+    showStatus('Errore ricerca scontorno', 'error');
+    closeScontModal();
+  }
+}
+
+async function cercaScontPersonaggio(personaggio, row, tr) {
+  if (!personaggio) { showStatus('Inserisci prima il personaggio', 'warn'); return; }
+  document.getElementById('scontModalTitle').textContent = `Ricerca "${personaggio}"…`;
+  document.getElementById('scontModalBody').innerHTML = '<div class="scont-searching">Ricerca in corso…</div>';
+  document.getElementById('scontModal').classList.add('show');
+  try {
+    const res  = await fetch('/cerca_scontorno_personaggio', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ personaggio }),
+    });
+    const data = await res.json();
+    showScontModal(data.results || [], personaggio, row, tr);
+  } catch {
+    showStatus('Errore ricerca personaggio', 'error');
+    closeScontModal();
+  }
+}
+
+async function apriScontorno(path, row, tr) {
+  try {
+    const res  = await fetch('/apri_scontorno', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      setRowColor(tr, row, 'grigio');
+      markDirty();
+      closeScontModal();
+      showStatus('Scontorno aperto ✓', 'success');
+    } else {
+      showStatus(data.error || 'Errore apertura scontorno', 'error');
+    }
+  } catch {
+    showStatus('Errore apertura scontorno', 'error');
+  }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────

@@ -64,6 +64,14 @@ CATEGORIE_TLP: dict[str, str] = {
 def strip_parens(name: str) -> str:
     return re.sub(r'\s*\([^)]*\)', '', name).strip()
 
+_ARTICOLI = re.compile(
+    r"^(?:il|lo|la|i|gli|le|un|una|uno|l'|the|a|an)\s+",
+    re.IGNORECASE,
+)
+
+def strip_articolo(titolo: str) -> str:
+    return _ARTICOLI.sub('', titolo).strip()
+
 
 def timone_from_key(key: str) -> str | None:
     for t in KNOWN_TIMONI:
@@ -614,13 +622,14 @@ def cerca_scontorno_titolo():
     if not cartella.exists():
         return jsonify({'results': [], 'error': 'cartella non trovata'})
 
-    titolo_lower = titolo.lower()
+    titolo_lower = strip_articolo(titolo).lower()
     results: list[dict] = []
     try:
         for f in cartella.rglob('*'):
             if f.suffix.lower() not in ('.psd', '.jpg', '.jpeg'):
                 continue
-            if titolo_lower in strip_parens(f.stem).lower():
+            nome = strip_articolo(strip_parens(f.stem)).lower()
+            if titolo_lower in nome:
                 results.append({
                     'path':     str(f),
                     'nome':     f.stem,

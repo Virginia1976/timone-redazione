@@ -47,7 +47,7 @@ EDITORIALE_SMB  = os.environ.get('EDITORIALE_SMB', '')
 VALID_KEY    = re.compile(r'^[a-z0-9_]{1,60}$')
 KNOWN_TIMONI = {'nuovotv', 'dipiutv', 'tvmia', 'nuovo', 'dipiu', 'divadonna'}
 
-TLP_SCONTORNI = pathlib.Path('/Volumes/TLPserver/ARCHIVIO_FOTO/__SCONTORNI')
+TLP_SCONTORNI = pathlib.Path(os.environ.get('TLP_SCONTORNI', '/Volumes/TLPserver/ARCHIVIO_FOTO/__SCONTORNI'))
 
 CATEGORIE_TLP: dict[str, str] = {
     'film':        '__FILM',
@@ -699,4 +699,5 @@ def apri_scontorno():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5010, debug=True, use_reloader=False)
+    _debug = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+    app.run(host='0.0.0.0', port=5010, debug=_debug, use_reloader=False)

@@ -18,7 +18,7 @@ from datetime import timedelta
 
 import requests
 from dotenv import load_dotenv
-from flask import Flask, Response, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, Response, render_template, request, jsonify, session, redirect, url_for, send_file
 from PIL import Image
 
 load_dotenv(pathlib.Path(__file__).parent / '.env')
@@ -696,6 +696,25 @@ def apri_scontorno():
     except Exception as e:
         print(f'[APRI_SCONT] {e}')
         return jsonify({'ok': False, 'error': str(e)}), 500
+
+
+@app.route('/scarica_scontorno')
+def scarica_scontorno():
+    if session.get('ruolo') not in ('editor', 'admin'):
+        return 'non autorizzato', 403
+    rel = request.args.get('rel', '').strip()
+    if not rel:
+        return 'percorso mancante', 400
+    try:
+        full = (TLP_SCONTORNI / rel).resolve()
+        full.relative_to(TLP_SCONTORNI.resolve())
+    except ValueError:
+        return 'percorso non valido', 400
+    if not full.is_file():
+        return 'file non trovato', 404
+    ext = full.suffix.lower()
+    mime = 'image/vnd.adobe.photoshop' if ext == '.psd' else 'image/jpeg'
+    return send_file(str(full), mimetype=mime, as_attachment=True, download_name=full.name)
 
 
 if __name__ == '__main__':

@@ -3695,7 +3695,7 @@ function showScontModal(results, query, row, tr) {
       const btn = document.createElement('button');
       btn.className = 'btn-scont-apri';
       btn.textContent = '▶ Apri e segna come fatto';
-      btn.addEventListener('click', () => apriScontorno(r.path, row, tr));
+      btn.addEventListener('click', () => apriScontorno(r.path, r.relativo, row, tr));
 
       item.appendChild(thumb); item.appendChild(info); item.appendChild(btn);
       body.appendChild(item);
@@ -3740,7 +3740,17 @@ async function cercaScontPersonaggio(personaggio, row, tr) {
   }
 }
 
-async function apriScontorno(path, row, tr) {
+const _isRemote = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+
+async function apriScontorno(path, relativo, row, tr) {
+  if (_isRemote) {
+    window.location.href = '/scarica_scontorno?rel=' + encodeURIComponent(relativo);
+    setRowColor(tr, row, 'grigio');
+    markDirty();
+    closeScontModal();
+    showStatus('Scontorno in download ✓', 'success');
+    return;
+  }
   try {
     const res  = await fetch('/apri_scontorno', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },

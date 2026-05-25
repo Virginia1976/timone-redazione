@@ -2491,8 +2491,6 @@ function renderTable() {
     secActions.appendChild(btnAll);
     const hiddenCount = currentRows.filter(r => !r._separator && r.nascosta).length;
     if (hiddenCount > 0) secActions.appendChild(_makeScopriTuttoBtn());
-    const hasCodicGrouped = currentRows.some(r => !r._separator && !r.nascosta && r.codice && r.codice.trim());
-    if (hasCodicGrouped) { const b = _makeApriTutteBtn(); if (b) secActions.appendChild(b); }
     buildChannelGroupView(channelsCont, groupField);
     return;
   }
@@ -2506,8 +2504,6 @@ function renderTable() {
   secActionsFlat.innerHTML = '';
   const hiddenCountFlat = currentRows.filter(r => !r._separator && r.nascosta).length;
   if (hiddenCountFlat > 0) secActionsFlat.appendChild(_makeScopriTuttoBtn());
-  const hasCodicFlat = currentRows.some(r => !r._separator && !r.nascosta && r.codice && r.codice.trim());
-  if (hasCodicFlat) { const b = _makeApriTutteBtn(); if (b) secActionsFlat.appendChild(b); }
 
   // Intestazione
   const thead = document.getElementById('theadRow');
@@ -2566,14 +2562,6 @@ function _makeScopriTuttoBtn() {
   return btn;
 }
 
-function _makeApriTutteBtn() {
-  if (!canOpenTif()) return null;
-  const btn = document.createElement('button');
-  btn.className = 'btn-expand-all';
-  btn.textContent = '🖼 Apri tutte le canvas';
-  btn.addEventListener('click', () => apriTutteLeCanvas());
-  return btn;
-}
 
 function buildRow(row, i, tbody, colsOverride) {
   if (row._separator) {
@@ -3057,26 +3045,30 @@ function syncGoogleLink(tr, row, btnOverride) {
   else      { btn.removeAttribute('href'); btn.classList.add('disabled'); }
 }
 
-// ── Apri .tif (solo Mac locale) ───────────────────────────────────────────────
+// ── Apri .tif ─────────────────────────────────────────────────────────────────
+const _isRemote = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+
 async function openTif(codice, silent = false) {
   const cartella = getCartella();
   if (!cartella) { if (!silent) showStatus('Cartella non configurata', 'warn'); return false; }
   if (!codice)   { if (!silent) showStatus('Codice non inserito', 'warn'); return false; }
+
+  if (_isRemote) {
+    const localPath = cartella + '/' + codice + '.tif';
+    window.location.href = 'shortcuts://run-shortcut?name=ApriFoto&input=text&text=' + encodeURIComponent(localPath);
+    if (!silent) showStatus(`Apertura ${codice}.tif…`, 'success');
+    return true;
+  }
+
   try {
     const res = await fetch('/open_tif', {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ codice, cartella })
     });
     const data = await res.json();
-    if (data.ok) {
-      if (data.method === 'smb' && data.url) {
-        const a = document.createElement('a');
-        a.href = data.url;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      }
-      if (!silent) showStatus(`Aperto: ${codice}.tif`, 'success');
+    if (data.ok && data.url) {
+      window.location.href = data.url;
+      if (!silent) showStatus(`Apertura ${codice}.tif…`, 'success');
       return true;
     } else {
       if (!silent) showStatus(`Non trovato: ${codice}.tif`, 'warn');
@@ -3085,21 +3077,6 @@ async function openTif(codice, silent = false) {
   } catch (e) { if (!silent) showStatus('Errore apertura file', 'error'); return false; }
 }
 
-async function apriTutteLeCanvas() {
-  const righe = getRigheVisibili().filter(r => r.codice && r.codice.trim());
-  if (!righe.length) { showStatus('Nessuna canvas visibile da aprire', 'warn'); return; }
-  showStatus(`Apertura ${righe.length} canvas…`, 'info');
-  let ok = 0, notFound = 0;
-  for (const r of righe) {
-    const esito = await openTif(r.codice.trim(), true);
-    if (esito) ok++; else notFound++;
-    await new Promise(res => setTimeout(res, 150));
-  }
-  const msg = notFound
-    ? `Aperte ${ok}/${righe.length} canvas (${notFound} non trovate)`
-    : `${ok} canvas aperte`;
-  showStatus(msg, notFound ? 'warn' : 'success');
-}
 
 // ── Thumbnail ─────────────────────────────────────────────────────────────────
 function thumbUrl(codice) {
@@ -3739,8 +3716,6 @@ async function cercaScontPersonaggio(personaggio, row, tr) {
     closeScontModal();
   }
 }
-
-const _isRemote = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
 
 async function apriScontorno(path, relativo, row, tr) {
   if (_isRemote) {

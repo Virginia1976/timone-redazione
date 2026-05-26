@@ -2901,6 +2901,7 @@ function buildRow(row, i, tbody, colsOverride) {
     const cycle = ['', 'giallo', 'grigio'];
     const next  = cycle[(cycle.indexOf(row.colore || '') + 1) % cycle.length];
     setRowColor(tr, row, next); markDirty();
+    if (row.codice) delete _initialMtimes[row.codice];
     // Aggiorna la mini-strip corrispondente senza re-render
     const card = tr.closest('.channel-card');
     if (card) {

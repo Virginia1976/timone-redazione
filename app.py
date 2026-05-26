@@ -14,6 +14,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from datetime import timedelta
 
 import requests
@@ -27,6 +28,13 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-local-secret-key')
 app.permanent_session_lifetime = timedelta(days=1)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
+
+# Executor per operazioni I/O su volumi SMB: impone un timeout così un hang
+# sulla rete non blocca il thread Flask a tempo indeterminato.
+_io_pool = ThreadPoolExecutor(max_workers=8, thread_name_prefix='smb-io')
+
+def _smb_call(fn, timeout=8):
+    return _io_pool.submit(fn).result(timeout=timeout)
 
 EDITOR_USERNAME    = os.environ.get('EDITOR_USERNAME', '')
 EDITOR_PASSWORD    = os.environ.get('EDITOR_PASSWORD', '')
@@ -449,16 +457,23 @@ def tif_thumb():
     path = _safe_path(cartella, codice)
     if not path:
         return '', 400
-    if not os.path.isfile(path):
-        return '', 404
-    try:
+    def _do():
+        if not os.path.isfile(path):
+            return None
         with Image.open(path) as img:
-            img.thumbnail((80, 60))
+            img.thumbnail((192, 144))
             buf = io.BytesIO()
-            img.convert('RGB').save(buf, format='JPEG', quality=75)
+            img.convert('RGB').save(buf, format='JPEG', quality=85)
             buf.seek(0)
-            return Response(buf.read(), mimetype='image/jpeg',
-                            headers={'Cache-Control': 'no-cache'})
+            return buf.read()
+    try:
+        data = _smb_call(_do)
+        if data is None:
+            return '', 404
+        return Response(data, mimetype='image/jpeg', headers={'Cache-Control': 'no-cache'})
+    except FuturesTimeoutError:
+        print(f'[THUMB] timeout SMB: {path}')
+        return '', 503
     except Exception as e:
         print(f'[THUMB] {e}')
         return '', 500
@@ -485,14 +500,19 @@ def open_tif():
 def tif_mtime():
     data  = request.json or {}
     files = data.get('files', [])
-    result = {}
+    def _stat(path):
+        return int(os.path.getmtime(path)) if os.path.isfile(path) else None
+    futures = {}
     for f in files:
-        path = _safe_path(f.get('cartella', ''), f.get('codice', ''))
+        path   = _safe_path(f.get('cartella', ''), f.get('codice', ''))
         codice = f.get('codice', '')
         if not path or not codice:
             continue
+        futures[_io_pool.submit(_stat, path)] = codice
+    result = {}
+    for future, codice in futures.items():
         try:
-            result[codice] = os.path.getmtime(path) if os.path.isfile(path) else None
+            result[codice] = future.result(timeout=8)
         except Exception:
             result[codice] = None
     return jsonify(result)
@@ -504,48 +524,54 @@ def scont_thumb():
     nome     = request.args.get('nome', '').strip()
     if '..' in cartella or '..' in nome or not cartella or not nome:
         return '', 400
-    for ext in ('.psd', '.jpg', '.jpeg', '.png'):
-        path = os.path.join(cartella, nome + ext)
-        if not os.path.isfile(path):
-            continue
-        if ext == '.psd':
-            # PIL legge i PSD in modo errato; sips fallisce su PSD complessi
-            # → usa qlmanage (QuickLook macOS) che gestisce qualsiasi PSD
-            tmp_dir = tempfile.mkdtemp(prefix='scont_ql_')
-            try:
-                basename = os.path.basename(path)
-                subprocess.run(
-                    ['qlmanage', '-t', '-s', '80', '-o', tmp_dir, path],
-                    capture_output=True, timeout=15,
-                )
-                thumb = os.path.join(tmp_dir, basename + '.png')
-                if os.path.isfile(thumb):
-                    with Image.open(thumb) as img:
+    def _do():
+        for ext in ('.psd', '.jpg', '.jpeg', '.png'):
+            path = os.path.join(cartella, nome + ext)
+            if not os.path.isfile(path):
+                continue
+            if ext == '.psd':
+                tmp_dir = tempfile.mkdtemp(prefix='scont_ql_')
+                try:
+                    basename = os.path.basename(path)
+                    subprocess.run(
+                        ['qlmanage', '-t', '-s', '80', '-o', tmp_dir, path],
+                        capture_output=True, timeout=15,
+                    )
+                    thumb = os.path.join(tmp_dir, basename + '.png')
+                    if os.path.isfile(thumb):
+                        with Image.open(thumb) as img:
+                            img.thumbnail((80, 60))
+                            buf = io.BytesIO()
+                            img.convert('RGB').save(buf, format='JPEG', quality=75)
+                            buf.seek(0)
+                            return buf.read()
+                    print(f'[SCONT_THUMB qlmanage] thumb non trovato in {tmp_dir}')
+                except Exception as e:
+                    print(f'[SCONT_THUMB qlmanage] {e}')
+                finally:
+                    shutil.rmtree(tmp_dir, ignore_errors=True)
+            else:
+                try:
+                    with Image.open(path) as img:
                         img.thumbnail((80, 60))
                         buf = io.BytesIO()
                         img.convert('RGB').save(buf, format='JPEG', quality=75)
                         buf.seek(0)
-                        jpeg = buf.read()
-                    return Response(jpeg, mimetype='image/jpeg',
-                                    headers={'Cache-Control': 'no-cache'})
-                print(f'[SCONT_THUMB qlmanage] thumb non trovato in {tmp_dir}')
-            except Exception as e:
-                print(f'[SCONT_THUMB qlmanage] {e}')
-            finally:
-                shutil.rmtree(tmp_dir, ignore_errors=True)
-        else:
-            # PIL funziona bene per JPG/PNG
-            try:
-                with Image.open(path) as img:
-                    img.thumbnail((80, 60))
-                    buf = io.BytesIO()
-                    img.convert('RGB').save(buf, format='JPEG', quality=75)
-                    buf.seek(0)
-                    return Response(buf.read(), mimetype='image/jpeg',
-                                    headers={'Cache-Control': 'no-cache'})
-            except Exception as e:
-                print(f'[SCONT_THUMB PIL] {e}')
-    return '', 404
+                        return buf.read()
+                except Exception as e:
+                    print(f'[SCONT_THUMB PIL] {e}')
+        return None
+    try:
+        data = _smb_call(_do, timeout=20)
+        if data is None:
+            return '', 404
+        return Response(data, mimetype='image/jpeg', headers={'Cache-Control': 'no-cache'})
+    except FuturesTimeoutError:
+        print(f'[SCONT_THUMB] timeout SMB: {cartella}/{nome}')
+        return '', 503
+    except Exception as e:
+        print(f'[SCONT_THUMB] {e}')
+        return '', 500
 
 
 @app.route('/tlp_thumb')

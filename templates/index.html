@@ -2082,7 +2082,7 @@ function applyTemplate(key, savedRows) {
   const merged = template.map(tpl => {
     if (tpl._separator) return { ...tpl };
     const saved = savedRows.find(r => r.codice === tpl.codice);
-    if (saved) return { ...saved, codice: tpl.codice, canale: tpl.canale, ...(tpl.giorno !== undefined ? { giorno: tpl.giorno } : {}), sotto_canale: (tpl.sotto_canale !== undefined) ? (saved.sotto_canale !== undefined ? saved.sotto_canale : tpl.sotto_canale) : undefined, ...(tpl.asterisco ? { asterisco: true } : {}) };
+    if (saved) return { ...saved, id: saved.id || newId(), codice: tpl.codice, canale: tpl.canale, ...(tpl.giorno !== undefined ? { giorno: tpl.giorno } : {}), sotto_canale: (tpl.sotto_canale !== undefined) ? (saved.sotto_canale !== undefined ? saved.sotto_canale : tpl.sotto_canale) : undefined, ...(tpl.asterisco ? { asterisco: true } : {}) };
     return { id: newId(), tipo: 'Programma TV', ...tpl };
   });
   const extras = savedRows.filter(r => r.codice && !templateCodici.has(r.codice));
@@ -3250,15 +3250,15 @@ async function checkMtimes(cartella) {
       if (mtime === null) return;
       const init = _initialMtimes[codice];
       if (init === undefined) { _initialMtimes[codice] = mtime; return; }
-      if (mtime !== init) {
+      if (init !== null && mtime !== null && mtime > init) {
         const row = currentRows.find(r => r.codice === codice);
-        const tr  = document.querySelector(`tr[data-id="${row?.id}"]`);
+        const img = document.querySelector(`img.codice-thumb[data-codice="${codice}"]`);
+        const tr  = img?.closest('tr');
         if (row && tr && (row.colore === '' || row.colore === 'giallo' || !row.colore)) {
           setRowColor(tr, row, 'grigio');
           markDirty();
         }
         _initialMtimes[codice] = mtime;
-        const img = tr?.querySelector('img.codice-thumb');
         updateSingleThumb(img, codice);
       }
     });

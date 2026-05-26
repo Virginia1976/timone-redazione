@@ -344,6 +344,14 @@ body {
 }
 .th-work-btn:hover { background: var(--accent-dark); transform: translateY(-2px); }
 
+/* Badge giallini sui bottoni giorno */
+.th-day-gialli {
+  display: inline-block; margin-left: 7px;
+  background: #facc15; color: #78350f;
+  font-size: 11px; font-weight: 800; border-radius: 10px;
+  padding: 1px 7px; line-height: 1.5; vertical-align: middle;
+}
+
 /* ── Nav tab split (name + arrow) ─────────────────────────────────────────────── */
 .nav-tab-name {
   display: flex; align-items: center; gap: 8px;
@@ -828,7 +836,7 @@ tr.row-grigio .color-dot { background: #94a3b8; border-color: #64748b; }
   height: 6px; width: 100%; flex-shrink: 0;
 }
 .ch-strip.strip-vuota    { background: #f8fafc; }
-.ch-strip.strip-giallo   { background: #fef9c3; }
+.ch-strip.strip-giallo   { background: #fde047; }
 .ch-strip.strip-grigio   { background: #9aafc4; }
 .ch-strip.strip-nascosta { background: repeating-linear-gradient(
   90deg, #edf0f3 0px, #edf0f3 3px, #f8fafc 3px, #f8fafc 6px
@@ -884,6 +892,7 @@ tr.row-grigio .color-dot { background: #94a3b8; border-color: #64748b; }
   background: #f8fafc;
   border-bottom: 1px solid var(--border) !important;
 }
+.row-hidden-placeholder.row-giallo td { background: #fde047 !important; }
 .row-hidden-inner {
   display: flex; align-items: center; gap: 8px;
   padding: 2px 14px; height: 100%;
@@ -2170,6 +2179,17 @@ function toggleDayMenu(timone, evt) {
 }
 
 // ── Timone home ────────────────────────────────────────────────────────────────
+function renderDaysGrid(timone) {
+  const meta     = TIMONI_META[timone];
+  const daysGrid = document.getElementById('thDaysGrid');
+  if (!meta || !daysGrid) return;
+  daysGrid.innerHTML = (meta.giorni || []).map(g => {
+    const gialli = savedCounts[`${timone}_${g}`]?.gialli || 0;
+    const badge  = gialli > 0 ? ` <span class="th-day-gialli">${gialli}</span>` : '';
+    return `<button class="th-day-btn" onclick="selectTimoneDay('${timone}','${g}')">${GIORNI_LABEL[g] || g}${badge}</button>`;
+  }).join('');
+}
+
 async function openTimoneHome(timone) {
   closeAllDropdowns();
   const meta = TIMONI_META[timone];
@@ -2208,9 +2228,12 @@ async function openTimoneHome(timone) {
   if (meta.tipo === 'tv') {
     daysWrap.style.display    = '';
     rivistaWrap.style.display = 'none';
-    daysGrid.innerHTML = (meta.giorni || []).map(g =>
-      `<button class="th-day-btn" onclick="selectTimoneDay('${timone}','${g}')">${GIORNI_LABEL[g] || g}</button>`
-    ).join('');
+    // Prima render subito (pulsanti senza badge), poi aggiorna con i conteggi freschi
+    renderDaysGrid(timone);
+    fetch('/api/list').then(r => r.json()).then(data => {
+      savedCounts = data;
+      renderDaysGrid(timone);
+    }).catch(() => {});
   } else {
     daysWrap.style.display    = 'none';
     rivistaWrap.style.display = '';
@@ -3555,7 +3578,7 @@ async function aggiornaConteggiWelcome() {
     const res  = await fetch('/api/list');
     const data = await res.json();
     savedCounts = data;
-    // Aggiorna contatori nelle card
+    // Aggiorna contatori nelle card welcome
     Object.entries(TIMONI_META).forEach(([key, meta]) => {
       const el = document.getElementById(`cnt-${key}`);
       if (!el) return;
@@ -3567,6 +3590,11 @@ async function aggiornaConteggiWelcome() {
         el.textContent = data[key]?.gialli || '0';
       }
     });
+    // Aggiorna anche i bottoni-giorno se si è nella home di un timone TV
+    if (currentTimone && TIMONI_META[currentTimone]?.tipo === 'tv' &&
+        document.getElementById('timone-home').style.display !== 'none') {
+      renderDaysGrid(currentTimone);
+    }
   } catch {}
 }
 

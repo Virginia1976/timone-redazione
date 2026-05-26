@@ -26,6 +26,7 @@ load_dotenv(pathlib.Path(__file__).parent / '.env')
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-local-secret-key')
 app.permanent_session_lifetime = timedelta(days=1)
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 EDITOR_USERNAME    = os.environ.get('EDITOR_USERNAME', '')
 EDITOR_PASSWORD    = os.environ.get('EDITOR_PASSWORD', '')

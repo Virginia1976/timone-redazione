@@ -1579,7 +1579,7 @@ const TEMPLATES = {
   nuovotv_sabato: [
     { codice:'sab1a', canale:'RAI 1'    },
     { codice:'sab1b', canale:'RAI 1'    },
-    { codice:'sab1c', canale:'RAI 1'    },
+    { codice:'sab1c_scont', canale:'RAI 1'    },
     { codice:'sab2a', canale:'RAI 2'    },
     { codice:'sab2b', canale:'RAI 2'    },
     { codice:'sab2c', canale:'RAI 2'    },
@@ -1591,7 +1591,7 @@ const TEMPLATES = {
     { codice:'sab4c', canale:'LA7'      },
     { codice:'sab5a', canale:'CANALE 5' },
     { codice:'sab5b', canale:'CANALE 5' },
-    { codice:'sab5c', canale:'CANALE 5' },
+    { codice:'sab5c_scont', canale:'CANALE 5' },
     { codice:'sab6a', canale:'ITALIA 1' },
     { codice:'sab6b', canale:'ITALIA 1' },
     { codice:'sab6c', canale:'ITALIA 1' },
@@ -3188,7 +3188,7 @@ function updateThumbnailSrcs() {
     const codice   = img.dataset.codice;
     const cartella = getCartella();
     if (!codice || !cartella) { img.src = THUMB_PH; return; }
-    img.src = img.dataset.isScont === 'true' ? (scontThumbUrl(codice) || THUMB_PH) : thumbUrl(codice);
+    img.src = img.dataset.isScont === 'true' ? THUMB_PH : (thumbUrl(codice) || THUMB_PH);
   });
 }
 
@@ -3197,7 +3197,7 @@ function updateSingleThumb(img, codice) {
   img.dataset.codice = codice || '';
   const cartella = getCartella();
   if (!codice || !cartella) { img.src = THUMB_PH; return; }
-  img.src = img.dataset.isScont === 'true' ? (scontThumbUrl(codice) || THUMB_PH) : thumbUrl(codice);
+  img.src = img.dataset.isScont === 'true' ? THUMB_PH : (thumbUrl(codice) || THUMB_PH);
 }
 
 // ── Cartella (percorso fisso per timone/giorno) ───────────────────────────────
@@ -3673,22 +3673,9 @@ function applyTimoniAttivi() {
 // ── Scontorni ─────────────────────────────────────────────────────────────────
 function isScont(row) {
   if (!row || !row.codice) return false;
-  if (currentTimone === 'dipiutv') return row.codice.includes('_scont');
-  if (currentTimone === 'nuovotv') return /(?:1c|5c)$/.test(row.codice);
-  return false;
+  return row.codice.includes('_scont');
 }
 
-function scontNome(codice) {
-  if (currentTimone === 'nuovotv') return codice + '_scont';
-  return codice;
-}
-
-function scontThumbUrl(codice) {
-  const cartella = getCartella();
-  if (!cartella || !codice) return null;
-  const nome = scontNome(codice);
-  return `/scont_thumb?cartella=${encodeURIComponent(cartella)}&nome=${encodeURIComponent(nome)}&t=${Date.now()}`;
-}
 
 let _scontRow = null, _scontTr = null;
 

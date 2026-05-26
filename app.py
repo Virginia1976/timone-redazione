@@ -550,6 +550,15 @@ def scont_thumb():
                     print(f'[SCONT_THUMB qlmanage] {e}')
                 finally:
                     shutil.rmtree(tmp_dir, ignore_errors=True)
+                try:
+                    with Image.open(path) as img:
+                        img.thumbnail((80, 60))
+                        buf = io.BytesIO()
+                        img.convert('RGB').save(buf, format='JPEG', quality=75)
+                        buf.seek(0)
+                        return buf.read()
+                except Exception as e:
+                    print(f'[SCONT_THUMB PIL psd] {e}')
             else:
                 try:
                     with Image.open(path) as img:

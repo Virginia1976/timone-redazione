@@ -74,7 +74,7 @@ def strip_parens(name: str) -> str:
     return re.sub(r'\s*\([^)]*\)', '', name).strip()
 
 _ARTICOLI = re.compile(
-    r"^(?:il|lo|la|i|gli|le|un|una|uno|l'|the|a|an)\s+",
+    r"^(?:il|lo|la|i|gli|le|un|una|uno|the|a|an)\s+|^l'",
     re.IGNORECASE,
 )
 
@@ -584,16 +584,18 @@ def cerca_scontorno_titolo():
         return jsonify({'results': [], 'error': 'cartella non trovata'})
 
     titolo_lower = strip_articolo(titolo).lower()
+    is_serie = (categoria == 'serie')
     results: list[dict] = []
     try:
         for f in cartella.rglob('*'):
             if f.suffix.lower() not in ('.psd', '.jpg', '.jpeg'):
                 continue
-            nome = strip_articolo(strip_parens(f.stem)).lower()
+            label = f.parent.name if is_serie else f.stem
+            nome  = strip_articolo(strip_parens(label)).lower()
             if titolo_lower in nome:
                 results.append({
                     'path':     str(f),
-                    'nome':     f.stem,
+                    'nome':     label,
                     'relativo': str(f.relative_to(TLP_SCONTORNI)),
                 })
             if len(results) >= 100:

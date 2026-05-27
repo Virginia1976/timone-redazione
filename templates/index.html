@@ -2146,6 +2146,7 @@ let currentRows      = [];
 let currentWeek      = null;   // metadati settimana corrente {dal,al,week_id,chiusa}
 let isDirty          = false;
 let _saveTimer       = null;
+let _lastSavedRows   = null;
 let savedCounts      = {};   // chiave → conteggio righe
 let expandedChannels = new Set(); // canali espansi nella vista a card
 
@@ -2197,7 +2198,7 @@ async function openTimoneHome(timone) {
   if (!meta) return;
   if (!isTimoneAttivo(timone)) { showStatus('Non disponibile in questa versione', 'warn'); return; }
 
-  if (isDirty) { salvaTimone(true); }
+  if (isDirty) { autoSave(); }
 
   currentTimone = timone;
   currentDay    = null;
@@ -2398,7 +2399,7 @@ function selectTimoneDay(timone, day) {
   if (!meta) return;
   if (!isTimoneAttivo(timone)) { showStatus('Non disponibile in questa versione', 'warn'); return; }
 
-  if (isDirty) { salvaTimone(true); }  // auto-save prima di cambiare
+  if (isDirty) { autoSave(); }  // auto-save prima di cambiare
 
   currentTimone = timone;
   currentDay    = day;
@@ -2415,7 +2416,7 @@ function selectTimone(timone) {
   const meta = TIMONI_META[timone];
   if (!meta) return;
 
-  if (isDirty) { salvaTimone(true); }
+  if (isDirty) { autoSave(); }
 
   currentTimone = timone;
   currentDay    = null;
@@ -2429,7 +2430,7 @@ function selectTimone(timone) {
 
 function changeDay(day) {
   if (!currentTimone) return;
-  if (isDirty) { salvaTimone(true); }
+  if (isDirty) { autoSave(); }
   currentDay = day;
   expandedChannels.clear();
   updateDayBar(currentTimone, day);
@@ -2487,6 +2488,7 @@ async function caricaTimone() {
   } catch (e) {
     currentRows = applyTemplate(key, []);
   }
+  _lastSavedRows = JSON.parse(JSON.stringify(currentRows.filter(r => !r._separator)));
 
   _ackedMtime = await fetchMtime(key);
 
@@ -2514,12 +2516,15 @@ async function salvaTimone(silent = false) {
   if (!key) return;
   clearTimeout(_saveTimer);
   try {
-    await fetch(`/api/save/${key}`, {
+    const nonSep = currentRows.filter(r => !r._separator);
+    const res  = await fetch(`/api/save/${key}`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ rows: currentRows.filter(r => !r._separator) })
+      body: JSON.stringify({ rows: nonSep })
     });
+    const data = await res.json();
+    _lastSavedRows = JSON.parse(JSON.stringify(nonSep));
     setDirty(false);
-    _ackedMtime = await fetchMtime(key);
+    _ackedMtime = data.mtime ?? await fetchMtime(key);
     if (!silent) showStatus('Salvato ✓', 'success');
     aggiornaConteggiWelcome();
   } catch (e) {
@@ -2529,7 +2534,58 @@ async function salvaTimone(silent = false) {
 
 function scheduleSave() {
   clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(() => salvaTimone(true), 2000);
+  _saveTimer = setTimeout(() => autoSave(), 2000);
+}
+
+async function autoSave() {
+  const key = storageKey();
+  if (!key) return;
+  clearTimeout(_saveTimer);
+  const nonSep = currentRows.filter(r => !r._separator);
+  if (_lastSavedRows !== null && canUsePatch(nonSep)) {
+    const patches = computePatches(_lastSavedRows, nonSep);
+    if (Object.keys(patches).length === 0) { setDirty(false); return; }
+    try {
+      const res  = await fetch(`/api/patch/${key}`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ patches })
+      });
+      const data = await res.json();
+      if (data.error) { showStatus('Errore salvataggio', 'error'); return; }
+      _lastSavedRows = JSON.parse(JSON.stringify(nonSep));
+      setDirty(false);
+      _ackedMtime = data.mtime;
+      aggiornaConteggiWelcome();
+    } catch { showStatus('Errore salvataggio', 'error'); }
+  } else {
+    await salvaTimone(true);
+  }
+}
+
+function canUsePatch(newRows) {
+  if (!_lastSavedRows) return false;
+  const oldC = new Set(_lastSavedRows.filter(r => r.codice).map(r => r.codice));
+  const newC = new Set(newRows.filter(r => r.codice).map(r => r.codice));
+  if (oldC.size !== newC.size) return false;
+  for (const c of oldC) if (!newC.has(c)) return false;
+  return _lastSavedRows.filter(r => !r.codice).length === newRows.filter(r => !r.codice).length;
+}
+
+function computePatches(oldRows, newRows) {
+  const patches = {};
+  for (const newRow of newRows) {
+    if (!newRow.codice) continue;
+    const oldRow = oldRows.find(r => r.codice === newRow.codice);
+    if (!oldRow) continue;
+    const diff = {};
+    const keys = new Set([...Object.keys(oldRow), ...Object.keys(newRow)].filter(k => k !== 'id' && k !== '_separator'));
+    for (const k of keys) {
+      if (JSON.stringify(newRow[k] ?? null) !== JSON.stringify(oldRow[k] ?? null))
+        diff[k] = newRow[k] ?? null;
+    }
+    if (Object.keys(diff).length) patches[newRow.codice] = diff;
+  }
+  return patches;
 }
 
 function setDirty(val) {
@@ -3561,6 +3617,7 @@ function rcReload() {
   if (_pendingNewRows) {
     currentRows = _pendingNewRows;
     _ackedMtime = _pendingNewMtime;
+    _lastSavedRows = JSON.parse(JSON.stringify(currentRows.filter(r => !r._separator)));
     renderTable(); setDirty(false);
     updateThumbnailSrcs();
     if (currentRows.length && getCartella()) startMtimePolling();

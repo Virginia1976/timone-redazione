@@ -261,6 +261,16 @@ def index():
     return render_template('index.html')
 
 
+def _atomic_write(path: pathlib.Path, text: str) -> None:
+    tmp = path.with_suffix('.tmp')
+    try:
+        tmp.write_text(text, encoding='utf-8')
+        tmp.rename(path)
+    except Exception:
+        tmp.unlink(missing_ok=True)
+        raise
+
+
 @app.route('/api/save/<key>', methods=['POST'])
 def save(key):
     if not VALID_KEY.match(key):
@@ -270,10 +280,76 @@ def save(key):
         return jsonify({'error': 'settimana chiusa', 'chiusa': True}), 403
     data = request.get_json(force=True, silent=True) or {}
     d    = week_data_dir(timone) if timone else DATA_DIR
-    (d / f'{key}.json').write_text(
-        json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8'
-    )
-    return jsonify({'ok': True})
+    path = d / f'{key}.json'
+    _atomic_write(path, json.dumps(data, ensure_ascii=False, indent=2))
+    return jsonify({'ok': True, 'mtime': path.stat().st_mtime})
+
+
+@app.route('/api/patch/<key>', methods=['POST'])
+def patch_rows(key):
+    if not VALID_KEY.match(key):
+        return jsonify({'error': 'chiave non valida'}), 400
+    timone = timone_from_key(key)
+    if timone and get_week_meta(timone).get('chiusa'):
+        return jsonify({'error': 'settimana chiusa', 'chiusa': True}), 403
+    body    = request.get_json(force=True, silent=True) or {}
+    patches = body.get('patches', {})   # { codice: { campo: valore } }
+    if not patches:
+        return jsonify({'ok': True, 'mtime': None})
+    d    = week_data_dir(timone) if timone else DATA_DIR
+    path = d / f'{key}.json'
+    try:
+        existing = json.loads(path.read_text('utf-8')) if path.exists() else {'rows': []}
+    except Exception:
+        existing = {'rows': []}
+    rows = existing.get('rows', [])
+    for codice, fields in patches.items():
+        row = next((r for r in rows if r.get('codice') == codice), None)
+        if row is not None:
+            row.update(fields)
+    _atomic_write(path, json.dumps(existing, ensure_ascii=False, indent=2))
+    return jsonify({'ok': True, 'mtime': path.stat().st_mtime})
+
+
+_UPDATE_FIELDS = {'orario', 'titolo', 'tipo', 'personaggio', 'anno', 'stagione', 'note', 'trama'}
+
+@app.route('/api/update/<key>', methods=['POST'])
+def update_rows(key):
+    """Aggiorna campi di testo per codice. Usato da carica_timone.
+    Body: { "updates": [{ "codice": "...", "titolo": "...", ... }] }
+    Risposta: { "ok": true, "updated": N }
+    """
+    if not VALID_KEY.match(key):
+        return jsonify({'error': 'chiave non valida'}), 400
+    timone = timone_from_key(key)
+    if timone and get_week_meta(timone).get('chiusa'):
+        return jsonify({'error': 'settimana chiusa', 'chiusa': True}), 403
+    body    = request.get_json(force=True, silent=True) or {}
+    updates = body.get('updates', [])
+    if not updates:
+        return jsonify({'error': 'nessun aggiornamento'}), 400
+    d    = week_data_dir(timone) if timone else DATA_DIR
+    path = d / f'{key}.json'
+    try:
+        existing = json.loads(path.read_text('utf-8')) if path.exists() else {'rows': []}
+    except Exception:
+        existing = {'rows': []}
+    rows     = existing.get('rows', [])
+    by_code  = {r.get('codice'): r for r in rows if r.get('codice')}
+    updated  = 0
+    for upd in updates:
+        codice = upd.get('codice', '').strip()
+        if not codice or codice not in by_code:
+            continue
+        row = by_code[codice]
+        for field in _UPDATE_FIELDS:
+            if field in upd:
+                row[field] = upd[field]
+        updated += 1
+    if updated == 0:
+        return jsonify({'error': 'nessun codice abbinato'}), 400
+    _atomic_write(path, json.dumps(existing, ensure_ascii=False, indent=2))
+    return jsonify({'ok': True, 'updated': updated})
 
 
 @app.route('/api/load/<key>')

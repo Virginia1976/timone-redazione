@@ -3218,7 +3218,7 @@ function startMtimePolling() {
   const cartella = getCartella();
   if (!cartella || !currentRows.length) return;
   fetchInitialMtimes(cartella).then(() => {
-    _mtimeTimer = setInterval(() => checkMtimes(cartella), 3000);
+    _mtimeTimer = setInterval(() => checkMtimes(cartella), 2000);
   });
 }
 

@@ -577,8 +577,6 @@ def tif_mtime():
     data  = request.json or {}
     files = data.get('files', [])
     def _stat(path):
-        try: os.listdir(os.path.dirname(path))
-        except OSError: pass
         return int(os.path.getmtime(path)) if os.path.isfile(path) else None
     futures = {}
     for f in files:

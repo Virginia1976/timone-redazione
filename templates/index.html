@@ -500,8 +500,9 @@ body {
 .tipo-film { background: rgba(124,58,237,.12); color: #7C3AED; }
 
 /* Colore riga */
-.timone-table tr.row-giallo td { background: #fef9c3 !important; }
-.timone-table tr.row-grigio  td { background: #c8d3de !important; }
+.timone-table tr.row-giallo   td { background: #fef9c3 !important; }
+.timone-table tr.row-grigio   td { background: #c8d3de !important; }
+.timone-table tr.row-copiato  td { background: #f1f5f9 !important; color: #94a3b8 !important; font-style: italic; }
 
 /* ── Separatore sezioni ─────────────────────────────────────────────────────── */
 .row-separator td {
@@ -637,8 +638,9 @@ body {
   transition: transform .12s, border-color .12s;
 }
 .color-dot:hover { transform: scale(1.18); }
-tr.row-giallo .color-dot { background: #facc15; border-color: #d4a900; }
-tr.row-grigio .color-dot { background: #94a3b8; border-color: #64748b; }
+tr.row-giallo   .color-dot { background: #facc15; border-color: #d4a900; }
+tr.row-grigio   .color-dot { background: #94a3b8; border-color: #64748b; }
+tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 
 /* Google images link */
 .btn-google {
@@ -858,6 +860,13 @@ tr.row-grigio .color-dot { background: #94a3b8; border-color: #64748b; }
   cursor: pointer; transition: all var(--transition); white-space: nowrap;
 }
 .btn-expand-all:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.btn-copia-prev {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  border: 1.5px solid #cbd5e1; background: none; color: #64748b;
+  cursor: pointer; transition: all var(--transition); white-space: nowrap;
+}
+.btn-copia-prev:hover { border-color: #94a3b8; color: #334155; background: #f1f5f9; }
 .channel-card-body {
   background: color-mix(in srgb, var(--ch, #64748b) 4%, #ffffff);
 }
@@ -2645,6 +2654,7 @@ function renderTable() {
     secActions.appendChild(btnAll);
     const hiddenCount = currentRows.filter(r => !r._separator && r.nascosta).length;
     if (hiddenCount > 0) secActions.appendChild(_makeScopriTuttoBtn());
+    if (!currentWeek?.chiusa) secActions.appendChild(_makeCopiaBtn());
     buildChannelGroupView(channelsCont, groupField);
     return;
   }
@@ -2658,6 +2668,7 @@ function renderTable() {
   secActionsFlat.innerHTML = '';
   const hiddenCountFlat = currentRows.filter(r => !r._separator && r.nascosta).length;
   if (hiddenCountFlat > 0) secActionsFlat.appendChild(_makeScopriTuttoBtn());
+  if (!currentWeek?.chiusa) secActionsFlat.appendChild(_makeCopiaBtn());
 
   // Intestazione
   const thead = document.getElementById('theadRow');
@@ -2714,6 +2725,52 @@ function _makeScopriTuttoBtn() {
     markDirty();
   });
   return btn;
+}
+
+function _makeCopiaBtn() {
+  const btn = document.createElement('button');
+  btn.className = 'btn-copia-prev';
+  btn.title = 'Importa i titoli dalla settimana precedente (senza personaggi)';
+  btn.textContent = '↩ Copia titoli settimana prec.';
+  btn.addEventListener('click', copiaTitoliPrevSettimana);
+  return btn;
+}
+
+async function copiaTitoliPrevSettimana() {
+  const key = storageKey();
+  if (!key) return;
+  try {
+    const res  = await fetch(`/api/copia-titoli/${key}`);
+    const data = await res.json();
+    const prevRows = data.rows || [];
+    if (!prevRows.length) {
+      showStatus('Nessun titolo trovato nella settimana precedente', 'warn');
+      return;
+    }
+    const byCode = {};
+    prevRows.forEach(r => { if (r.codice) byCode[r.codice] = r; });
+    let count = 0;
+    currentRows.forEach(row => {
+      if (row._separator || row.nascosta) return;
+      const prev = byCode[row.codice];
+      if (!prev || !prev.titolo) return;
+      if (!row.titolo) {   // copia solo nelle righe ancora vuote
+        row.titolo = prev.titolo;
+        if (prev.tipo) row.tipo = prev.tipo;
+        row.colore = 'copiato';
+        count++;
+      }
+    });
+    if (count === 0) {
+      showStatus('Nessuna riga vuota da riempire (le righe hanno già dei titoli)', 'warn');
+      return;
+    }
+    renderTable();
+    await salvaTimone(true);
+    showStatus(`${count} titoli copiati e salvati ✓`, 'success');
+  } catch (e) {
+    showStatus('Errore nel caricamento della settimana precedente', 'error');
+  }
 }
 
 
@@ -2953,13 +3010,16 @@ function buildRow(row, i, tbody, colsOverride) {
   const tdA = document.createElement('td');
   const divA = document.createElement('div'); divA.className = 'row-actions';
 
-  // Bollino colore (cicla: bianco → giallo → grigio)
+  // Bollino colore (cicla: bianco → giallo → grigio → copiato → bianco)
+  // "copiato" è raggiungibile anche da grigio, così si può tornare indietro per errore
   const dot = document.createElement('div');
-  dot.className = 'color-dot'; dot.title = 'Cambia colore riga';
+  dot.className = 'color-dot';
+  dot.title = row.colore === 'copiato' ? 'Non lavorata — clic per iniziare a lavorarla' : 'Cambia colore riga';
   dot.addEventListener('click', () => {
-    const cycle = ['', 'giallo', 'grigio'];
-    const next  = cycle[(cycle.indexOf(row.colore || '') + 1) % cycle.length];
-    setRowColor(tr, row, next); markDirty();
+    const cycle = ['', 'giallo', 'grigio', 'copiato'];
+    const curr  = row.colore || '';
+    const next  = cycle[(cycle.indexOf(curr) + 1) % cycle.length];
+    setRowColor(tr, row, next);
     if (row.codice) delete _initialMtimes[row.codice];
     // Aggiorna la mini-strip corrispondente senza re-render
     const card = tr.closest('.channel-card');
@@ -2969,6 +3029,11 @@ function buildRow(row, i, tbody, colsOverride) {
       const strip  = card.querySelectorAll('.ch-strip')[idx];
       if (strip) strip.className = 'ch-strip ' + (next === 'giallo' ? 'strip-giallo' : next === 'grigio' ? 'strip-grigio' : 'strip-vuota');
     }
+    // Il cambio colore viene salvato subito (full save) per garantire
+    // che il mtime cambi e l'altro browser riceva la notifica
+    setDirty(true);
+    clearTimeout(_saveTimer);
+    salvaTimone(true);
   });
 
   // Google Immagini

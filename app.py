@@ -378,14 +378,17 @@ def data_mtime(key):
 
 @app.route('/api/list')
 def list_timoni():
-    saved   = {}
-    checked = set()
+    saved = {}
     for timone in KNOWN_TIMONI:
-        d = week_data_dir(timone)
-        if d in checked:
-            continue
-        checked.add(d)
+        wid = (get_week_meta(timone).get('week_id') or '').strip()
+        if not wid:
+            continue   # nessuna settimana impostata, nulla da contare
+        d      = DATA_DIR / wid
+        prefix = timone + '_'
         for f in d.glob('*.json'):
+            # considera solo i file che appartengono a questo timone
+            if not (f.stem == timone or f.stem.startswith(prefix)):
+                continue
             try:
                 data = json.loads(f.read_text('utf-8'))
                 rows = data.get('rows', [])
@@ -432,6 +435,56 @@ def chiudi_week(timone):
     meta['chiusa'] = True
     set_week_meta(timone, meta)
     return jsonify({'ok': True})
+
+
+@app.route('/api/copia-titoli/<key>')
+def copia_titoli(key):
+    """Restituisce i soli titoli (senza personaggi) dalla settimana precedente,
+    pronti per essere importati come righe 'copiato' nella settimana corrente."""
+    if not VALID_KEY.match(key):
+        return jsonify({'error': 'chiave non valida'}), 400
+    timone = timone_from_key(key)
+    if not timone:
+        return jsonify({'error': 'timone non valido'}), 400
+
+    current_wid = (get_week_meta(timone).get('week_id') or '').strip()
+
+    # Cerca la cartella-settimana più recente precedente a quella corrente
+    prev_wid = None
+    try:
+        candidates = sorted(
+            [
+                d.name for d in DATA_DIR.iterdir()
+                if d.is_dir()
+                and d.name != '_weeks'
+                and re.match(r'^\d{4}-\d{2}-\d{2}$', d.name)
+                and (not current_wid or d.name < current_wid)
+            ],
+            reverse=True,
+        )
+        if candidates:
+            prev_wid = candidates[0]
+    except Exception:
+        pass
+
+    if not prev_wid:
+        return jsonify({'rows': [], 'prev_week': None})
+
+    prev_path = DATA_DIR / prev_wid / f'{key}.json'
+    if not prev_path.exists():
+        return jsonify({'rows': [], 'prev_week': prev_wid})
+
+    try:
+        data = json.loads(prev_path.read_text('utf-8'))
+        rows = data.get('rows', [])
+        copied = [
+            {'codice': r.get('codice', ''), 'titolo': r.get('titolo', ''), 'tipo': r.get('tipo', '')}
+            for r in rows
+            if not r.get('_separator') and r.get('titolo')
+        ]
+        return jsonify({'rows': copied, 'prev_week': prev_wid})
+    except Exception:
+        return jsonify({'rows': [], 'prev_week': prev_wid})
 
 
 @app.route('/api/week/<timone>/riapri', methods=['POST'])

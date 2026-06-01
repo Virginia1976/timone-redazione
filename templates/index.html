@@ -652,6 +652,18 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 .btn-google:hover { background: rgba(26,115,232,.1); }
 .btn-google.disabled { pointer-events: none; opacity: .3; }
 
+/* Infotv search buttons (editor/admin only) */
+.btn-infotv {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 5px; text-decoration: none;
+  font-size: 13px; font-weight: 700; color: #fff; background: #e65c00;
+  border: none; cursor: pointer; transition: background .12s; white-space: nowrap;
+  letter-spacing: -.3px;
+}
+.btn-infotv:hover { background: #bf4c00; }
+.btn-infotv.disabled { pointer-events: none; opacity: .3; }
+.btn-infotv-group { display: flex; align-items: center; gap: 3px; }
+
 .row-actions { display: flex; align-items: center; justify-content: center; gap: 10px; }
 
 /* ── Pulsante copia colonna (intestazione th) ───────────────────────────────── */
@@ -2924,6 +2936,7 @@ function buildRow(row, i, tbody, colsOverride) {
       editDiv.addEventListener('input', () => {
         row[col.key] = editDiv.textContent.trim();
         syncGoogleLink(tr, row);
+        syncInfotvLinks(tr, row);
         markDirty();
       });
       editDiv.addEventListener('keydown', e => {
@@ -2959,6 +2972,7 @@ function buildRow(row, i, tbody, colsOverride) {
           editDiv.textContent = testo;
           row[col.key] = testo;
           syncGoogleLink(tr, row);
+          syncInfotvLinks(tr, row);
           markDirty();
           showStatus('Incollato ✓', 'success');
         }).catch(() => showStatus('Impossibile leggere gli appunti', 'error'));
@@ -3043,6 +3057,33 @@ function buildRow(row, i, tbody, colsOverride) {
   btnG.innerHTML = '🔍';
   syncGoogleLink(tr, row, btnG);
 
+  // Infotv ricerca foto (solo editor/admin)
+  let infotvGroup = null;
+  if (_ruolo === 'editor' || _ruolo === 'admin') {
+    infotvGroup = document.createElement('div');
+    infotvGroup.className = 'btn-infotv-group';
+
+    const btnIN = document.createElement('a');
+    btnIN.className = 'btn-infotv btn-infotv-nome'; btnIN.target = '_blank'; btnIN.rel = 'noopener';
+    btnIN.title = 'Cerca su Infotv per nome personaggio';
+    btnIN.textContent = 'N';
+
+    const btnIT = document.createElement('a');
+    btnIT.className = 'btn-infotv btn-infotv-titolo'; btnIT.target = '_blank'; btnIT.rel = 'noopener';
+    btnIT.title = 'Cerca su Infotv per titolo programma';
+    btnIT.textContent = 'T';
+
+    const btnIA = document.createElement('a');
+    btnIA.className = 'btn-infotv btn-infotv-avanzata'; btnIA.target = '_blank'; btnIA.rel = 'noopener';
+    btnIA.title = 'Ricerca avanzata su Infotv (titolo + personaggio)';
+    btnIA.textContent = 'A';
+
+    infotvGroup.appendChild(btnIN);
+    infotvGroup.appendChild(btnIT);
+    infotvGroup.appendChild(btnIA);
+    syncInfotvLinks(tr, row, infotvGroup);
+  }
+
   // Nascondi riga (la esclude da copia/incolla ma la conserva)
   const btnDel = document.createElement('button');
   btnDel.className = 'btn-nascondi'; btnDel.title = 'Nascondi riga';
@@ -3052,7 +3093,9 @@ function buildRow(row, i, tbody, colsOverride) {
     renderTable(); markDirty();
   });
 
-  divA.appendChild(dot); divA.appendChild(btnG); divA.appendChild(btnDel);
+  divA.appendChild(dot); divA.appendChild(btnG);
+  if (infotvGroup) divA.appendChild(infotvGroup);
+  divA.appendChild(btnDel);
   tdA.appendChild(divA);
   tr.appendChild(tdA);
   tbody.appendChild(tr);
@@ -3265,6 +3308,50 @@ function syncGoogleLink(tr, row, btnOverride) {
   const url = googleImgUrl(row);
   if (url) { btn.href = url; btn.classList.remove('disabled'); }
   else      { btn.removeAttribute('href'); btn.classList.add('disabled'); }
+}
+
+// ── Infotv ricerca foto ────────────────────────────────────────────────────────
+const INFOTV_BASE = 'https://www.infotv.it/prjdia/ricerca';
+
+function infotvNomeUrl(row) {
+  const nome = (row.personaggio || '').trim();
+  if (!nome) return null;
+  return `${INFOTV_BASE}?type=s&text=${encodeURIComponent(nome)}&film=1&tv=1&personaggi=1&sport=0&filter=2&scheda=1&foto=1&tvmenu=0&onlyfoto=0&usableByTvmenu=0`;
+}
+
+function infotvTitoloUrl(row) {
+  const titolo = (row.titolo || '').trim();
+  if (!titolo) return null;
+  return `${INFOTV_BASE}?type=s&text=${encodeURIComponent(titolo)}&film=1&tv=1&personaggi=1&sport=0&filter=1&scheda=1&foto=1&tvmenu=0&onlyfoto=0&usableByTvmenu=0`;
+}
+
+function infotvAvanzataUrl(row) {
+  const titolo = (row.titolo || '').trim();
+  const nome   = (row.personaggio || '').trim();
+  if (!titolo && !nome) return null;
+  // area=1 Film, area=2 Programma TV
+  const area = (row.tipo === 'Film') ? 1 : 2;
+  const params = new URLSearchParams({ type: 'a', area, scheda: 1, foto: 1 });
+  if (titolo) params.set('p_titolo', titolo);
+  if (nome)   params.set('p_didascalia', nome);
+  return `${INFOTV_BASE}?${params.toString()}`;
+}
+
+function syncInfotvLinks(tr, row, groupOverride) {
+  const group = groupOverride || tr.querySelector('.btn-infotv-group');
+  if (!group) return;
+  const btnN = group.querySelector('.btn-infotv-nome');
+  const btnT = group.querySelector('.btn-infotv-titolo');
+  const btnA = group.querySelector('.btn-infotv-avanzata');
+
+  function applyUrl(btn, url) {
+    if (!btn) return;
+    if (url) { btn.href = url; btn.classList.remove('disabled'); }
+    else     { btn.removeAttribute('href'); btn.classList.add('disabled'); }
+  }
+  applyUrl(btnN, infotvNomeUrl(row));
+  applyUrl(btnT, infotvTitoloUrl(row));
+  applyUrl(btnA, infotvAvanzataUrl(row));
 }
 
 // ── Mostra cartella .tif nel Finder (via SMB) ─────────────────────────────────

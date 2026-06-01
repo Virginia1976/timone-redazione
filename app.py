@@ -200,7 +200,7 @@ def prjdia_login() -> bool:
 
 @app.before_request
 def require_login():
-    if request.endpoint in ('login', 'logout', 'static', 'installa_opener'):
+    if request.endpoint in ('login', 'logout', 'static'):
         return
     if not session.get('ruolo'):
         if request.is_json or not request.accept_mimetypes.accept_html:
@@ -242,8 +242,10 @@ def get_config():
     ruolo = session.get('ruolo', '')
     timoni = list(KNOWN_TIMONI) if ruolo == 'admin' else TIMONI_ATTIVI
     return jsonify({
-        'ruolo':         ruolo,
-        'timoni_attivi': timoni,
+        'ruolo':           ruolo,
+        'timoni_attivi':   timoni,
+        'editoriale_base': EDITORIALE_BASE,
+        'editoriale_smb':  EDITORIALE_SMB,
     })
 
 
@@ -610,21 +612,6 @@ def tif_thumb():
         return '', 500
 
 
-@app.route('/open_tif', methods=['POST'])
-def open_tif():
-    if session.get('ruolo') not in ('editor', 'admin'):
-        return jsonify({'ok': False, 'error': 'non autorizzato'}), 403
-    data     = request.json or {}
-    cartella = data.get('cartella', '').strip()
-    codice   = data.get('codice', '').strip()
-    path = _safe_path(cartella, codice)
-    if not path:
-        return jsonify({'ok': False, 'error': 'parametri non validi'}), 400
-    if not os.path.isfile(path):
-        return jsonify({'ok': False, 'path': path})
-    from urllib.parse import quote
-    url = f"shortcuts://run-shortcut?name=ApriFoto&input=text&text={quote(path)}"
-    return jsonify({'ok': True, 'method': 'shortcuts', 'url': url})
 
 
 @app.route('/tif_mtime', methods=['POST'])
@@ -794,59 +781,6 @@ def apri_scontorno():
         return jsonify({'ok': False, 'error': str(e)}), 500
 
 
-@app.route('/installa_opener')
-def installa_opener():
-    script = r"""#!/bin/bash
-APP_DIR="$HOME/Applications"
-APP_PATH="$APP_DIR/TimoneOpener.app"
-mkdir -p "$APP_DIR"
-rm -rf "$APP_PATH"
-
-cat > /tmp/timone_opener.applescript << 'ASEOF'
-on open location thisURL
-    try
-        set pathStart to offset of "path=" in thisURL
-        if pathStart > 0 then
-            set pathEncoded to text (pathStart + 5) thru -1 of thisURL
-            set filePath to do shell script "python3 -c \"import sys, urllib.parse; print(urllib.parse.unquote(sys.argv[1]))\" " & quoted form of pathEncoded
-            if filePath starts with "/Volumes/" then
-                do shell script "open " & quoted form of filePath
-            else
-                display dialog "Percorso non consentito." buttons {"OK"} with title "Timone Opener" with icon stop
-            end if
-        end if
-    on error errMsg
-        display dialog "Errore: " & errMsg buttons {"OK"} with title "Timone Opener" with icon stop
-    end try
-end open location
-
-on run
-    display dialog "Timone Opener installato. Ora puoi aprire i canvas dalla web app Timone." buttons {"OK"} default button "OK" with title "Timone Opener"
-end run
-ASEOF
-
-osacompile -o "$APP_PATH" /tmp/timone_opener.applescript
-
-python3 - << 'PYEOF'
-import plistlib, os
-path = os.path.expanduser('~/Applications/TimoneOpener.app/Contents/Info.plist')
-with open(path, 'rb') as f:
-    plist = plistlib.load(f)
-plist['CFBundleURLTypes'] = [{'CFBundleURLName': 'it.timone.opener', 'CFBundleURLSchemes': ['timone']}]
-plist['CFBundleIdentifier'] = 'it.timone.opener'
-plist['CFBundleName'] = 'Timone Opener'
-with open(path, 'wb') as f:
-    plistlib.dump(plist, f)
-PYEOF
-
-rm -f /tmp/timone_opener.applescript
-open "$APP_PATH"
-"""
-    return Response(
-        script,
-        mimetype='application/octet-stream',
-        headers={'Content-Disposition': 'attachment; filename="installa-timone.command"'}
-    )
 
 
 @app.route('/scarica_scontorno')

@@ -2820,8 +2820,8 @@ function buildRow(row, i, tbody, colsOverride) {
       img.dataset.isScont = isScont(row) ? 'true' : 'false';
       img.onerror = () => { img.src = THUMB_PH; };
       if (canOpenTif() && !isScont(row)) {
-        img.title = 'Apri canvas';
-        img.addEventListener('click', (e) => { e.stopPropagation(); if (row.codice) openTif(row.codice); });
+        img.title = 'Mostra nel Finder';
+        img.addEventListener('click', (e) => { e.stopPropagation(); if (row.codice) revealTif(row.codice); });
       } else {
         img.style.cursor = 'default';
       }
@@ -3267,36 +3267,19 @@ function syncGoogleLink(tr, row, btnOverride) {
   else      { btn.removeAttribute('href'); btn.classList.add('disabled'); }
 }
 
-// ── Apri .tif ─────────────────────────────────────────────────────────────────
+// ── Mostra cartella .tif nel Finder (via SMB) ─────────────────────────────────
 const _isRemote = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
 
-async function openTif(codice, silent = false) {
+function revealTif(codice, silent = false) {
   const cartella = getCartella();
   if (!cartella) { if (!silent) showStatus('Cartella non configurata', 'warn'); return false; }
   if (!codice)   { if (!silent) showStatus('Codice non inserito', 'warn'); return false; }
-
-  if (_isRemote) {
-    const localPath = cartella + '/' + codice + '.tif';
-    window.location.href = 'shortcuts://run-shortcut?name=ApriFoto&input=text&text=' + encodeURIComponent(localPath);
-    if (!silent) showStatus(`Apertura ${codice}.tif…`, 'success');
-    return true;
+  if (!_editorialeSMB || !_editorialeBase) {
+    if (!silent) showStatus('URL SMB non configurato', 'warn'); return false;
   }
-
-  try {
-    const res = await fetch('/open_tif', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ codice, cartella })
-    });
-    const data = await res.json();
-    if (data.ok && data.url) {
-      window.location.href = data.url;
-      if (!silent) showStatus(`Apertura ${codice}.tif…`, 'success');
-      return true;
-    } else {
-      if (!silent) showStatus(`Non trovato: ${codice}.tif`, 'warn');
-      return false;
-    }
-  } catch (e) { if (!silent) showStatus('Errore apertura file', 'error'); return false; }
+  const smbUrl = cartella.replace(_editorialeBase, _editorialeSMB);
+  window.location.href = smbUrl;
+  return true;
 }
 
 
@@ -3768,13 +3751,17 @@ function getRigheVisibili() {
 // ── Configurazione utente ─────────────────────────────────────────────────────
 let _ruolo = '';
 let _timoniAttivi = [];
+let _editorialeBase = '';
+let _editorialeSMB  = '';
 
 async function initRuolo() {
   try {
     const r = await fetch('/api/config');
     const d = await r.json();
-    _ruolo = d.ruolo || '';
-    _timoniAttivi = d.timoni_attivi || [];
+    _ruolo          = d.ruolo || '';
+    _timoniAttivi   = d.timoni_attivi || [];
+    _editorialeBase = d.editoriale_base || '';
+    _editorialeSMB  = d.editoriale_smb  || '';
     if (_timoniAttivi.length) applyTimoniAttivi();
   } catch {}
 }

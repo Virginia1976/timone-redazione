@@ -3356,8 +3356,7 @@ function revealTif(codice, silent = false) {
   if (!_editorialeSMB || !_editorialeBase) {
     if (!silent) showStatus('URL SMB non configurato', 'warn'); return false;
   }
-  const smbUrl = cartella.replace(_editorialeBase, _editorialeSMB);
-  window.location.href = smbUrl;
+  window.location.href = _editorialeSMB;
   return true;
 }
 

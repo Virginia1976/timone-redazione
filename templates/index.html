@@ -3353,10 +3353,8 @@ function revealTif(codice, silent = false) {
   const cartella = getCartella();
   if (!cartella) { if (!silent) showStatus('Cartella non configurata', 'warn'); return false; }
   if (!codice)   { if (!silent) showStatus('Codice non inserito', 'warn'); return false; }
-  if (!_editorialeSMB || !_editorialeBase) {
-    if (!silent) showStatus('URL SMB non configurato', 'warn'); return false;
-  }
-  window.location.href = _editorialeSMB;
+  const filePath = cartella + '/' + codice + '.tif';
+  window.location.href = 'timone://open?path=' + encodeURIComponent(filePath);
   return true;
 }
 

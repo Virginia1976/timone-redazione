@@ -2552,6 +2552,8 @@ async function autoSave() {
       });
       const data = await res.json();
       if (data.error) { showStatus('Errore salvataggio', 'error'); return; }
+      // Se il server non ha trovato righe (file vuoto/corrotto), ripiega su salvataggio completo
+      if ((data.applied ?? 1) === 0) { await salvaTimone(true); return; }
       _lastSavedRows = JSON.parse(JSON.stringify(nonSep));
       setDirty(false);
       _ackedMtime = data.mtime;
@@ -2564,6 +2566,7 @@ async function autoSave() {
 
 function canUsePatch(newRows) {
   if (!_lastSavedRows) return false;
+  if (_ackedMtime === null) return false;  // file non ancora creato → salvataggio completo
   const oldC = new Set(_lastSavedRows.filter(r => r.codice).map(r => r.codice));
   const newC = new Set(newRows.filter(r => r.codice).map(r => r.codice));
   if (oldC.size !== newC.size) return false;
@@ -3537,7 +3540,8 @@ function startRemotePolling(key) {
   stopRemotePolling();
   _remoteTimer = setInterval(async () => {
     const mtime = await fetchMtime(key);
-    if (!mtime || !_ackedMtime || mtime <= _ackedMtime + 0.5) return;
+    if (!mtime) return;                                          // file ancora inesistente
+    if (_ackedMtime !== null && mtime <= _ackedMtime + 0.5) return; // nessuna modifica nuova
     // Qualcuno ha salvato — scarica e confronta
     try {
       const res     = await fetch(`/api/load/${key}`);

@@ -303,12 +303,14 @@ def patch_rows(key):
     except Exception:
         existing = {'rows': []}
     rows = existing.get('rows', [])
+    applied = 0
     for codice, fields in patches.items():
         row = next((r for r in rows if r.get('codice') == codice), None)
         if row is not None:
             row.update(fields)
+            applied += 1
     _atomic_write(path, json.dumps(existing, ensure_ascii=False, indent=2))
-    return jsonify({'ok': True, 'mtime': path.stat().st_mtime})
+    return jsonify({'ok': True, 'mtime': path.stat().st_mtime, 'applied': applied})
 
 
 _UPDATE_FIELDS = {'orario', 'titolo', 'tipo', 'personaggio', 'anno', 'stagione', 'note', 'trama'}

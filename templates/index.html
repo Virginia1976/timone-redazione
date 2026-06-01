@@ -3917,7 +3917,8 @@ document.addEventListener('click', e => {
     document.getElementById('scontCatMenu').classList.remove('show');
     document.getElementById('scontParoleMenu').classList.remove('show');
   }
-  if (!e.target.closest('#ricercaFotoMenu') && !e.target.closest('.btn-foto-trigger')) {
+  if ((!e.target.closest('#ricercaFotoMenu') && !e.target.closest('.btn-foto-trigger')) ||
+      e.target.closest('.rfm-item')) {
     document.getElementById('ricercaFotoMenu').classList.remove('show');
   }
 });

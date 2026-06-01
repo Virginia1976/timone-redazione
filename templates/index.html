@@ -642,27 +642,44 @@ tr.row-giallo   .color-dot { background: #facc15; border-color: #d4a900; }
 tr.row-grigio   .color-dot { background: #94a3b8; border-color: #64748b; }
 tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 
-/* Google images link */
-.btn-google {
-  display: flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 6px; text-decoration: none;
-  font-size: 18px; color: #1a73e8; background: none;
-  transition: background .12s;
-}
-.btn-google:hover { background: rgba(26,115,232,.1); }
-.btn-google.disabled { pointer-events: none; opacity: .3; }
 
-/* Infotv search buttons (editor/admin only) */
-.btn-infotv {
-  display: flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px; border-radius: 5px; text-decoration: none;
-  font-size: 13px; font-weight: 700; color: #fff; background: #e65c00;
-  border: none; cursor: pointer; transition: background .12s; white-space: nowrap;
-  letter-spacing: -.3px;
+/* Ricerca foto trigger + dropdown (editor/admin only) */
+.btn-foto-trigger {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 9px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--card); font-size: 12px; font-weight: 600;
+  color: var(--text); cursor: pointer; white-space: nowrap;
+  transition: background .12s, border-color .12s;
 }
-.btn-infotv:hover { background: #bf4c00; }
-.btn-infotv.disabled { pointer-events: none; opacity: .3; }
-.btn-infotv-group { display: flex; align-items: center; gap: 3px; }
+.btn-foto-trigger:hover { background: #f1f5f9; border-color: #94a3b8; }
+.btn-foto-trigger .btn-foto-chevron { font-size: 9px; opacity: .6; }
+
+.ricerca-foto-menu {
+  display: none; position: fixed; z-index: 9200;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-lg);
+  min-width: 170px; overflow: hidden;
+  animation: fadeDown .12s ease;
+}
+.ricerca-foto-menu.show { display: block; }
+.rfm-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; text-decoration: none;
+  font-size: 13px; font-weight: 500; color: var(--text);
+  cursor: pointer; transition: background .1s;
+  border: none; width: 100%; background: none;
+}
+.rfm-item:hover:not(.rfm-disabled) { background: #f8fafc; }
+.rfm-item.rfm-disabled { opacity: .35; pointer-events: none; cursor: default; }
+.rfm-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 4px;
+  font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.rfm-google  .rfm-badge { background: #1a73e8; }
+.rfm-nome    .rfm-badge { background: #e65c00; }
+.rfm-titolo  .rfm-badge { background: #059669; }
+.rfm-avanzata .rfm-badge { background: #7C3AED; }
 
 .row-actions { display: flex; align-items: center; justify-content: center; gap: 10px; }
 
@@ -1391,6 +1408,22 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 
 <!-- ── Scontorni: menu parole personaggio ────────────────────────────────────── -->
 <div id="scontParoleMenu" class="scont-cat-menu"></div>
+
+<!-- ── Ricerca foto dropdown (editor/admin) ──────────────────────────────────── -->
+<div id="ricercaFotoMenu" class="ricerca-foto-menu">
+  <a class="rfm-item rfm-google" target="_blank" rel="noopener">
+    <span class="rfm-badge">G</span> Google
+  </a>
+  <a class="rfm-item rfm-nome" target="_blank" rel="noopener">
+    <span class="rfm-badge">N</span> Nome
+  </a>
+  <a class="rfm-item rfm-titolo" target="_blank" rel="noopener">
+    <span class="rfm-badge">T</span> Titolo
+  </a>
+  <a class="rfm-item rfm-avanzata" target="_blank" rel="noopener">
+    <span class="rfm-badge">A</span> Avanzata
+  </a>
+</div>
 
 <!-- ── Scontorni: menu categoria ─────────────────────────────────────────────── -->
 <div id="scontCatMenu" class="scont-cat-menu">
@@ -2935,8 +2968,6 @@ function buildRow(row, i, tbody, colsOverride) {
       editDiv.spellcheck = false;
       editDiv.addEventListener('input', () => {
         row[col.key] = editDiv.textContent.trim();
-        syncGoogleLink(tr, row);
-        syncInfotvLinks(tr, row);
         markDirty();
       });
       editDiv.addEventListener('keydown', e => {
@@ -2971,8 +3002,6 @@ function buildRow(row, i, tbody, colsOverride) {
           if (!testo) { showStatus('Appunti vuoti', 'warn'); return; }
           editDiv.textContent = testo;
           row[col.key] = testo;
-          syncGoogleLink(tr, row);
-          syncInfotvLinks(tr, row);
           markDirty();
           showStatus('Incollato ✓', 'success');
         }).catch(() => showStatus('Impossibile leggere gli appunti', 'error'));
@@ -3050,38 +3079,17 @@ function buildRow(row, i, tbody, colsOverride) {
     salvaTimone(true);
   });
 
-  // Google Immagini
-  const btnG = document.createElement('a');
-  btnG.className = 'btn-google'; btnG.target = '_blank'; btnG.rel = 'noopener';
-  btnG.title = 'Cerca su Google Immagini';
-  btnG.innerHTML = '🔍';
-  syncGoogleLink(tr, row, btnG);
-
-  // Infotv ricerca foto (solo editor/admin)
-  let infotvGroup = null;
+  // Ricerca foto (solo editor/admin): dropdown con Google, Nome, Titolo, Avanzata
+  let btnFoto = null;
   if (_ruolo === 'editor' || _ruolo === 'admin') {
-    infotvGroup = document.createElement('div');
-    infotvGroup.className = 'btn-infotv-group';
-
-    const btnIN = document.createElement('a');
-    btnIN.className = 'btn-infotv btn-infotv-nome'; btnIN.target = '_blank'; btnIN.rel = 'noopener';
-    btnIN.title = 'Cerca su Infotv per nome personaggio';
-    btnIN.textContent = 'N';
-
-    const btnIT = document.createElement('a');
-    btnIT.className = 'btn-infotv btn-infotv-titolo'; btnIT.target = '_blank'; btnIT.rel = 'noopener';
-    btnIT.title = 'Cerca su Infotv per titolo programma';
-    btnIT.textContent = 'T';
-
-    const btnIA = document.createElement('a');
-    btnIA.className = 'btn-infotv btn-infotv-avanzata'; btnIA.target = '_blank'; btnIA.rel = 'noopener';
-    btnIA.title = 'Ricerca avanzata su Infotv (titolo + personaggio)';
-    btnIA.textContent = 'A';
-
-    infotvGroup.appendChild(btnIN);
-    infotvGroup.appendChild(btnIT);
-    infotvGroup.appendChild(btnIA);
-    syncInfotvLinks(tr, row, infotvGroup);
+    btnFoto = document.createElement('button');
+    btnFoto.className = 'btn-foto-trigger';
+    btnFoto.title = 'Ricerca foto';
+    btnFoto.innerHTML = '📷 Foto <span class="btn-foto-chevron">▾</span>';
+    btnFoto.addEventListener('click', (e) => {
+      e.stopPropagation();
+      mostraRicercaFotoMenu(row, btnFoto);
+    });
   }
 
   // Nascondi riga (la esclude da copia/incolla ma la conserva)
@@ -3093,8 +3101,8 @@ function buildRow(row, i, tbody, colsOverride) {
     renderTable(); markDirty();
   });
 
-  divA.appendChild(dot); divA.appendChild(btnG);
-  if (infotvGroup) divA.appendChild(infotvGroup);
+  divA.appendChild(dot);
+  if (btnFoto) divA.appendChild(btnFoto);
   divA.appendChild(btnDel);
   tdA.appendChild(divA);
   tr.appendChild(tdA);
@@ -3294,64 +3302,50 @@ function setRowColor(tr, row, color) {
   // Il CSS aggiorna automaticamente il dot tramite tr.row-* > .color-dot
 }
 
-// ── Google Immagini ───────────────────────────────────────────────────────────
-function googleImgUrl(row) {
-  const q = (row.personaggio || row.titolo || '').trim();
-  return q
-    ? `https://www.google.com/search?q=${encodeURIComponent(q + ' 2026')}&tbs=qdr:y&tbm=isch`
-    : null;
-}
-
-function syncGoogleLink(tr, row, btnOverride) {
-  const btn = btnOverride || tr.querySelector('.btn-google');
-  if (!btn) return;
-  const url = googleImgUrl(row);
-  if (url) { btn.href = url; btn.classList.remove('disabled'); }
-  else      { btn.removeAttribute('href'); btn.classList.add('disabled'); }
-}
-
-// ── Infotv ricerca foto ────────────────────────────────────────────────────────
+// ── Ricerca foto dropdown (editor/admin) ──────────────────────────────────────
 const INFOTV_BASE = 'https://www.infotv.it/prjdia/ricerca';
 
-function infotvNomeUrl(row) {
+function _googleImgUrl(row) {
+  const q = (row.personaggio || row.titolo || '').trim();
+  return q ? `https://www.google.com/search?q=${encodeURIComponent(q + ' 2026')}&tbs=qdr:y&tbm=isch` : null;
+}
+function _infotvNomeUrl(row) {
   const nome = (row.personaggio || '').trim();
-  if (!nome) return null;
-  return `${INFOTV_BASE}?type=s&text=${encodeURIComponent(nome)}&film=1&tv=1&personaggi=1&sport=0&filter=2&scheda=1&foto=1&tvmenu=0&onlyfoto=0&usableByTvmenu=0`;
+  return nome ? `${INFOTV_BASE}?type=s&text=${encodeURIComponent(nome)}&film=1&tv=1&personaggi=1&sport=0&filter=2&scheda=1&foto=1&tvmenu=0&onlyfoto=0&usableByTvmenu=0` : null;
 }
-
-function infotvTitoloUrl(row) {
+function _infotvTitoloUrl(row) {
   const titolo = (row.titolo || '').trim();
-  if (!titolo) return null;
-  return `${INFOTV_BASE}?type=s&text=${encodeURIComponent(titolo)}&film=1&tv=1&personaggi=1&sport=0&filter=1&scheda=1&foto=1&tvmenu=0&onlyfoto=0&usableByTvmenu=0`;
+  return titolo ? `${INFOTV_BASE}?type=s&text=${encodeURIComponent(titolo)}&film=1&tv=1&personaggi=1&sport=0&filter=1&scheda=1&foto=1&tvmenu=0&onlyfoto=0&usableByTvmenu=0` : null;
 }
-
-function infotvAvanzataUrl(row) {
+function _infotvAvanzataUrl(row) {
   const titolo = (row.titolo || '').trim();
   const nome   = (row.personaggio || '').trim();
   if (!titolo && !nome) return null;
-  // area=1 Film, area=2 Programma TV
   const area = (row.tipo === 'Film') ? 1 : 2;
-  const params = new URLSearchParams({ type: 'a', area, scheda: 1, foto: 1 });
-  if (titolo) params.set('p_titolo', titolo);
-  if (nome)   params.set('p_didascalia', nome);
-  return `${INFOTV_BASE}?${params.toString()}`;
+  const p = new URLSearchParams({ type: 'a', area, scheda: 1, foto: 1 });
+  if (titolo) p.set('p_titolo', titolo);
+  if (nome)   p.set('p_didascalia', nome);
+  return `${INFOTV_BASE}?${p.toString()}`;
 }
 
-function syncInfotvLinks(tr, row, groupOverride) {
-  const group = groupOverride || tr.querySelector('.btn-infotv-group');
-  if (!group) return;
-  const btnN = group.querySelector('.btn-infotv-nome');
-  const btnT = group.querySelector('.btn-infotv-titolo');
-  const btnA = group.querySelector('.btn-infotv-avanzata');
+function mostraRicercaFotoMenu(row, triggerBtn) {
+  const menu = document.getElementById('ricercaFotoMenu');
 
-  function applyUrl(btn, url) {
-    if (!btn) return;
-    if (url) { btn.href = url; btn.classList.remove('disabled'); }
-    else     { btn.removeAttribute('href'); btn.classList.add('disabled'); }
+  function setItem(cls, url) {
+    const el = menu.querySelector(cls);
+    if (!el) return;
+    if (url) { el.href = url; el.classList.remove('rfm-disabled'); }
+    else     { el.removeAttribute('href'); el.classList.add('rfm-disabled'); }
   }
-  applyUrl(btnN, infotvNomeUrl(row));
-  applyUrl(btnT, infotvTitoloUrl(row));
-  applyUrl(btnA, infotvAvanzataUrl(row));
+  setItem('.rfm-google',   _googleImgUrl(row));
+  setItem('.rfm-nome',     _infotvNomeUrl(row));
+  setItem('.rfm-titolo',   _infotvTitoloUrl(row));
+  setItem('.rfm-avanzata', _infotvAvanzataUrl(row));
+
+  const rect = triggerBtn.getBoundingClientRect();
+  menu.style.top  = (rect.bottom + 4) + 'px';
+  menu.style.left = rect.left + 'px';
+  menu.classList.add('show');
 }
 
 // ── Mostra cartella .tif nel Finder (via SMB) ─────────────────────────────────
@@ -3924,6 +3918,9 @@ document.addEventListener('click', e => {
   if (!e.target.closest('#scontCatMenu') && !e.target.closest('#scontParoleMenu') && !e.target.classList.contains('btn-scont')) {
     document.getElementById('scontCatMenu').classList.remove('show');
     document.getElementById('scontParoleMenu').classList.remove('show');
+  }
+  if (!e.target.closest('#ricercaFotoMenu') && !e.target.closest('.btn-foto-trigger')) {
+    document.getElementById('ricercaFotoMenu').classList.remove('show');
   }
 });
 

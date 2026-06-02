@@ -704,7 +704,7 @@ def cerca_scontorno_titolo():
         return jsonify({'results': [], 'error': 'cartella non trovata'})
 
     titolo_lower = strip_articolo(titolo).lower()
-    is_serie = (categoria == 'serie')
+    is_serie = categoria in ('serie', 'soap')
     results: list[dict] = []
     try:
         for f in cartella.rglob('*'):

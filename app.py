@@ -618,23 +618,43 @@ def tif_thumb():
 def tif_mtime():
     data  = request.json or {}
     files = data.get('files', [])
-    def _stat(path):
-        try: os.listdir(os.path.dirname(path))
-        except OSError: pass
-        return int(os.path.getmtime(path)) if os.path.isfile(path) else None
-    futures = {}
+
+    # Raggruppa per cartella: una sola scandir per directory evita la
+    # incoerenza tra la cache degli attributi e quella delle directory di macOS SMB.
+    by_cartella: dict[str, list[str]] = {}
     for f in files:
-        path   = _safe_path(f.get('cartella', ''), f.get('codice', ''))
-        codice = f.get('codice', '')
-        if not path or not codice:
-            continue
-        futures[_io_pool.submit(_stat, path)] = codice
-    result = {}
-    for future, codice in futures.items():
+        cartella = f.get('cartella', '')
+        codice   = f.get('codice', '')
+        if cartella and codice:
+            by_cartella.setdefault(cartella, []).append(codice)
+
+    def _scan_dir(cartella: str, codici: list[str]) -> dict[str, int | None]:
+        wanted = {c + '.tif': c for c in codici}
+        out    = {c: None for c in codici}
         try:
-            result[codice] = future.result(timeout=8)
+            with os.scandir(cartella) as it:
+                for entry in it:
+                    codice = wanted.get(entry.name)
+                    if codice is None:
+                        continue
+                    try:
+                        out[codice] = round(entry.stat(follow_symlinks=False).st_mtime)
+                    except OSError:
+                        pass
+        except OSError:
+            pass
+        return out
+
+    result: dict[str, int | None] = {}
+    futures = {
+        _io_pool.submit(_scan_dir, cartella, codici): cartella
+        for cartella, codici in by_cartella.items()
+    }
+    for future in futures:
+        try:
+            result.update(future.result(timeout=8))
         except Exception:
-            result[codice] = None
+            pass
     return jsonify(result)
 
 

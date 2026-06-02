@@ -3406,9 +3406,10 @@ function startMtimePolling() {
   stopMtimePolling();
   const cartella = getCartella();
   if (!cartella || !currentRows.length) return;
-  fetchInitialMtimes(cartella).then(() => {
-    _mtimeTimer = setInterval(() => checkMtimes(cartella), 2000);
-  });
+  // due fetch in sequenza: il primo scalda la cache SMB, il secondo legge valori stabili
+  fetchInitialMtimes(cartella)
+    .then(() => fetchInitialMtimes(cartella))
+    .then(() => { _mtimeTimer = setInterval(() => checkMtimes(cartella), 2000); });
 }
 
 function stopMtimePolling() {
@@ -3441,7 +3442,8 @@ async function checkMtimes(cartella) {
       if (mtime === null) return;
       const init = _initialMtimes[codice];
       if (init === undefined) { _initialMtimes[codice] = mtime; return; }
-      if (init !== null && mtime !== null && mtime > init) {
+      if (init !== null && mtime !== null && mtime - init >= 2) {
+        console.log(`[auto-grigio] ${codice}: mtime +${mtime - init}s (${init} → ${mtime})`);
         const row = currentRows.find(r => r.codice === codice);
         const img = document.querySelector(`img.codice-thumb[data-codice="${codice}"]`);
         const tr  = img?.closest('tr');

@@ -1403,6 +1403,12 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 <!-- ── Scontorni: menu parole personaggio ────────────────────────────────────── -->
 <div id="scontParoleMenu" class="scont-cat-menu"></div>
 
+<!-- ── Scontorni: menu tipo (Personaggi / Sport) ─────────────────────────────── -->
+<div id="scontTipoMenu" class="scont-cat-menu">
+  <button data-tipo="personaggi">👤 Personaggi</button>
+  <button data-tipo="sport">⚽ Sport</button>
+</div>
+
 <!-- ── Ricerca foto dropdown (editor/admin) ──────────────────────────────────── -->
 <div id="ricercaFotoMenu" class="ricerca-foto-menu">
   <a class="rfm-item rfm-google" target="_blank" rel="noopener">
@@ -3057,7 +3063,7 @@ function buildRow(row, i, tbody, colsOverride) {
   dot.className = 'color-dot';
   dot.title = row.colore === 'copiato' ? 'Non lavorata — clic per iniziare a lavorarla' : 'Cambia colore riga';
   dot.addEventListener('click', () => {
-    const cycle = ['', 'giallo', 'grigio', 'copiato'];
+    const cycle = ['', 'grigio', 'giallo', 'copiato'];
     const curr  = row.colore || '';
     const next  = cycle[(cycle.indexOf(curr) + 1) % cycle.length];
     setRowColor(tr, row, next);
@@ -3866,11 +3872,11 @@ function isScont(row) {
 }
 
 
-let _scontRow = null, _scontTr = null;
+let _scontRow = null, _scontTr = null, _scontParola = null, _scontBtn = null;
 
 function mostraParoleMenu(row, tr, btn) {
   if (!row.personaggio) { showStatus('Inserisci prima il personaggio', 'warn'); return; }
-  _scontRow = row; _scontTr = tr;
+  _scontRow = row; _scontTr = tr; _scontBtn = btn;
   const menu  = document.getElementById('scontParoleMenu');
   const parole = [...new Set(row.personaggio.split(/\s+/).filter(p => p.length > 1))];
   menu.innerHTML = '';
@@ -3889,8 +3895,24 @@ function mostraParoleMenu(row, tr, btn) {
 document.getElementById('scontParoleMenu').addEventListener('click', e => {
   const b = e.target.closest('[data-parola]');
   if (!b || !_scontRow) return;
+  _scontParola = b.dataset.parola;
   document.getElementById('scontParoleMenu').classList.remove('show');
-  cercaScontPersonaggio(b.dataset.parola, _scontRow, _scontTr);
+  const tipoMenu = document.getElementById('scontTipoMenu');
+  const rect = _scontBtn ? _scontBtn.getBoundingClientRect() : b.getBoundingClientRect();
+  tipoMenu.style.top  = (rect.bottom + 4) + 'px';
+  tipoMenu.style.left = rect.left + 'px';
+  tipoMenu.classList.add('show');
+});
+
+document.getElementById('scontTipoMenu').addEventListener('click', e => {
+  const b = e.target.closest('[data-tipo]');
+  if (!b || !_scontRow || !_scontParola) return;
+  document.getElementById('scontTipoMenu').classList.remove('show');
+  if (b.dataset.tipo === 'sport') {
+    cercaScontTitolo(_scontParola, 'sport', _scontRow, _scontTr);
+  } else {
+    cercaScontPersonaggio(_scontParola, _scontRow, _scontTr);
+  }
 });
 
 function mostraCatMenu(row, tr, btn) {
@@ -3910,9 +3932,10 @@ document.getElementById('scontCatMenu').addEventListener('click', e => {
 });
 
 document.addEventListener('click', e => {
-  if (!e.target.closest('#scontCatMenu') && !e.target.closest('#scontParoleMenu') && !e.target.classList.contains('btn-scont')) {
+  if (!e.target.closest('#scontCatMenu') && !e.target.closest('#scontParoleMenu') && !e.target.closest('#scontTipoMenu') && !e.target.classList.contains('btn-scont')) {
     document.getElementById('scontCatMenu').classList.remove('show');
     document.getElementById('scontParoleMenu').classList.remove('show');
+    document.getElementById('scontTipoMenu').classList.remove('show');
   }
   if ((!e.target.closest('#ricercaFotoMenu') && !e.target.closest('.btn-foto-trigger')) ||
       e.target.closest('.rfm-item')) {

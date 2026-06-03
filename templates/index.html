@@ -3372,9 +3372,12 @@ function mostraRicercaFotoMenu(row, triggerBtn) {
   setItem('.rfm-avanzata', _infotvAvanzataUrl(row));
 
   const rect = triggerBtn.getBoundingClientRect();
-  menu.style.top  = (rect.bottom + 4) + 'px';
-  menu.style.left = rect.left + 'px';
   menu.classList.add('show');
+  const menuH = menu.offsetHeight;
+  menu.style.top  = (window.innerHeight - rect.bottom >= menuH + 4 || rect.top < menuH + 4)
+    ? (rect.bottom + 4) + 'px'
+    : (rect.top - menuH - 4) + 'px';
+  menu.style.left = rect.left + 'px';
 }
 
 let _currentTifRow = null;
@@ -3395,9 +3398,12 @@ function mostraRicercaFotoTifMenu(row, triggerBtn) {
   setItem('.rft-avanzata', _infotvAvanzataUrl(row));
 
   const rect = triggerBtn.getBoundingClientRect();
-  menu.style.top  = (rect.bottom + 4) + 'px';
-  menu.style.left = rect.left + 'px';
   menu.classList.add('show');
+  const menuH = menu.offsetHeight;
+  menu.style.top  = (window.innerHeight - rect.bottom >= menuH + 4 || rect.top < menuH + 4)
+    ? (rect.bottom + 4) + 'px'
+    : (rect.top - menuH - 4) + 'px';
+  menu.style.left = rect.left + 'px';
 }
 
 document.querySelectorAll('#ricercaFotoTifMenu .rfm-item').forEach(el => {

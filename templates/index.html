@@ -918,6 +918,7 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 .channel-separator::before, .channel-separator::after {
   content: ''; flex: 1; height: 1px; background: var(--border);
 }
+.separator-actions { display: flex; gap: 6px; align-items: center; }
 
 /* ── Riga nascosta ──────────────────────────────────────────────────────────── */
 .row-hidden-placeholder td {
@@ -2714,18 +2715,20 @@ function renderTable() {
     secActions.innerHTML = '';
     const btnAll = document.createElement('button');
     btnAll.className = 'btn-expand-all';
-    const uniqueVals = [...new Set(currentRows.filter(r => !r._separator && r[groupField]).map(r => r[groupField]))];
-    const tuttiEspansi = uniqueVals.every(v => expandedChannels.has(v));
+    btnAll.dataset.part = '1';
+    const { part1Rows, part2Rows, hasSeparator } = getGroupedParts();
+    const uniqueVals1 = [...new Set((hasSeparator ? part1Rows : currentRows.filter(r => !r._separator)).filter(r => r[groupField]).map(r => r[groupField]))];
+    const tuttiEspansi = uniqueVals1.every(v => expandedChannels.has(v));
     btnAll.textContent = tuttiEspansi ? '⊖ Comprimi tutto' : '⊕ Espandi tutto';
     btnAll.addEventListener('click', () => {
-      if (tuttiEspansi) expandedChannels.clear();
-      else uniqueVals.forEach(v => expandedChannels.add(v));
+      if (tuttiEspansi) uniqueVals1.forEach(v => expandedChannels.delete(v));
+      else uniqueVals1.forEach(v => expandedChannels.add(v));
       renderTable();
     });
     secActions.appendChild(btnAll);
     const hiddenCount = currentRows.filter(r => !r._separator && r.nascosta).length;
     if (hiddenCount > 0) secActions.appendChild(_makeScopriTuttoBtn());
-    if (!currentWeek?.chiusa) secActions.appendChild(_makeCopiaBtn());
+    if (!currentWeek?.chiusa) secActions.appendChild(_makeCopiaBtn(hasSeparator ? part1Rows : null));
     buildChannelGroupView(channelsCont, groupField);
     return;
   }
@@ -2798,16 +2801,27 @@ function _makeScopriTuttoBtn() {
   return btn;
 }
 
-function _makeCopiaBtn() {
+function getGroupedParts() {
+  const part1Rows = [], part2Rows = [];
+  let inPart2 = false;
+  for (const row of currentRows) {
+    if (row._separator) { inPart2 = true; continue; }
+    if (inPart2) part2Rows.push(row);
+    else part1Rows.push(row);
+  }
+  return { part1Rows, part2Rows, hasSeparator: inPart2 };
+}
+
+function _makeCopiaBtn(partRows) {
   const btn = document.createElement('button');
   btn.className = 'btn-copia-prev';
   btn.title = 'Importa i titoli dalla settimana precedente (senza personaggi)';
   btn.textContent = '↩ Copia titoli settimana prec.';
-  btn.addEventListener('click', copiaTitoliPrevSettimana);
+  btn.addEventListener('click', () => copiaTitoliPrevSettimana(partRows));
   return btn;
 }
 
-async function copiaTitoliPrevSettimana() {
+async function copiaTitoliPrevSettimana(partRows) {
   const key = storageKey();
   if (!key) return;
   try {
@@ -2820,9 +2834,11 @@ async function copiaTitoliPrevSettimana() {
     }
     const byCode = {};
     prevRows.forEach(r => { if (r.codice) byCode[r.codice] = r; });
+    const rowSet = partRows ? new Set(partRows) : null;
     let count = 0;
     currentRows.forEach(row => {
       if (row._separator || row.nascosta) return;
+      if (rowSet && !rowSet.has(row)) return;
       const prev = byCode[row.codice];
       if (!prev || !prev.titolo) return;
       if (!row.titolo) {   // copia solo nelle righe ancora vuote
@@ -3185,7 +3201,27 @@ function buildChannelGroupView(container, groupField = 'canale') {
     if (group._separator) {
       const sep = document.createElement('div');
       sep.className = 'channel-separator';
-      sep.innerHTML = '<span>Seconda parte</span>';
+      const { part2Rows } = getGroupedParts();
+      const uniqueVals2 = [...new Set(part2Rows.filter(r => r[groupField]).map(r => r[groupField]))];
+      let tuttiEspansi2 = uniqueVals2.every(v => expandedChannels.has(v));
+      const lbl = document.createElement('span');
+      lbl.textContent = currentTimone === 'divadonna' ? 'Box' : 'Faccette';
+      sep.appendChild(lbl);
+      const sepActions = document.createElement('div');
+      sepActions.className = 'separator-actions';
+      const btnAll2 = document.createElement('button');
+      btnAll2.className = 'btn-expand-all';
+      btnAll2.dataset.part = '2';
+      btnAll2.textContent = tuttiEspansi2 ? '⊖ Comprimi tutto' : '⊕ Espandi tutto';
+      btnAll2.addEventListener('click', () => {
+        tuttiEspansi2 = uniqueVals2.every(v => expandedChannels.has(v));
+        if (tuttiEspansi2) uniqueVals2.forEach(v => expandedChannels.delete(v));
+        else uniqueVals2.forEach(v => expandedChannels.add(v));
+        renderTable();
+      });
+      sepActions.appendChild(btnAll2);
+      if (!currentWeek?.chiusa) sepActions.appendChild(_makeCopiaBtn(part2Rows));
+      sep.appendChild(sepActions);
       container.appendChild(sep);
       return;
     }
@@ -3221,10 +3257,18 @@ function buildChannelGroupView(container, groupField = 'canale') {
         const strip = allStrips[idx];
         if (strip) strip.className = 'ch-strip ' + (row.nascosta ? 'strip-nascosta' : row.colore === 'giallo' ? 'strip-giallo' : row.colore === 'grigio' ? 'strip-grigio' : 'strip-vuota');
       });
-      // aggiorna testo pulsante globale senza re-render completo
-      const uniqueVals = [...new Set(currentRows.filter(r => !r._separator && r[groupField]).map(r => r[groupField]))];
-      const btnAll = document.querySelector('.btn-expand-all');
-      if (btnAll) btnAll.textContent = uniqueVals.every(v => expandedChannels.has(v)) ? '⊖ Comprimi tutto' : '⊕ Espandi tutto';
+      // aggiorna testo pulsanti espandi/comprimi senza re-render completo
+      const { part1Rows, part2Rows, hasSeparator } = getGroupedParts();
+      const btn1 = document.querySelector('.btn-expand-all[data-part="1"]') || document.querySelector('.btn-expand-all');
+      if (btn1) {
+        const vals1 = [...new Set((hasSeparator ? part1Rows : currentRows.filter(r => !r._separator)).filter(r => r[groupField]).map(r => r[groupField]))];
+        btn1.textContent = vals1.every(v => expandedChannels.has(v)) ? '⊖ Comprimi tutto' : '⊕ Espandi tutto';
+      }
+      const btn2 = document.querySelector('.btn-expand-all[data-part="2"]');
+      if (btn2) {
+        const vals2 = [...new Set(part2Rows.filter(r => r[groupField]).map(r => r[groupField]))];
+        btn2.textContent = vals2.every(v => expandedChannels.has(v)) ? '⊖ Comprimi tutto' : '⊕ Espandi tutto';
+      }
     });
     card.appendChild(hdr);
 

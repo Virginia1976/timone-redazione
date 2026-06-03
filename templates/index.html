@@ -456,6 +456,11 @@ body.watcher-on .timone-table tbody td.td-num::after {
   content: 'W'; position: absolute; bottom: 1px; right: 2px;
   font-size: 20px; font-weight: 900; line-height: 1; color: #059669;
 }
+body.admin-on .timone-table tbody td.td-num { cursor: pointer; }
+body.admin-on .timone-table tbody td.td-num:hover::after {
+  content: 'W'; position: absolute; bottom: 1px; right: 2px;
+  font-size: 20px; font-weight: 900; line-height: 1; color: #94a3b8;
+}
 
 /* Celle modificabili */
 .timone-table td[contenteditable] {
@@ -3654,6 +3659,10 @@ async function adminWatcherClick() {
   }
 }
 
+document.addEventListener('click', e => {
+  if (_ruolo === 'admin' && e.target.matches('td.td-num')) adminWatcherClick();
+});
+
 async function _startWatcher() {
   const cartella    = getCartellaArchivio();
   const tipo        = document.getElementById('adminWatcherTipo')?.value || 'avanzata';
@@ -4222,6 +4231,7 @@ async function initRuolo() {
     const r = await fetch('/api/config');
     const d = await r.json();
     _ruolo          = d.ruolo || '';
+    if (_ruolo === 'admin') document.body.classList.add('admin-on');
     _timoniAttivi   = d.timoni_attivi || [];
     _editorialeBase = d.editoriale_base || '';
     _editorialeSMB  = d.editoriale_smb  || '';

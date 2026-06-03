@@ -11,3 +11,14 @@ data/
 
 # macOS
 .DS_Store
+
+# Node
+archivio_admin/node_modules/
+
+# URL privati
+URL MacBook.txt
+URL iMac.txt
+
+# TimoneOpener build temporanei
+timone_opener/*.zip
+"timone_opener/TimoneOpener copia.app/"

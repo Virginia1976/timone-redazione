@@ -1,0 +1,14 @@
+{
+  "name": "archivio-admin",
+  "version": "1.0.0",
+  "description": "Server locale admin per ricerca e watcher archivio foto",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "chokidar": "^3.6.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  }
+}

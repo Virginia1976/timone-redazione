@@ -450,7 +450,11 @@ body {
 }
 .timone-table tbody td.td-num {
   text-align: center; color: var(--muted); font-size: 11px; font-weight: 600;
-  width: 44px; background: #f8fafc;
+  width: 44px; background: #f8fafc; position: relative;
+}
+body.watcher-on .timone-table tbody td.td-num::after {
+  content: 'W'; position: absolute; bottom: 1px; right: 2px;
+  font-size: 20px; font-weight: 900; line-height: 1; color: #059669;
 }
 
 /* Celle modificabili */
@@ -676,6 +680,44 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 .rfm-logo-infotv { height: 16px; width: auto; }
 
 .row-actions { display: flex; align-items: center; justify-content: center; gap: 10px; }
+
+/* ── Archivio foto (admin only) ─────────────────────────────────────────────── */
+.btn-archivio-trigger {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 9px; border-radius: 6px; border: 2px solid #8b5cf6;
+  background: var(--card); font-size: 12px; font-weight: 600;
+  color: var(--text); cursor: pointer; white-space: nowrap;
+  transition: background .12s, border-color .12s;
+}
+.btn-archivio-trigger:hover { background: #f5f3ff; border-color: #7c3aed; }
+.btn-archivio-trigger .btn-foto-chevron { font-size: 9px; opacity: .6; }
+.archivio-menu .rfm-item { font-size: 13px; font-weight: 500; color: var(--text); background: none; border: none; width: 100%; text-align: left; cursor: pointer; }
+.archivio-menu .rfm-item:hover { background: #f5f3ff; }
+.archivio-menu .rfm-item.arm-attivo { color: #7c3aed; font-weight: 700; }
+
+/* ── Admin bar (watcher + cartella archivio) ────────────────────────────────── */
+.admin-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 6px 14px 6px 18px;
+  background: #faf5ff; border-bottom: 1px solid #e9d5ff;
+  font-size: 12px;
+}
+.admin-bar-label { font-weight: 600; color: #7c3aed; white-space: nowrap; }
+.admin-bar-sep { color: var(--border); margin: 0 2px; }
+.admin-select {
+  font-size: 12px; padding: 2px 6px; border-radius: 5px;
+  border: 1px solid #c4b5fd; background: white; color: var(--text); cursor: pointer;
+}
+.btn-watcher-toggle {
+  font-size: 12px; font-weight: 600; padding: 3px 10px;
+  border-radius: 5px; border: 1px solid #c4b5fd; background: white;
+  color: #7c3aed; cursor: pointer; transition: background .12s;
+}
+.btn-watcher-toggle:hover { background: #ede9fe; }
+.btn-watcher-toggle.watcher-on { background: #7c3aed; color: white; border-color: #6d28d9; }
+.btn-watcher-toggle.watcher-on:hover { background: #6d28d9; }
+.admin-watcher-status { font-size: 11px; color: var(--muted); }
+.admin-watcher-status.on { color: #059669; font-weight: 600; }
 
 /* ── Pulsante copia colonna (intestazione th) ───────────────────────────────── */
 .btn-copy-col {
@@ -1372,6 +1414,26 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
     </div>
     <div class="section-actions"></div>
   </div>
+  <div id="adminBar" class="admin-bar" style="display:none">
+    <span class="admin-bar-label">Archivio:</span>
+    <select id="adminCartellaArchivio" class="admin-select">
+      <option value="">— scegli —</option>
+      <option value="Biscotti">Biscotti</option>
+      <option value="Compleanni">Compleanni</option>
+      <option value="DipiùTV">DipiùTV</option>
+      <option value="Nuovo_piccolo">Nuovo_piccolo</option>
+      <option value="NuovoTV">NuovoTV</option>
+    </select>
+    <span class="admin-bar-sep">|</span>
+    <span class="admin-bar-label">Watcher:</span>
+    <select id="adminWatcherTipo" class="admin-select">
+      <option value="avanzata">Avanzata</option>
+      <option value="titolo">Titolo</option>
+      <option value="nome">Nome</option>
+    </select>
+    <button id="adminWatcherToggle" class="btn-watcher-toggle" onclick="adminWatcherClick()">▶ Avvia</button>
+    <span id="adminWatcherStatus" class="admin-watcher-status"></span>
+  </div>
   <div class="channels-container" id="channelsContainer" style="display:none"></div>
   <div class="table-wrap">
     <div class="table-scroll">
@@ -1450,6 +1512,13 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
     <img class="rfm-logo rfm-logo-infotv" src="https://www.infotv.it/wp-content/uploads/2019/01/infotv_logo_DEF-300x138.jpg" alt="InfoTV">
     Avanzata
   </a>
+</div>
+
+<!-- ── Archivio foto dropdown (admin only) ───────────────────────────────────── -->
+<div id="archivioMenu" class="ricerca-foto-menu archivio-menu">
+  <button class="rfm-item arm-nome">Nome</button>
+  <button class="rfm-item arm-titolo">Titolo</button>
+  <button class="rfm-item arm-avanzata">Avanzata</button>
 </div>
 
 <!-- ── Scontorni: menu categoria ─────────────────────────────────────────────── -->
@@ -2729,6 +2798,7 @@ function renderTable() {
     const hiddenCount = currentRows.filter(r => !r._separator && r.nascosta).length;
     if (hiddenCount > 0) secActions.appendChild(_makeScopriTuttoBtn());
     if (!currentWeek?.chiusa) secActions.appendChild(_makeCopiaBtn(hasSeparator ? part1Rows : null));
+    updateAdminBar();
     buildChannelGroupView(channelsCont, groupField);
     return;
   }
@@ -2743,6 +2813,7 @@ function renderTable() {
   const hiddenCountFlat = currentRows.filter(r => !r._separator && r.nascosta).length;
   if (hiddenCountFlat > 0) secActionsFlat.appendChild(_makeScopriTuttoBtn());
   if (!currentWeek?.chiusa) secActionsFlat.appendChild(_makeCopiaBtn());
+  updateAdminBar();
 
   // Intestazione
   const thead = document.getElementById('theadRow');
@@ -3146,9 +3217,22 @@ function buildRow(row, i, tbody, colsOverride) {
     });
   }
 
+  let btnArchivio = null;
+  if (_ruolo === 'admin') {
+    btnArchivio = document.createElement('button');
+    btnArchivio.className = 'btn-archivio-trigger';
+    btnArchivio.title = 'Cerca in archivio foto';
+    btnArchivio.innerHTML = '🗂 Arch <span class="btn-foto-chevron">▾</span>';
+    btnArchivio.addEventListener('click', (e) => {
+      e.stopPropagation();
+      mostraArchivioMenu(row, btnArchivio);
+    });
+  }
+
   divA.appendChild(dot);
   if (btnFoto) divA.appendChild(btnFoto);
   if (btnFotoTif) divA.appendChild(btnFotoTif);
+  if (btnArchivio) divA.appendChild(btnArchivio);
   tdA.appendChild(divA);
   tr.appendChild(tdA);
   tbody.appendChild(tr);
@@ -3401,6 +3485,20 @@ function _infotvAvanzataUrl(row) {
   return `${INFOTV_BASE}?${p.toString()}`;
 }
 
+function _posizionaMenu(menu, triggerBtn) {
+  const rect  = triggerBtn.getBoundingClientRect();
+  const menuH = menu.offsetHeight || 130;
+  const menuW = menu.offsetWidth  || 170;
+  const top   = (window.innerHeight - rect.bottom >= menuH + 4 || rect.top < menuH + 4)
+    ? rect.bottom + 4
+    : rect.top - menuH - 4;
+  const left  = (rect.left + menuW > window.innerWidth - 8)
+    ? Math.max(4, rect.right - menuW)
+    : rect.left;
+  menu.style.top  = top  + 'px';
+  menu.style.left = left + 'px';
+}
+
 function mostraRicercaFotoMenu(row, triggerBtn) {
   const menu = document.getElementById('ricercaFotoMenu');
 
@@ -3415,13 +3513,8 @@ function mostraRicercaFotoMenu(row, triggerBtn) {
   setItem('.rfm-titolo',   _infotvTitoloUrl(row));
   setItem('.rfm-avanzata', _infotvAvanzataUrl(row));
 
-  const rect = triggerBtn.getBoundingClientRect();
   menu.classList.add('show');
-  const menuH = menu.offsetHeight;
-  menu.style.top  = (window.innerHeight - rect.bottom >= menuH + 4 || rect.top < menuH + 4)
-    ? (rect.bottom + 4) + 'px'
-    : (rect.top - menuH - 4) + 'px';
-  menu.style.left = rect.left + 'px';
+  _posizionaMenu(menu, triggerBtn);
 }
 
 let _currentTifRow = null;
@@ -3441,13 +3534,8 @@ function mostraRicercaFotoTifMenu(row, triggerBtn) {
   setItem('.rft-titolo',   _infotvTitoloUrl(row));
   setItem('.rft-avanzata', _infotvAvanzataUrl(row));
 
-  const rect = triggerBtn.getBoundingClientRect();
   menu.classList.add('show');
-  const menuH = menu.offsetHeight;
-  menu.style.top  = (window.innerHeight - rect.bottom >= menuH + 4 || rect.top < menuH + 4)
-    ? (rect.bottom + 4) + 'px'
-    : (rect.top - menuH - 4) + 'px';
-  menu.style.left = rect.left + 'px';
+  _posizionaMenu(menu, triggerBtn);
 }
 
 document.querySelectorAll('#ricercaFotoTifMenu .rfm-item').forEach(el => {
@@ -3459,6 +3547,189 @@ document.querySelectorAll('#ricercaFotoTifMenu .rfm-item').forEach(el => {
     document.getElementById('ricercaFotoTifMenu').classList.remove('show');
   });
 });
+
+// ── Archivio foto admin ───────────────────────────────────────────────────────
+
+const ARCHIVIO_ADMIN_URL = 'http://127.0.0.1:3099';
+const CARTELLE_ARCHIVIO  = ['Biscotti', 'Compleanni', 'DipiùTV', 'Nuovo_piccolo', 'NuovoTV'];
+
+function _archivioCartellaKey() {
+  return `archivio_cartella_${currentTimone}_${currentDay || ''}`;
+}
+
+function getCartellaArchivio() {
+  return document.getElementById('adminCartellaArchivio')?.value || '';
+}
+
+function updateAdminBar() {
+  const bar = document.getElementById('adminBar');
+  if (!bar) return;
+  if (_ruolo !== 'admin') { bar.style.display = 'none'; return; }
+  bar.style.display = '';
+
+  // Ripristina cartella salvata per questo timone/giorno
+  const sel = document.getElementById('adminCartellaArchivio');
+  if (sel) {
+    const saved = localStorage.getItem(_archivioCartellaKey());
+    if (saved && CARTELLE_ARCHIVIO.includes(saved)) sel.value = saved;
+  }
+
+  // Aggiorna stato watcher
+  _refreshWatcherStatus();
+}
+
+// Salva selezione cartella archivio
+document.getElementById('adminCartellaArchivio')?.addEventListener('change', () => {
+  const val = document.getElementById('adminCartellaArchivio').value;
+  localStorage.setItem(_archivioCartellaKey(), val);
+});
+
+// ── Menu archivio su riga ────────────────────────────────────────────────────
+let _archivioMenuRow = null;
+
+function mostraArchivioMenu(row, triggerBtn) {
+  _archivioMenuRow = row;
+  const menu = document.getElementById('archivioMenu');
+
+  const cartella = getCartellaArchivio();
+  menu.querySelectorAll('.rfm-item').forEach(btn => {
+    btn.classList.remove('arm-attivo');
+    btn.disabled = !cartella;
+    btn.title = cartella ? '' : 'Seleziona prima la cartella archivio';
+  });
+
+  menu.classList.add('show');
+  _posizionaMenu(menu, triggerBtn);
+}
+
+document.querySelectorAll('#archivioMenu .rfm-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('archivioMenu').classList.remove('show');
+    if (!_archivioMenuRow) return;
+    const tipo = btn.classList.contains('arm-nome') ? 'nome'
+               : btn.classList.contains('arm-titolo') ? 'titolo' : 'avanzata';
+    _cercaEApriArchivio(_archivioMenuRow, tipo);
+  });
+});
+
+async function _cercaEApriArchivio(row, tipo) {
+  const cartella = getCartellaArchivio();
+  if (!cartella) { showStatus('Seleziona la cartella archivio', 'warn'); return; }
+
+  showStatus('Cerco in archivio…', 'info');
+
+  try {
+    const resp = await fetch(`${ARCHIVIO_ADMIN_URL}/apri`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cartellaArchivio: cartella,
+        cartellaNumero:   getCartella() || '',
+        codice:           row.codice    || '',
+        titolo:           row.titolo    || '',
+        personaggio:      row.personaggio || '',
+        tipo,
+      }),
+    });
+    const data = await resp.json();
+    if (data.trovato) {
+      const n = data.aperto.length;
+      showStatus(`${n} file aperto/i${data.canvasAperta ? ' + canvas' : ''}`, 'ok');
+    } else {
+      showStatus('File non trovato in archivio', 'warn');
+    }
+  } catch {
+    showStatus('Server archivio non raggiungibile', 'warn');
+  }
+}
+
+// ── Watcher ──────────────────────────────────────────────────────────────────
+let _watcherAttivo = false;
+
+async function adminWatcherClick() {
+  if (_watcherAttivo) {
+    await _stopWatcher();
+  } else {
+    await _startWatcher();
+  }
+}
+
+async function _startWatcher() {
+  const cartella    = getCartellaArchivio();
+  const tipo        = document.getElementById('adminWatcherTipo')?.value || 'avanzata';
+  const exportFolder = getCartella();
+
+  if (!cartella)     { showStatus('Seleziona la cartella archivio', 'warn'); return; }
+  if (!exportFolder) { showStatus('Cartella foto non configurata per questo timone/giorno', 'warn'); return; }
+
+  try {
+    const resp = await fetch(`${ARCHIVIO_ADMIN_URL}/watcher/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cartellaArchivio: cartella,
+        tipo,
+        exportFolder,
+        righe: currentRows.filter(r => r.codice).map(r => ({ codice: r.codice, titolo: r.titolo || '', personaggio: r.personaggio || '', tipo: r.tipo || '', anno: r.anno || '', stagione: r.stagione || '' })),
+      }),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      _watcherAttivo = true;
+      _updateWatcherUI('on', tipo, cartella);
+    } else {
+      showStatus(data.error || 'Errore avvio watcher', 'warn');
+    }
+  } catch {
+    showStatus('Server archivio non raggiungibile', 'warn');
+  }
+}
+
+async function _stopWatcher() {
+  try {
+    await fetch(`${ARCHIVIO_ADMIN_URL}/watcher/stop`, { method: 'POST' });
+  } catch { /* ignora */ }
+  _watcherAttivo = false;
+  _updateWatcherUI('off');
+}
+
+let _watcherPollTimer = null;
+
+async function _refreshWatcherStatus() {
+  _updateWatcherUI('incerto');
+  _pollWatcherStatus();
+}
+
+async function _pollWatcherStatus() {
+  if (_watcherPollTimer) { clearTimeout(_watcherPollTimer); _watcherPollTimer = null; }
+  try {
+    const resp = await fetch(`${ARCHIVIO_ADMIN_URL}/watcher/status`);
+    const data = await resp.json();
+    _watcherAttivo = data.attivo ?? data.running ?? false;
+    _updateWatcherUI(_watcherAttivo ? 'on' : 'off', data.config?.tipo, data.config?.cartellaArchivio);
+  } catch {
+    _watcherAttivo = false;
+    _updateWatcherUI('incerto');
+    _watcherPollTimer = setTimeout(_pollWatcherStatus, 3000);
+  }
+}
+
+function _updateWatcherUI(stato, tipo, cartella) {
+  const btn    = document.getElementById('adminWatcherToggle');
+  const status = document.getElementById('adminWatcherStatus');
+  if (!btn) return;
+  if (stato === 'on') {
+    btn.textContent = '⏹ Ferma';
+    btn.classList.add('watcher-on');
+    document.body.classList.add('watcher-on');
+    if (status) { status.textContent = `attivo · ${tipo || ''} · ${cartella || ''}`; status.className = 'admin-watcher-status on'; }
+  } else {
+    btn.textContent = '▶ Avvia';
+    btn.classList.remove('watcher-on');
+    document.body.classList.remove('watcher-on');
+    if (status) { status.textContent = stato === 'incerto' ? '…' : ''; status.className = 'admin-watcher-status'; }
+  }
+}
 
 // ── Mostra cartella .tif nel Finder (via SMB) ─────────────────────────────────
 const _isRemote = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
@@ -4054,6 +4325,10 @@ document.addEventListener('click', e => {
   if ((!e.target.closest('#ricercaFotoTifMenu') && !e.target.closest('.btn-foto-tif-trigger')) ||
       e.target.closest('.rfm-item')) {
     document.getElementById('ricercaFotoTifMenu').classList.remove('show');
+  }
+  if ((!e.target.closest('#archivioMenu') && !e.target.closest('.btn-archivio-trigger')) ||
+      e.target.closest('.rfm-item')) {
+    document.getElementById('archivioMenu').classList.remove('show');
   }
 });
 

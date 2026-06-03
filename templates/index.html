@@ -646,12 +646,12 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 /* Ricerca foto trigger + dropdown (editor/admin only) */
 .btn-foto-trigger {
   display: flex; align-items: center; gap: 4px;
-  padding: 4px 9px; border-radius: 6px; border: 1px solid var(--border);
+  padding: 4px 9px; border-radius: 6px; border: 2px solid #f97316;
   background: var(--card); font-size: 12px; font-weight: 600;
   color: var(--text); cursor: pointer; white-space: nowrap;
   transition: background .12s, border-color .12s;
 }
-.btn-foto-trigger:hover { background: #f1f5f9; border-color: #94a3b8; }
+.btn-foto-trigger:hover { background: #fff7ed; border-color: #ea6a00; }
 .btn-foto-trigger .btn-foto-chevron { font-size: 9px; opacity: .6; }
 
 .ricerca-foto-menu {
@@ -940,12 +940,14 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 }
 .btn-scopri:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 
-.btn-nascondi {
-  background: none; border: none; cursor: pointer; padding: 3px 8px;
-  border-radius: 6px; font-size: 11px; font-weight: 600; color: var(--muted);
-  transition: all .12s; white-space: nowrap;
+.btn-foto-tif-trigger {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 9px; border-radius: 6px; border: 2px solid #16a34a;
+  background: var(--card); font-size: 12px; font-weight: 600;
+  color: var(--text); cursor: pointer; white-space: nowrap;
+  transition: background .12s, border-color .12s;
 }
-.btn-nascondi:hover { background: rgba(100,116,139,.12); color: var(--text-soft); }
+.btn-foto-tif-trigger:hover { background: #f0fdf4; border-color: #15803d; }
 
 /* ── Responsive ─────────────────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
@@ -1028,7 +1030,7 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 #timone-section.settimana-chiusa .trama-cell,
 #timone-section.settimana-chiusa .sotto-canale-input { pointer-events: none; opacity: .78; }
 #timone-section.settimana-chiusa .btn-row,
-#timone-section.settimana-chiusa .btn-nascondi,
+#timone-section.settimana-chiusa .btn-foto-tif-trigger,
 #timone-section.settimana-chiusa .color-dot { pointer-events: none; opacity: .25; }
 
 /* ── Scontorni ───────────────────────────────────────────────────────────────── */
@@ -1424,6 +1426,26 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
     Titolo
   </a>
   <a class="rfm-item rfm-avanzata" target="_blank" rel="noopener">
+    <img class="rfm-logo rfm-logo-infotv" src="https://www.infotv.it/wp-content/uploads/2019/01/infotv_logo_DEF-300x138.jpg" alt="InfoTV">
+    Avanzata
+  </a>
+</div>
+
+<!-- ── Ricerca foto + apri TIF dropdown (editor/admin) ───────────────────────── -->
+<div id="ricercaFotoTifMenu" class="ricerca-foto-menu">
+  <a class="rfm-item rft-google" target="_blank" rel="noopener">
+    <svg class="rfm-logo rfm-logo-google" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+    Google
+  </a>
+  <a class="rfm-item rft-nome" target="_blank" rel="noopener">
+    <img class="rfm-logo rfm-logo-infotv" src="https://www.infotv.it/wp-content/uploads/2019/01/infotv_logo_DEF-300x138.jpg" alt="InfoTV">
+    Nome
+  </a>
+  <a class="rfm-item rft-titolo" target="_blank" rel="noopener">
+    <img class="rfm-logo rfm-logo-infotv" src="https://www.infotv.it/wp-content/uploads/2019/01/infotv_logo_DEF-300x138.jpg" alt="InfoTV">
+    Titolo
+  </a>
+  <a class="rfm-item rft-avanzata" target="_blank" rel="noopener">
     <img class="rfm-logo rfm-logo-infotv" src="https://www.infotv.it/wp-content/uploads/2019/01/infotv_logo_DEF-300x138.jpg" alt="InfoTV">
     Avanzata
   </a>
@@ -3096,18 +3118,21 @@ function buildRow(row, i, tbody, colsOverride) {
     });
   }
 
-  // Nascondi riga (la esclude da copia/incolla ma la conserva)
-  const btnDel = document.createElement('button');
-  btnDel.className = 'btn-nascondi'; btnDel.title = 'Nascondi riga';
-  btnDel.textContent = 'Nascondi';
-  btnDel.addEventListener('click', () => {
-    row.nascosta = true;
-    renderTable(); markDirty();
-  });
+  let btnFotoTif = null;
+  if (_ruolo === 'editor' || _ruolo === 'admin') {
+    btnFotoTif = document.createElement('button');
+    btnFotoTif.className = 'btn-foto-tif-trigger';
+    btnFotoTif.title = 'Ricerca foto + apri in Photoshop';
+    btnFotoTif.innerHTML = '📷 Foto+PS <span class="btn-foto-chevron">▾</span>';
+    btnFotoTif.addEventListener('click', (e) => {
+      e.stopPropagation();
+      mostraRicercaFotoTifMenu(row, btnFotoTif);
+    });
+  }
 
   divA.appendChild(dot);
   if (btnFoto) divA.appendChild(btnFoto);
-  divA.appendChild(btnDel);
+  if (btnFotoTif) divA.appendChild(btnFotoTif);
   tdA.appendChild(divA);
   tr.appendChild(tdA);
   tbody.appendChild(tr);
@@ -3351,6 +3376,39 @@ function mostraRicercaFotoMenu(row, triggerBtn) {
   menu.style.left = rect.left + 'px';
   menu.classList.add('show');
 }
+
+let _currentTifRow = null;
+
+function mostraRicercaFotoTifMenu(row, triggerBtn) {
+  _currentTifRow = row;
+  const menu = document.getElementById('ricercaFotoTifMenu');
+
+  function setItem(cls, url) {
+    const el = menu.querySelector(cls);
+    if (!el) return;
+    if (url) { el.href = url; el.classList.remove('rfm-disabled'); }
+    else     { el.removeAttribute('href'); el.classList.add('rfm-disabled'); }
+  }
+  setItem('.rft-google',   _googleImgUrl(row));
+  setItem('.rft-nome',     _infotvNomeUrl(row));
+  setItem('.rft-titolo',   _infotvTitoloUrl(row));
+  setItem('.rft-avanzata', _infotvAvanzataUrl(row));
+
+  const rect = triggerBtn.getBoundingClientRect();
+  menu.style.top  = (rect.bottom + 4) + 'px';
+  menu.style.left = rect.left + 'px';
+  menu.classList.add('show');
+}
+
+document.querySelectorAll('#ricercaFotoTifMenu .rfm-item').forEach(el => {
+  el.addEventListener('click', (e) => {
+    e.preventDefault();
+    const url = el.getAttribute('href');
+    if (url) window.open(url, '_blank', 'noopener');
+    if (_currentTifRow && _currentTifRow.codice) revealTif(_currentTifRow.codice);
+    document.getElementById('ricercaFotoTifMenu').classList.remove('show');
+  });
+});
 
 // ── Mostra cartella .tif nel Finder (via SMB) ─────────────────────────────────
 const _isRemote = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
@@ -3942,6 +4000,10 @@ document.addEventListener('click', e => {
   if ((!e.target.closest('#ricercaFotoMenu') && !e.target.closest('.btn-foto-trigger')) ||
       e.target.closest('.rfm-item')) {
     document.getElementById('ricercaFotoMenu').classList.remove('show');
+  }
+  if ((!e.target.closest('#ricercaFotoTifMenu') && !e.target.closest('.btn-foto-tif-trigger')) ||
+      e.target.closest('.rfm-item')) {
+    document.getElementById('ricercaFotoTifMenu').classList.remove('show');
   }
 });
 

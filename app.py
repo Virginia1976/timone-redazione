@@ -724,7 +724,7 @@ def cerca_scontorno_titolo():
         return jsonify({'results': [], 'error': 'cartella non trovata'})
 
     titolo_lower = strip_articolo(titolo).lower()
-    is_serie = categoria in ('serie', 'soap')
+    is_serie = categoria in ('serie', 'soap', 'cartoni', 'documentari')
     results: list[dict] = []
     try:
         for f in cartella.rglob('*'):
@@ -742,6 +742,7 @@ def cerca_scontorno_titolo():
                 break
     except Exception as e:
         print(f'[CERCA_SCONT_T] {e}')
+    results.sort(key=lambda r: pathlib.Path(r['path']).name.lower())
     return jsonify({'results': results})
 
 

@@ -889,6 +889,14 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
   flex-shrink: 0;
 }
 .channel-card.expanded .ch-chevron { transform: rotate(90deg); }
+.hdr-actions { display: flex; gap: 5px; align-items: center; }
+.btn-in-hdr {
+  padding: 3px 8px; border-radius: 5px; font-size: 11px; font-weight: 600;
+  border: 1.5px solid rgba(255,255,255,.55); background: rgba(255,255,255,.15);
+  color: #fff; cursor: pointer; white-space: nowrap;
+  transition: background .15s;
+}
+.btn-in-hdr:hover { background: rgba(255,255,255,.3); }
 .ch-count {
   background: rgba(255,255,255,.25); border-radius: 12px;
   padding: 1px 9px; font-size: 12px; font-weight: 700;
@@ -3336,10 +3344,35 @@ function buildChannelGroupView(container, groupField = 'canale') {
                 : (currentTimone === 'divadonna') ? (group.val === 'Foto' ? '📷' : '📦')
                 : '📺';
     hdr.innerHTML = `<span>${emoji} ${group.val}</span><span class="ch-count">${group.rows.length}</span><span class="ch-chevron">▶</span>`;
+    let btnExpHdr = null;
+    if (isGiorno) {
+      const hdrActions = document.createElement('div');
+      hdrActions.className = 'hdr-actions';
+      btnExpHdr = document.createElement('button');
+      btnExpHdr.className = 'btn-in-hdr';
+      btnExpHdr.textContent = isOpen ? '⊖ Comprimi' : '⊕ Espandi';
+      btnExpHdr.addEventListener('click', e => {
+        e.stopPropagation();
+        hdr.click();
+      });
+      hdrActions.appendChild(btnExpHdr);
+      if (!currentWeek?.chiusa) {
+        const btnCopiaHdr = document.createElement('button');
+        btnCopiaHdr.className = 'btn-in-hdr';
+        btnCopiaHdr.textContent = '↩ Copia sett. prec.';
+        btnCopiaHdr.addEventListener('click', e => {
+          e.stopPropagation();
+          copiaTitoliPrevSettimana(group.rows);
+        });
+        hdrActions.appendChild(btnCopiaHdr);
+      }
+      hdr.querySelector('.ch-chevron').before(hdrActions);
+    }
     hdr.addEventListener('click', () => {
       if (expandedChannels.has(group.val)) expandedChannels.delete(group.val);
       else expandedChannels.add(group.val);
       card.classList.toggle('expanded');
+      if (btnExpHdr) btnExpHdr.textContent = expandedChannels.has(group.val) ? '⊖ Comprimi' : '⊕ Espandi';
       // Risincronizza colori righe e mini-strip dai dati
       const allTrs = [...card.querySelectorAll('tbody tr')];
       const allStrips = [...card.querySelectorAll('.ch-strip')];

@@ -590,10 +590,12 @@ def tif_thumb():
     path = _safe_path(cartella, codice)
     if not path:
         return '', 400
+    path_lower = _safe_path(cartella, codice.lower())
     def _do():
-        if not os.path.isfile(path):
+        actual = path if os.path.isfile(path) else (path_lower if path_lower and os.path.isfile(path_lower) else None)
+        if actual is None:
             return None
-        with Image.open(path) as img:
+        with Image.open(actual) as img:
             img.thumbnail((192, 144))
             buf = io.BytesIO()
             img.convert('RGB').save(buf, format='JPEG', quality=85)
@@ -629,12 +631,12 @@ def tif_mtime():
             by_cartella.setdefault(cartella, []).append(codice)
 
     def _scan_dir(cartella: str, codici: list[str]) -> dict[str, int | None]:
-        wanted = {c + '.tif': c for c in codici}
+        wanted = {c.lower() + '.tif': c for c in codici}
         out    = {c: None for c in codici}
         try:
             with os.scandir(cartella) as it:
                 for entry in it:
-                    codice = wanted.get(entry.name)
+                    codice = wanted.get(entry.name.lower())
                     if codice is None:
                         continue
                     try:

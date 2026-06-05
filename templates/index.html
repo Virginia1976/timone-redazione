@@ -2799,7 +2799,10 @@ function renderTable() {
     btnAll.className = 'btn-expand-all';
     btnAll.dataset.part = '1';
     const { part1Rows, part2Rows, hasSeparator } = getGroupedParts();
-    const uniqueVals1 = [...new Set((hasSeparator ? part1Rows : currentRows.filter(r => !r._separator)).filter(r => r[groupField]).map(r => r[groupField]))];
+    const isGiornoView = groupField === 'giorno';
+    const uniqueVals1 = isGiornoView
+      ? [...new Set(currentRows.filter(r => !r._separator && r[groupField]).map(r => r[groupField]))]
+      : [...new Set((hasSeparator ? part1Rows : currentRows.filter(r => !r._separator)).filter(r => r[groupField]).map(r => r[groupField]))];
     const tuttiEspansi = uniqueVals1.every(v => expandedChannels.has(v));
     btnAll.textContent = tuttiEspansi ? '⊖ Comprimi tutto' : '⊕ Espandi tutto';
     btnAll.addEventListener('click', () => {
@@ -2810,7 +2813,7 @@ function renderTable() {
     secActions.appendChild(btnAll);
     const hiddenCount = currentRows.filter(r => !r._separator && r.nascosta).length;
     if (hiddenCount > 0) secActions.appendChild(_makeScopriTuttoBtn());
-    if (!currentWeek?.chiusa) secActions.appendChild(_makeCopiaBtn(hasSeparator ? part1Rows : null));
+    if (!currentWeek?.chiusa) secActions.appendChild(_makeCopiaBtn(isGiornoView ? null : hasSeparator ? part1Rows : null));
     updateAdminBar();
     buildChannelGroupView(channelsCont, groupField);
     return;

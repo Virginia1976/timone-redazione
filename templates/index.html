@@ -425,17 +425,22 @@ body {
 .table-scroll { overflow-x: auto; }
 
 .timone-table {
-  width: 100%; border-collapse: collapse; min-width: 980px;
+  width: 100%; border-collapse: collapse; min-width: 1100px;
 }
 .timone-table thead th {
   background: #f8fafc; padding: 12px 14px;
   font-size: 11px; font-weight: 700; text-transform: uppercase;
   letter-spacing: .08em; color: var(--muted);
   border-bottom: 1px solid var(--border); white-space: nowrap;
-  position: sticky; top: 0;
+  position: sticky; top: 0; z-index: 2;
 }
 .timone-table thead th:first-child { width: 44px; text-align: center; }
-.timone-table thead th.col-azioni { width: 80px; text-align: center; }
+.timone-table thead th.col-azioni {
+  width: 270px; text-align: center;
+  position: sticky; right: 0; z-index: 4;
+  background: #f8fafc;
+  box-shadow: -3px 0 6px rgba(0,0,0,.07);
+}
 
 .timone-table tbody tr {
   border-bottom: 1px solid #f1f5f9; transition: background var(--transition);
@@ -508,10 +513,23 @@ body.admin-on .timone-table tbody td.td-num:hover::after {
 .tipo-tv   { background: rgba(8,145,178,.12); color: #0891B2; }
 .tipo-film { background: rgba(124,58,237,.12); color: #7C3AED; }
 
+/* Colonna azioni sticky (sempre visibile a destra) */
+.timone-table td.td-azioni {
+  position: sticky; right: 0; z-index: 1;
+  background: var(--card);
+  box-shadow: -3px 0 6px rgba(0,0,0,.06);
+}
+.timone-table tbody tr:hover td.td-azioni { background: #f8fafc; }
+
 /* Colore riga */
 .timone-table tr.row-giallo   td { background: #fef9c3 !important; }
 .timone-table tr.row-grigio   td { background: #c8d3de !important; }
 .timone-table tr.row-copiato  td { background: #f1f5f9 !important; color: #94a3b8 !important; font-style: italic; }
+.timone-table tr.row-giallo   td.td-azioni { background: #fef9c3 !important; }
+.timone-table tr.row-grigio   td.td-azioni { background: #c8d3de !important; }
+.timone-table tr.row-copiato  td.td-azioni { background: #f1f5f9 !important; }
+.timone-table tr.row-giallo:hover td.td-azioni { background: #fdf0a0 !important; }
+.timone-table tr.row-grigio:hover td.td-azioni { background: #b8c8d8 !important; }
 
 /* ── Separatore sezioni ─────────────────────────────────────────────────────── */
 .row-separator td {
@@ -951,11 +969,22 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 .channel-card .timone-table thead th {
   background: color-mix(in srgb, var(--ch, #64748b) 8%, #f8fafc);
 }
+.channel-card .timone-table thead th.col-azioni {
+  background: color-mix(in srgb, var(--ch, #64748b) 8%, #f8fafc);
+}
 .channel-card .timone-table tbody tr:hover td {
   background: color-mix(in srgb, var(--ch, #64748b) 6%, #f8fafc) !important;
 }
+.channel-card .timone-table tbody tr:hover td.td-azioni {
+  background: color-mix(in srgb, var(--ch, #64748b) 6%, #f8fafc) !important;
+}
+.channel-card .timone-table td.td-azioni {
+  background: color-mix(in srgb, var(--ch, #64748b) 4%, #ffffff);
+}
 .channel-card .timone-table tr.row-giallo:hover td { background: #fdf0a0 !important; }
 .channel-card .timone-table tr.row-grigio:hover td  { background: #b8c8d8 !important; }
+.channel-card .timone-table tr.row-giallo:hover td.td-azioni { background: #fdf0a0 !important; }
+.channel-card .timone-table tr.row-grigio:hover td.td-azioni  { background: #b8c8d8 !important; }
 .channel-card .timone-table td[contenteditable]:focus {
   box-shadow: inset 0 0 0 1.5px var(--ch, #64748b);
 }
@@ -3180,6 +3209,7 @@ function buildRow(row, i, tbody, colsOverride) {
 
   // ── Azioni ──────────────────────────────────────────────────────────────────
   const tdA = document.createElement('td');
+  tdA.className = 'td-azioni';
   const divA = document.createElement('div'); divA.className = 'row-actions';
 
   // Bollino colore (cicla: bianco → giallo → grigio → copiato → bianco)

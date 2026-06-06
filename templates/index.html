@@ -3820,7 +3820,10 @@ function revealTif(codice, silent = false) {
   if (!cartella) { if (!silent) showStatus('Cartella non configurata', 'warn'); return false; }
   if (!codice)   { if (!silent) showStatus('Codice non inserito', 'warn'); return false; }
   const filePath = cartella + '/' + codice + '.tif';
-  window.location.href = 'timone://open?path=' + encodeURIComponent(filePath);
+  fetch('http://127.0.0.1:5020/apri?path=' + encodeURIComponent(filePath))
+    .catch(function() {
+      window.location.href = 'timone://open?path=' + encodeURIComponent(filePath);
+    });
   return true;
 }
 

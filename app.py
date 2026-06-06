@@ -827,4 +827,7 @@ def scarica_scontorno():
 
 if __name__ == '__main__':
     _debug = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
-    app.run(host='0.0.0.0', port=5010, debug=_debug, use_reloader=False)
+    _cert = os.environ.get('SSL_CERT')
+    _key = os.environ.get('SSL_KEY')
+    _ssl = (_cert, _key) if _cert and _key else None
+    app.run(host='0.0.0.0', port=5010, debug=_debug, use_reloader=False, ssl_context=_ssl)

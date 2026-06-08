@@ -15,7 +15,7 @@ import shutil
 import subprocess
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
-from datetime import timedelta
+from datetime import timedelta, date as date_
 
 import requests
 from dotenv import load_dotenv
@@ -499,6 +499,41 @@ def riapri_week(timone):
     meta['chiusa'] = False
     set_week_meta(timone, meta)
     return jsonify({'ok': True})
+
+
+@app.route('/api/archive/<timone>')
+def list_archive(timone):
+    if timone not in KNOWN_TIMONI:
+        return jsonify({'error': 'timone non valido'}), 400
+    current_wid = (get_week_meta(timone).get('week_id') or '').strip()
+    weeks = []
+    for d in sorted(DATA_DIR.iterdir(), reverse=True):
+        if not d.is_dir() or d.name.startswith('_') or d.name == current_wid:
+            continue
+        try:
+            dal = date_.fromisoformat(d.name)
+        except ValueError:
+            continue
+        has_data = any(
+            f.stem == timone or f.stem.startswith(timone + '_')
+            for f in d.glob('*.json')
+        )
+        if has_data:
+            al = dal + timedelta(days=6)
+            weeks.append({'week_id': d.name, 'dal': d.name, 'al': al.isoformat()})
+    return jsonify(weeks)
+
+
+@app.route('/api/archive/load/<week_id>/<key>')
+def archive_load(week_id, key):
+    if not re.match(r'^\d{4}-\d{2}-\d{2}$', week_id):
+        return jsonify({'error': 'week_id non valido'}), 400
+    if not VALID_KEY.match(key):
+        return jsonify({'error': 'chiave non valida'}), 400
+    path = DATA_DIR / week_id / f'{key}.json'
+    if path.exists():
+        return jsonify(json.loads(path.read_text('utf-8')))
+    return jsonify({'rows': []})
 
 
 @app.route('/autocomplete_titoli', methods=['POST'])

@@ -1106,6 +1106,67 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 }
 .week-closed-banner.show { display: flex; }
 
+/* ── Archivio settimane ──────────────────────────────────────────────────── */
+.archive-panel {
+  margin-top: 18px; border: 1.5px solid var(--border); border-radius: 12px;
+  overflow: hidden;
+}
+.archive-panel-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; cursor: pointer; font-size: 13px; font-weight: 700;
+  color: var(--text-soft); background: var(--surface);
+  user-select: none; transition: background var(--transition);
+}
+.archive-panel-toggle:hover { background: var(--accent-light); color: var(--accent); }
+.archive-panel-body { padding: 12px 16px 14px; }
+.archive-week-item {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 8px;
+  padding: 9px 0; border-bottom: 1px solid var(--border);
+}
+.archive-week-item:last-child { border-bottom: none; }
+.archive-week-dates { font-size: 13px; font-weight: 600; color: var(--text); }
+.archive-week-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.archive-week-btn {
+  padding: 5px 12px; border-radius: 7px; font-size: 12px; font-weight: 700;
+  background: var(--accent-light); color: var(--accent); border: 1.5px solid var(--accent);
+  cursor: pointer; transition: all var(--transition);
+}
+.archive-week-btn:hover { background: var(--accent); color: #fff; }
+.archive-reopen-item-btn {
+  padding: 5px 12px; border-radius: 7px; font-size: 12px; font-weight: 700;
+  background: none; color: var(--text-soft); border: 1.5px solid var(--border);
+  cursor: pointer; transition: all var(--transition);
+}
+.archive-reopen-item-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.archive-day-selector {
+  width: 100%; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+}
+.archive-empty { font-size: 13px; color: var(--text-soft); padding: 8px 0; }
+.archive-loading { font-size: 13px; color: var(--text-soft); padding: 8px 0; }
+
+/* ── Banner archivio (in sezione timone) ─────────────────────────────────── */
+.archive-banner {
+  display: none; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  gap: 10px; padding: 12px 20px; margin-bottom: 18px; border-radius: 12px;
+  background: #eff6ff; color: #1e40af; font-size: 14px; font-weight: 700;
+  border: 1.5px solid #bfdbfe;
+}
+.archive-banner-label { flex: 1; }
+.archive-banner-actions { display: flex; gap: 8px; }
+.archive-back-btn {
+  padding: 5px 14px; border-radius: 7px; font-size: 12px; font-weight: 700;
+  background: none; border: 1.5px solid #bfdbfe; color: #1e40af; cursor: pointer;
+  transition: all var(--transition);
+}
+.archive-back-btn:hover { background: #bfdbfe; }
+.archive-reopen-btn {
+  padding: 5px 14px; border-radius: 7px; font-size: 12px; font-weight: 700;
+  background: none; border: 1.5px solid var(--border); color: var(--text-soft); cursor: pointer;
+  transition: all var(--transition);
+}
+.archive-reopen-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
 /* ── Read-only: settimana chiusa ─────────────────────────────────────────── */
 #timone-section.settimana-chiusa td[contenteditable],
 #timone-section.settimana-chiusa .cell-editable-inner,
@@ -1438,10 +1499,28 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
   <div id="thRivistaWrap" style="display:none">
     <button class="th-work-btn" id="thWorkBtn">Vai al timone →</button>
   </div>
+
+  <!-- Archivio settimane chiuse -->
+  <div class="archive-panel" id="archivePanel" style="display:none">
+    <div class="archive-panel-toggle" onclick="toggleArchivePanel()">
+      <span>📁 Archivio settimane chiuse</span>
+      <span id="archiveArrow">▼</span>
+    </div>
+    <div class="archive-panel-body" id="archivePanelBody" style="display:none">
+      <div id="archiveList"></div>
+    </div>
+  </div>
 </div>
 
 <!-- ── Sezione timone ─────────────────────────────────────────────────────── -->
 <div id="timone-section">
+  <div class="archive-banner" id="archiveBanner">
+    <span class="archive-banner-label">📁 Archivio · <span id="archiveBannerLabel"></span></span>
+    <div class="archive-banner-actions">
+      <button class="archive-reopen-btn" id="archiveReopenBtn" onclick="riapreDaArchivio()">🔓 Riapri settimana</button>
+      <button class="archive-back-btn" onclick="tornaAlTimone()">← Torna al corrente</button>
+    </div>
+  </div>
   <div class="week-closed-banner" id="weekClosedBanner">
     🔒 Settimana chiusa — modalità sola lettura
   </div>
@@ -2337,6 +2416,8 @@ let currentDay       = null;
 let currentRows      = [];
 let currentWeek      = null;   // metadati settimana corrente {dal,al,week_id,chiusa}
 let isDirty          = false;
+let isArchiveView    = false;
+let _archiveWeek     = null;   // {week_id,dal,al} della settimana archivio aperta
 let _saveTimer       = null;
 let _lastSavedRows   = null;
 let savedCounts      = {};   // chiave → conteggio righe
@@ -2382,6 +2463,135 @@ function renderDaysGrid(timone) {
     const badge  = gialli > 0 ? ` <span class="th-day-gialli">${gialli}</span>` : '';
     return `<button class="th-day-btn" onclick="selectTimoneDay('${timone}','${g}')">${GIORNI_LABEL[g] || g}${badge}</button>`;
   }).join('');
+}
+
+// ── Archivio settimane ────────────────────────────────────────────────────────
+async function loadArchiveList(timone) {
+  const panel = document.getElementById('archivePanel');
+  const list  = document.getElementById('archiveList');
+  panel.style.display = '';
+  list.innerHTML = '<div class="archive-loading">Caricamento…</div>';
+  try {
+    const res   = await fetch(`/api/archive/${timone}`, { cache: 'no-store' });
+    const weeks = await res.json();
+    if (!weeks.length) {
+      list.innerHTML = '<div class="archive-empty">Nessuna settimana archiviata.</div>';
+      return;
+    }
+    const meta   = TIMONI_META[timone];
+    const fmtD   = d => new Date(d + 'T00:00:00').toLocaleDateString('it-IT', { day:'numeric', month:'short', year:'numeric' });
+    const isTV   = meta.tipo === 'tv';
+    const canEdit = _ruolo === 'editor' || _ruolo === 'admin';
+    list.innerHTML = '';
+    weeks.forEach(w => {
+      const item = document.createElement('div');
+      item.className = 'archive-week-item';
+      const consultaBtn = isTV
+        ? `<button class="archive-week-btn" onclick="openArchiveDaySelector('${timone}','${w.week_id}','${w.dal}','${w.al}',this)">Consulta ▾</button>`
+        : `<button class="archive-week-btn" onclick="openArchiveTimone('${timone}','${w.week_id}','${w.dal}','${w.al}')">Consulta →</button>`;
+      const riaprBtn = canEdit
+        ? `<button class="archive-reopen-item-btn" onclick="riapreDaArchivio('${timone}','${w.week_id}','${w.dal}','${w.al}')">🔓 Riapri</button>`
+        : '';
+      item.innerHTML = `<div class="archive-week-dates">${fmtD(w.dal)} – ${fmtD(w.al)}</div>
+        <div class="archive-week-actions">${consultaBtn}${riaprBtn}</div>`;
+      list.appendChild(item);
+    });
+  } catch {
+    list.innerHTML = '<div class="archive-empty">Errore nel caricamento.</div>';
+  }
+}
+
+function toggleArchivePanel() {
+  const body  = document.getElementById('archivePanelBody');
+  const arrow = document.getElementById('archiveArrow');
+  const open  = body.style.display === 'none';
+  body.style.display = open ? '' : 'none';
+  arrow.textContent  = open ? '▲' : '▼';
+}
+
+function openArchiveDaySelector(timone, weekId, dal, al, btn) {
+  document.querySelectorAll('.archive-day-selector').forEach(el => el.remove());
+  const meta = TIMONI_META[timone];
+  if (!meta || meta.tipo !== 'tv') return;
+  const wrap = document.createElement('div');
+  wrap.className = 'archive-day-selector';
+  wrap.innerHTML = (meta.giorni || []).map(g =>
+    `<button class="th-day-btn" onclick="openArchiveTimone('${timone}','${weekId}','${dal}','${al}','${g}')">${GIORNI_LABEL[g] || g}</button>`
+  ).join('');
+  btn.closest('.archive-week-item').appendChild(wrap);
+}
+
+async function openArchiveTimone(timone, weekId, dal, al, giorno) {
+  document.querySelectorAll('.archive-day-selector').forEach(el => el.remove());
+  stopMtimePolling();
+  stopRemotePolling();
+  hideDiffPanel();
+
+  const meta = TIMONI_META[timone];
+  const key  = (meta.tipo === 'tv' && giorno) ? `${timone}_${giorno}` : timone;
+
+  isArchiveView = true;
+  _archiveWeek  = { week_id: weekId, dal, al };
+  currentTimone = timone;
+  currentDay    = giorno || null;
+  currentWeek   = { dal, al, week_id: weekId, chiusa: true };
+  expandedChannels.clear();
+
+  updateAccentColor(meta.colore);
+  updateNavActive(timone);
+  hideDayBar();
+
+  try {
+    const res = await fetch(`/api/archive/load/${weekId}/${key}`, { cache: 'no-store' });
+    const data = await res.json();
+    currentRows = applyTemplate(key, data.rows || []);
+  } catch {
+    currentRows = applyTemplate(key, []);
+  }
+  _lastSavedRows = JSON.parse(JSON.stringify(currentRows.filter(r => !r._separator)));
+
+  document.getElementById('welcome').style.display        = 'none';
+  document.getElementById('timone-home').style.display    = 'none';
+  document.getElementById('timone-section').style.display = 'block';
+
+  const fmtD   = d => new Date(d + 'T00:00:00').toLocaleDateString('it-IT', { day:'numeric', month:'long', year:'numeric' });
+  const dayLbl = giorno ? ` · ${GIORNI_LABEL[giorno] || giorno}` : '';
+  document.getElementById('archiveBannerLabel').textContent = `${fmtD(dal)} – ${fmtD(al)}${dayLbl}`;
+  document.getElementById('archiveBanner').style.display   = '';
+  document.getElementById('weekClosedBanner').classList.remove('show');
+  document.getElementById('archiveReopenBtn').style.display =
+    (_ruolo === 'editor' || _ruolo === 'admin') ? '' : 'none';
+
+  renderTable();
+  applyClosedState(true);
+}
+
+function tornaAlTimone() {
+  isArchiveView = false;
+  _archiveWeek  = null;
+  document.getElementById('archiveBanner').style.display = 'none';
+  document.querySelectorAll('.archive-day-selector').forEach(el => el.remove());
+  openTimoneHome(currentTimone);
+}
+
+async function riapreDaArchivio(timone, weekId, dal, al) {
+  const t   = timone   || currentTimone;
+  const wid = weekId   || _archiveWeek?.week_id;
+  const d   = dal      || _archiveWeek?.dal;
+  const a   = al       || _archiveWeek?.al;
+  const fmtD = s => new Date(s + 'T00:00:00').toLocaleDateString('it-IT', { day:'numeric', month:'long', year:'numeric' });
+  if (!confirm(`Impostare la settimana ${fmtD(d)} – ${fmtD(a)} come settimana corrente?\n\nLa settimana attuale verrà archiviata.`)) return;
+  try {
+    await fetch(`/api/week/${t}`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ dal: d, al: a })
+    });
+    isArchiveView = false;
+    _archiveWeek  = null;
+    document.getElementById('archiveBanner').style.display = 'none';
+    showStatus('Settimana riaperta come corrente', 'success');
+    await openTimoneHome(t);
+  } catch { showStatus('Errore', 'error'); }
 }
 
 async function openTimoneHome(timone) {
@@ -2445,6 +2655,11 @@ async function openTimoneHome(timone) {
   document.getElementById('welcome').style.display        = 'none';
   document.getElementById('timone-home').style.display    = 'block';
   document.getElementById('timone-section').style.display = 'none';
+  document.getElementById('archiveBanner').style.display  = 'none';
+  isArchiveView = false;
+
+  // Carica archivio settimane
+  loadArchiveList(timone);
 }
 
 // ── Settimana (API-based) ─────────────────────────────────────────────────────

@@ -2466,6 +2466,17 @@ function formatWeekLabel() {
   return `${fmt(w.dal)} – ${fmt(w.al)}`;
 }
 
+function formatGiornoLabel(giorno) {
+  const w = currentWeek;
+  if (!w || !w.dal) return formatWeekLabel();
+  const OFFSET = { sabato:0, domenica:1, lunedi:2, martedi:3, mercoledi:4, giovedi:5, venerdi:6 };
+  const off = OFFSET[giorno];
+  if (off === undefined) return formatWeekLabel();
+  const d = new Date(w.dal + 'T00:00:00');
+  d.setDate(d.getDate() + off);
+  return d.toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+}
+
 function updateWeekUI(week) {
   currentWeek = week;
   const actionsRow = document.getElementById('weekActionsRow');
@@ -2808,7 +2819,9 @@ function renderTable() {
   document.getElementById('sectionDayLabel').textContent =
     dayLbl ? `Settimana · ${dayLbl}` :
     meta?.tipo === 'tv-unico' ? 'Settimana · Sab–Ven' : 'Segnalazioni';
-  document.getElementById('sectionWeekLabel').textContent = formatWeekLabel();
+  const isTVGiorni = ['nuovotv','dipiutv','tvmia'].includes(currentTimone);
+  document.getElementById('sectionWeekLabel').textContent =
+    (isTVGiorni && currentDay) ? formatGiornoLabel(currentDay) : formatWeekLabel();
 
   // Badge
   updateBadge();

@@ -2364,16 +2364,19 @@ function applyTemplate(key, savedRows) {
 // ── Copia celle / colonne ─────────────────────────────────────────────────────
 const COPY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
 
+function _copiaFallback(testo) {
+  const ta = document.createElement('textarea');
+  ta.value = testo; document.body.appendChild(ta); ta.select();
+  document.execCommand('copy'); document.body.removeChild(ta);
+  showStatus('Copiato ✓', 'success');
+}
+
 function copiaCella(testo) {
   if (!testo.trim()) { showStatus('Cella vuota', 'warn'); return; }
+  if (!navigator.clipboard?.writeText) { _copiaFallback(testo); return; }
   navigator.clipboard.writeText(testo).then(() => {
     showStatus('Copiato ✓', 'success');
-  }).catch(() => {
-    const ta = document.createElement('textarea');
-    ta.value = testo; document.body.appendChild(ta); ta.select();
-    document.execCommand('copy'); document.body.removeChild(ta);
-    showStatus('Copiato ✓', 'success');
-  });
+  }).catch(() => _copiaFallback(testo));
 }
 
 function copiaColonna(key, rows) {
@@ -2381,14 +2384,9 @@ function copiaColonna(key, rows) {
   const vals = src.filter(r => !r._separator && !r.nascosta && (r[key] || '').trim()).map(r => (r[key] || '').trim());
   if (!vals.length) { showStatus('Colonna vuota', 'warn'); return; }
   const text = vals.join('\n');
-  navigator.clipboard.writeText(text).then(() => {
-    showStatus(`${vals.length} ${vals.length === 1 ? 'valore copiato' : 'valori copiati'} ✓`, 'success');
-  }).catch(() => {
-    const ta = document.createElement('textarea');
-    ta.value = text; document.body.appendChild(ta); ta.select();
-    document.execCommand('copy'); document.body.removeChild(ta);
-    showStatus(`${vals.length} ${vals.length === 1 ? 'valore copiato' : 'valori copiati'} ✓`, 'success');
-  });
+  const _ok = () => showStatus(`${vals.length} ${vals.length === 1 ? 'valore copiato' : 'valori copiati'} ✓`, 'success');
+  if (!navigator.clipboard?.writeText) { _copiaFallback(text); _ok(); return; }
+  navigator.clipboard.writeText(text).then(_ok).catch(() => { _copiaFallback(text); _ok(); });
 }
 
 const PASTE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>`;
@@ -3395,6 +3393,7 @@ function buildRow(row, i, tbody, colsOverride) {
       btnP.innerHTML = PASTE_SVG;
       btnP.addEventListener('mousedown', e => {
         e.preventDefault();
+        if (!navigator.clipboard?.readText) { showStatus('Incolla non disponibile su HTTP', 'warn'); return; }
         navigator.clipboard.readText().then(testo => {
           testo = testo.trim();
           if (!testo) { showStatus('Appunti vuoti', 'warn'); return; }
@@ -3757,13 +3756,10 @@ function esportaTimone() {
   });
   const header = cols.map(c => c.label).join('\t');
   const text = [header, ...lines].join('\n');
-  navigator.clipboard.writeText(text).then(() => {
-    showStatus(`${currentRows.length} righe copiate ✓`, 'success');
-  }).catch(() => {
-    // fallback
-    const ta = document.createElement('textarea');
-    ta.value = text; document.body.appendChild(ta); ta.select();
-    document.execCommand('copy'); document.body.removeChild(ta);
+  const _okExp = () => showStatus(`${currentRows.length} righe copiate ✓`, 'success');
+  if (!navigator.clipboard?.writeText) { _copiaFallback(text); _okExp(); return; }
+  navigator.clipboard.writeText(text).then(_okExp).catch(() => {
+    _copiaFallback(text); _okExp(); return; /* fallback già gestito */
     showStatus(`${currentRows.length} righe copiate ✓`, 'success');
   });
 }

@@ -626,16 +626,50 @@ def tif_thumb():
     if not path:
         return '', 400
     path_lower = _safe_path(cartella, codice.lower())
+    is_scont   = '_scont' in codice.lower()
+
     def _do():
-        actual = path if os.path.isfile(path) else (path_lower if path_lower and os.path.isfile(path_lower) else None)
+        if is_scont:
+            actual = None
+            for ext in ('.psd', '.jpg', '.jpeg'):
+                for base in (codice, codice.lower()):
+                    p = os.path.join(cartella, base + ext)
+                    if os.path.isfile(p):
+                        actual = p
+                        break
+                if actual:
+                    break
+        else:
+            actual = path if os.path.isfile(path) else (path_lower if path_lower and os.path.isfile(path_lower) else None)
         if actual is None:
             return None
-        with Image.open(actual) as img:
-            img.thumbnail((192, 144))
-            buf = io.BytesIO()
-            img.convert('RGB').save(buf, format='JPEG', quality=85)
-            buf.seek(0)
-            return buf.read()
+        ext = pathlib.Path(actual).suffix.lower()
+        if ext == '.psd':
+            tmp_dir = tempfile.mkdtemp(prefix='scont_ql_')
+            try:
+                basename = os.path.basename(actual)
+                subprocess.run(
+                    ['qlmanage', '-t', '-s', '192', '-o', tmp_dir, actual],
+                    capture_output=True, timeout=15,
+                )
+                thumb_png = os.path.join(tmp_dir, basename + '.png')
+                if os.path.isfile(thumb_png):
+                    with Image.open(thumb_png) as img:
+                        img.thumbnail((192, 144))
+                        buf = io.BytesIO()
+                        img.convert('RGB').save(buf, format='JPEG', quality=85)
+                        buf.seek(0)
+                        return buf.read()
+                return None
+            finally:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+        else:
+            with Image.open(actual) as img:
+                img.thumbnail((192, 144))
+                buf = io.BytesIO()
+                img.convert('RGB').save(buf, format='JPEG', quality=85)
+                buf.seek(0)
+                return buf.read()
     try:
         data = _smb_call(_do)
         if data is None:
@@ -666,14 +700,22 @@ def tif_mtime():
             by_cartella.setdefault(cartella, []).append(codice)
 
     def _scan_dir(cartella: str, codici: list[str]) -> dict[str, int | None]:
-        wanted = {c.lower() + '.tif': c for c in codici}
-        out    = {c: None for c in codici}
+        wanted: dict[str, str] = {}
+        for c in codici:
+            wanted[c.lower() + '.tif'] = c
+            if '_scont' in c.lower():
+                wanted[c.lower() + '.psd']  = c
+                wanted[c.lower() + '.jpg']  = c
+                wanted[c.lower() + '.jpeg'] = c
+        out = {c: None for c in codici}
         try:
             with os.scandir(cartella) as it:
                 for entry in it:
                     codice = wanted.get(entry.name.lower())
                     if codice is None:
                         continue
+                    if out[codice] is not None:
+                        continue  # già trovato con altra estensione
                     try:
                         out[codice] = round(entry.stat(follow_symlinks=False).st_mtime)
                     except OSError:

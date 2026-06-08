@@ -4076,7 +4076,7 @@ function updateThumbnailSrcs() {
     const codice   = img.dataset.codice;
     const cartella = getCartella();
     if (!codice || !cartella) { img.src = THUMB_PH; return; }
-    img.src = img.dataset.isScont === 'true' ? THUMB_PH : (thumbUrl(codice) || THUMB_PH);
+    img.src = thumbUrl(codice) || THUMB_PH;
   });
 }
 
@@ -4085,7 +4085,7 @@ function updateSingleThumb(img, codice) {
   img.dataset.codice = codice || '';
   const cartella = getCartella();
   if (!codice || !cartella) { img.src = THUMB_PH; return; }
-  img.src = img.dataset.isScont === 'true' ? THUMB_PH : (thumbUrl(codice) || THUMB_PH);
+  img.src = thumbUrl(codice) || THUMB_PH;
 }
 
 // ── Cartella (percorso fisso per timone/giorno) ───────────────────────────────
@@ -4138,21 +4138,25 @@ async function checkMtimes(cartella) {
     });
     const current = await res.json();
     Object.entries(current).forEach(([codice, mtime]) => {
-      if (mtime === null) return;
       const init = _initialMtimes[codice];
       if (init === undefined) { _initialMtimes[codice] = mtime; return; }
-      if (init !== null && mtime !== null && mtime - init >= 2) {
-        console.log(`[auto-grigio] ${codice}: mtime +${mtime - init}s (${init} → ${mtime})`);
-        const row = currentRows.find(r => r.codice === codice);
-        const img = document.querySelector(`img.codice-thumb[data-codice="${codice}"]`);
-        const tr  = img?.closest('tr');
-        if (row && tr && (row.colore === '' || row.colore === 'giallo' || !row.colore)) {
-          setRowColor(tr, row, 'grigio');
-          markDirty();
-        }
-        _initialMtimes[codice] = mtime;
-        updateSingleThumb(img, codice);
+      if (mtime === null) return;
+
+      const appeared = init === null;                        // file non c'era, ora c'è
+      const modified = init !== null && mtime - init >= 2;  // file modificato
+      if (!appeared && !modified) return;
+
+      if (modified) console.log(`[auto-grigio] ${codice}: mtime +${mtime - init}s (${init} → ${mtime})`);
+
+      const row = currentRows.find(r => r.codice === codice);
+      const img = document.querySelector(`img.codice-thumb[data-codice="${codice}"]`);
+      const tr  = img?.closest('tr');
+      if (row && tr && (row.colore === '' || row.colore === 'giallo' || !row.colore)) {
+        setRowColor(tr, row, 'grigio');
+        markDirty();
       }
+      _initialMtimes[codice] = mtime;
+      updateSingleThumb(img, codice);
     });
   } catch {}
 }
@@ -4687,7 +4691,7 @@ function showScontModal(results, query, row, tr) {
 
       const btn = document.createElement('button');
       btn.className = 'btn-scont-apri';
-      btn.textContent = '▶ Apri e segna come fatto';
+      btn.textContent = '▶ Apri scontorno';
       btn.addEventListener('click', () => apriScontorno(r.path, r.relativo, row, tr));
 
       item.appendChild(thumb); item.appendChild(info); item.appendChild(btn);
@@ -4736,8 +4740,6 @@ async function cercaScontPersonaggio(personaggio, row, tr) {
 async function apriScontorno(path, relativo, row, tr) {
   if (_isRemote) {
     window.location.href = '/scarica_scontorno?rel=' + encodeURIComponent(relativo);
-    setRowColor(tr, row, 'grigio');
-    markDirty();
     closeScontModal();
     showStatus('Scontorno in download ✓', 'success');
     return;
@@ -4749,8 +4751,6 @@ async function apriScontorno(path, relativo, row, tr) {
     });
     const data = await res.json();
     if (data.ok) {
-      setRowColor(tr, row, 'grigio');
-      markDirty();
       closeScontModal();
       showStatus('Scontorno aperto ✓', 'success');
     } else {

@@ -2450,7 +2450,7 @@ async function openTimoneHome(timone) {
 // ── Settimana (API-based) ─────────────────────────────────────────────────────
 async function fetchWeek(timone) {
   try {
-    const res = await fetch(`/api/week/${timone}`);
+    const res = await fetch(`/api/week/${timone}`, { cache: 'no-store' });
     return await res.json();
   } catch {
     return { dal: '', al: '', week_id: '', chiusa: false };
@@ -2469,11 +2469,13 @@ function formatWeekLabel() {
 function formatGiornoLabel(giorno) {
   const w = currentWeek;
   if (!w || !w.dal) return formatWeekLabel();
-  const OFFSET = { sabato:0, domenica:1, lunedi:2, martedi:3, mercoledi:4, giovedi:5, venerdi:6 };
-  const off = OFFSET[giorno];
-  if (off === undefined) return formatWeekLabel();
-  const d = new Date(w.dal + 'T00:00:00');
-  d.setDate(d.getDate() + off);
+  const GIORNO_DOW = { sabato:6, domenica:0, lunedi:1, martedi:2, mercoledi:3, giovedi:4, venerdi:5 };
+  const targetDow = GIORNO_DOW[giorno];
+  if (targetDow === undefined) return formatWeekLabel();
+  const dal = new Date(w.dal + 'T00:00:00');
+  const off = (targetDow - dal.getDay() + 7) % 7;
+  const d = new Date(dal);
+  d.setDate(dal.getDate() + off);
   return d.toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 }
 
@@ -2551,10 +2553,20 @@ async function chiudiSettimana() {
   if (!ok) return;
   try {
     await fetch(`/api/week/${currentTimone}/chiudi`, { method: 'POST' });
-    updateWeekUI({ ...currentWeek, chiusa: true });
-    showStatus('Settimana chiusa 🔒', 'success');
-    // Aggiorna il banner nella sezione timone se è visibile
-    applyClosedState(true);
+    // Apri automaticamente la settimana successiva
+    if (w?.al) {
+      const nextDal = new Date(w.al + 'T00:00:00');
+      nextDal.setDate(nextDal.getDate() + 1);
+      const nextAl = new Date(nextDal);
+      nextAl.setDate(nextAl.getDate() + 6);
+      const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      await fetch(`/api/week/${currentTimone}`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ dal: fmt(nextDal), al: fmt(nextAl) })
+      });
+    }
+    showStatus('Settimana chiusa 🔒 — Prossima settimana aperta', 'success');
+    await openTimoneHome(currentTimone);
   } catch { showStatus('Errore', 'error'); }
 }
 

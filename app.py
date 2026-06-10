@@ -817,8 +817,6 @@ def cerca_scontorno_titolo():
                     'nome':     label,
                     'relativo': str(f.relative_to(TLP_SCONTORNI)),
                 })
-            if len(results) >= 100:
-                break
     except Exception as e:
         print(f'[CERCA_SCONT_T] {e}')
     results.sort(key=lambda r: pathlib.Path(r['path']).name.lower())
@@ -852,10 +850,9 @@ def cerca_scontorno_personaggio():
                     'nome':     f.stem,
                     'relativo': str(f.relative_to(TLP_SCONTORNI)),
                 })
-            if len(results) >= 100:
-                break
     except Exception as e:
         print(f'[CERCA_SCONT_P] {e}')
+    results.sort(key=lambda r: r['nome'].lower())
     return jsonify({'results': results})
 
 

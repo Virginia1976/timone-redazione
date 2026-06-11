@@ -2501,6 +2501,37 @@ TEMPLATES['tvmia_lunedi'] = [
   { codice: '21_RAG_LUN_scont',   sezione: 'Ragazzi',  canale: 'RAI GULP'   },
 ];
 
+TEMPLATES['tvmia_martedi'] = [
+  { codice: '01_soap_MAR_scont',  sezione: 'Soap',     canale: 'RETE 4'     },
+  { codice: '02_soap_MAR',        sezione: 'Soap',     canale: 'CANALE 5'   },
+  { codice: '03_soap_MAR',        sezione: 'Soap',     canale: 'CANALE 5'   },
+  { codice: '04_soap_MAR',        sezione: 'Soap',     canale: 'CANALE 5'   },
+  { codice: '05_soap_MAR',        sezione: 'Soap',     canale: 'CANALE 5'   },
+  { codice: 'mar_soap0_nofoto',   sezione: 'Soap',     canale: 'RETE 4'     },
+  { codice: '06_soap_MAR',        sezione: 'Soap',     canale: 'RAI 3'      },
+  { codice: 'mar_film0_nofoto',   sezione: 'Film',     canale: 'IRIS'       },
+  { codice: '08_film_MAR_scont',  sezione: 'Film',     canale: 'RETE 4'     },
+  { codice: '09_film_MAR',        sezione: 'Film',     canale: 'CINE 34'    },
+  { codice: 'mar_film1_nofoto',   sezione: 'Film',     canale: 'RAI MOVIE'  },
+  { codice: '10_film_MAR',        sezione: 'Film',     canale: ''           },
+  { codice: 'mar_film2_nofoto',   sezione: 'Film',     canale: 'LA7'        },
+  { codice: '11_film_MAR_scont',  sezione: 'Film',     canale: 'RAI 4'      },
+  { codice: '12_film_MAR',        sezione: 'Film',     canale: 'RAI 2'      },
+  { codice: '13_TF_MAR',          sezione: 'Telefilm', canale: 'TOP CRIME'  },
+  { codice: 'mar_tf0_nofoto',     sezione: 'Telefilm', canale: 'TOP CRIME'  },
+  { codice: '14_TF_MAR_scont',    sezione: 'Telefilm', canale: 'CANALE 20'  },
+  { codice: 'mar_tf1_nofoto',     sezione: 'Telefilm', canale: 'TOP CRIME'  },
+  { codice: '15_TF_MAR',          sezione: 'Telefilm', canale: 'RETE 4'     },
+  { codice: '16_TF_MAR_scont',    sezione: 'Telefilm', canale: 'TOP CRIME'  },
+  { codice: '17_TF_MAR',          sezione: 'Telefilm', canale: 'CANALE 20'  },
+  { codice: '18_TF_MAR_scont',    sezione: 'Telefilm', canale: 'IRIS'       },
+  { codice: 'mar_tf2_nofoto',     sezione: 'Telefilm', canale: 'CANALE 20'  },
+  { codice: '19_RAG_MAR',         sezione: 'Ragazzi',  canale: 'RAI GULP'   },
+  { codice: '20_RAG_MAR',         sezione: 'Ragazzi',  canale: 'ITALIA 1'   },
+  { codice: '21_RAG_MAR_scont',   sezione: 'Ragazzi',  canale: 'RAI GULP'   },
+  { codice: '22_RAG_MAR',         sezione: 'Ragazzi',  canale: 'RAI GULP'   },
+];
+
 function applyTemplate(key, savedRows) {
   const template = TEMPLATES[key];
   if (!template) return savedRows;
@@ -3032,6 +3063,20 @@ function updateNavActive(timone) {
 function updateDayBar(timone, day) {
   const bar = document.getElementById('dayBar');
   bar.classList.add('visible');
+  const SPECIAL = {
+    nuovotv: { day: 'compleanni', label: '🎂 Compleanni' },
+    dipiutv: { day: 'biscotti',   label: '🍪 Biscotti'   },
+    tvmia:   { day: 'scontorni',  label: '✂️ Scontorni faccette' },
+  };
+  const sp = SPECIAL[timone];
+  if (sp) {
+    const btn = bar.querySelector('.day-pill:last-child');
+    if (btn) {
+      btn.dataset.day = sp.day;
+      btn.textContent = sp.label;
+      btn.onclick = () => changeDay(sp.day);
+    }
+  }
   bar.querySelectorAll('.day-pill').forEach(p =>
     p.classList.toggle('active', p.dataset.day === day));
 }
@@ -3469,7 +3514,7 @@ function buildRow(row, i, tbody, colsOverride) {
 
     } else if (col.input === 'canale') {
       td.className = 'td-canale';
-      if (row.canale_editabile) {
+      if (row.canale_editabile || currentTimone === 'tvmia') {
         const inp = document.createElement('input');
         inp.type = 'text'; inp.className = 'canale-input';
         inp.value = row.canale || '';

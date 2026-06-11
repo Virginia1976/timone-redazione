@@ -2440,6 +2440,32 @@ TEMPLATES['tvmia_sabato'] = [
   { codice: '15_RAG_SAB',         sezione: 'Ragazzi',  canale: 'RAI GULP'    },
 ];
 
+// ── TvMia Domenica ───────────────────────────────────────────────────────────
+TEMPLATES['tvmia_domenica'] = [
+  // ── FILM ──────────────────────────────────────────────────────────────────
+  { codice: '01_film_DOM',        sezione: 'Film',     canale: 'RAI MOVIE'   },
+  { codice: '02_film_DOM_scont',  sezione: 'Film',     canale: 'IRIS'        },
+  { codice: 'dom_f0_nofoto',      sezione: 'Film',     canale: 'ALTRO'       },
+  { codice: '03_film_DOM',        sezione: 'Film',     canale: 'RAI MOVIE'   },
+  { codice: '04_film_DOM',        sezione: 'Film',     canale: 'RAI 5'       },
+  { codice: '05_film_DOM_scont',  sezione: 'Film',     canale: 'LA7 D'       },
+  // ── TELEFILM ──────────────────────────────────────────────────────────────
+  { codice: '06_TF_DOM',          sezione: 'Telefilm', canale: 'ITALIA 1'    },
+  { codice: '07_TF_DOM_scont',    sezione: 'Telefilm', canale: 'TOP CRIME'   },
+  { codice: '08_TF_DOM_scont',    sezione: 'Telefilm', canale: 'ITALIA 1'    },
+  { codice: 'dom_tf0_nofoto',     sezione: 'Telefilm', canale: 'TWENTY SEVEN'},
+  { codice: 'dom_tf1_nofoto',     sezione: 'Telefilm', canale: 'TOP CRIME'   },
+  { codice: '09_TF_DOM',          sezione: 'Telefilm', canale: 'ITALIA 1'    },
+  { codice: '10_TF_DOM',          sezione: 'Telefilm', canale: 'RAI 4'       },
+  { codice: '11_TF_DOM',          sezione: 'Telefilm', canale: 'ITALIA 1'    },
+  { codice: 'dom_tf2_nofoto',     sezione: 'Telefilm', canale: 'RAI 2'       },
+  // ── RAGAZZI ───────────────────────────────────────────────────────────────
+  { codice: '12_RAG_DOM_scont',   sezione: 'Ragazzi',  canale: 'RAI YOYO'   },
+  { codice: '13_RAG_DOM',         sezione: 'Ragazzi',  canale: 'RAI YOYO'   },
+  { codice: '14_RAG_DOM_scont',   sezione: 'Ragazzi',  canale: 'RAI YOYO'   },
+  { codice: '15_RAG_DOM',         sezione: 'Ragazzi',  canale: 'RAI YOYO'   },
+];
+
 function applyTemplate(key, savedRows) {
   const template = TEMPLATES[key];
   if (!template) return savedRows;
@@ -2448,7 +2474,7 @@ function applyTemplate(key, savedRows) {
   const merged = template.map(tpl => {
     if (tpl._separator) return { ...tpl };
     const saved = savedRows.find(r => r.codice === tpl.codice);
-    if (saved) return { ...saved, id: saved.id || newId(), codice: tpl.codice, canale: tpl.canale, ...(tpl.giorno !== undefined ? { giorno: tpl.giorno } : {}), sotto_canale: (tpl.sotto_canale !== undefined) ? (saved.sotto_canale !== undefined ? saved.sotto_canale : tpl.sotto_canale) : undefined, ...(tpl.asterisco ? { asterisco: true } : {}) };
+    if (saved) return { ...saved, id: saved.id || newId(), codice: tpl.codice, canale: tpl.canale, ...(tpl.giorno   !== undefined ? { giorno:   tpl.giorno   } : {}), ...(tpl.sezione  !== undefined ? { sezione:  tpl.sezione  } : {}), sotto_canale: (tpl.sotto_canale !== undefined) ? (saved.sotto_canale !== undefined ? saved.sotto_canale : tpl.sotto_canale) : undefined, ...(tpl.asterisco ? { asterisco: true } : {}) };
     return { id: newId(), tipo: 'Programma TV', ...tpl };
   });
   const extras = savedRows.filter(r => r.codice && !templateCodici.has(r.codice));

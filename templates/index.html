@@ -2466,6 +2466,41 @@ TEMPLATES['tvmia_domenica'] = [
   { codice: '15_RAG_DOM',         sezione: 'Ragazzi',  canale: 'RAI YOYO'   },
 ];
 
+// ── TvMia Lunedì ─────────────────────────────────────────────────────────────
+TEMPLATES['tvmia_lunedi'] = [
+  // ── SOAP ──────────────────────────────────────────────────────────────────
+  { codice: '01_soap_LUN_scont',  sezione: 'Soap',     canale: 'RETE 4'      },
+  { codice: '02_soap_LUN',        sezione: 'Soap',     canale: 'CANALE 5'    },
+  { codice: '03_soap_LUN',        sezione: 'Soap',     canale: 'CANALE 5'    },
+  { codice: '04_soap_LUN_scont',  sezione: 'Soap',     canale: 'CANALE 5'    },
+  { codice: '05_soap_LUN_scont',  sezione: 'Soap',     canale: 'CANALE 5'    },
+  { codice: 'lun_soap0_nofoto',   sezione: 'Soap',     canale: 'RETE 4'      },
+  { codice: '06_soap_LUN',        sezione: 'Soap',     canale: 'RAI 3'       },
+  // ── FILM ──────────────────────────────────────────────────────────────────
+  { codice: 'lun_f0_nofoto',      sezione: 'Film',     canale: 'RETE 4'      },
+  { codice: '07_film_LUN_scont',  sezione: 'Film',     canale: 'CINE 34'     },
+  { codice: '08_film_LUN',        sezione: 'Film',     canale: 'RAI MOVIE'   },
+  { codice: 'lun_f1_nofoto',      sezione: 'Film',     canale: 'ALTRO'       },
+  { codice: 'lun_f2_nofoto',      sezione: 'Film',     canale: 'IRIS'        },
+  { codice: '09_film_LUN',        sezione: 'Film',     canale: 'ITALIA 1'    },
+  { codice: '10_film_LUN',        sezione: 'Film',     canale: 'ALTRO'       },
+  { codice: '11_film_LUN_scont',  sezione: 'Film',     canale: 'ALTRO'       },
+  // ── TELEFILM ──────────────────────────────────────────────────────────────
+  { codice: '12_TF_LUN_scont',    sezione: 'Telefilm', canale: 'ITALIA 1'    },
+  { codice: 'lun_tf0_nofoto',     sezione: 'Telefilm', canale: 'RAI 4'       },
+  { codice: '13_TF_LUN',          sezione: 'Telefilm', canale: 'TOP CRIME'   },
+  { codice: '14_TF_LUN',          sezione: 'Telefilm', canale: 'RETE 4'      },
+  { codice: '15_TF_LUN_scont',    sezione: 'Telefilm', canale: 'CANALE 20'   },
+  { codice: '16_TF_LUN_scont',    sezione: 'Telefilm', canale: 'ITALIA 1'    },
+  { codice: 'lun_tf1_nofoto',     sezione: 'Telefilm', canale: 'ITALIA 1'    },
+  { codice: '17_TF_LUN',          sezione: 'Telefilm', canale: 'TOP CRIME'   },
+  // ── RAGAZZI ───────────────────────────────────────────────────────────────
+  { codice: '18_RAG_LUN_scont',   sezione: 'Ragazzi',  canale: 'RAI GULP'   },
+  { codice: '19_RAG_LUN',         sezione: 'Ragazzi',  canale: 'ITALIA 1'   },
+  { codice: '20_RAG_LUN',         sezione: 'Ragazzi',  canale: 'RAI GULP'   },
+  { codice: '21_RAG_LUN_scont',   sezione: 'Ragazzi',  canale: 'RAI GULP'   },
+];
+
 function applyTemplate(key, savedRows) {
   const template = TEMPLATES[key];
   if (!template) return savedRows;

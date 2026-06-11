@@ -2562,6 +2562,37 @@ TEMPLATES['tvmia_mercoledi'] = [
   { codice: '21_RAG_MER_scont',   sezione: 'Ragazzi',  canale: 'RAI GULP'   },
 ];
 
+TEMPLATES['tvmia_giovedi'] = [
+  { codice: '01_soap_GIO',        sezione: 'Soap',     canale: 'RETE 4'     },
+  { codice: '02_soap_GIO',        sezione: 'Soap',     canale: 'CANALE 5'   },
+  { codice: '03_soap_GIO',        sezione: 'Soap',     canale: 'CANALE 5'   },
+  { codice: '04_soap_GIO',        sezione: 'Soap',     canale: 'CANALE 5'   },
+  { codice: '05_soap_GIO',        sezione: 'Soap',     canale: 'CANALE 5'   },
+  { codice: 'gio_soap0_nofoto',   sezione: 'Soap',     canale: 'RETE 4'     },
+  { codice: '06_soap_GIO_scont',  sezione: 'Soap',     canale: 'RAI 3'      },
+  { codice: 'gio_film0_nofoto',   sezione: 'Film',     canale: 'LA7'        },
+  { codice: '07_film_GIO_scont',  sezione: 'Film',     canale: 'IRIS'       },
+  { codice: '08_film_GIO',        sezione: 'Film',     canale: 'CINE 34'    },
+  { codice: '09_film_GIO',        sezione: 'Film',     canale: 'CINE 34'    },
+  { codice: '10_film_GIO',        sezione: 'Film',     canale: 'RAI MOVIE'  },
+  { codice: 'gio_film1_nofoto',   sezione: 'Film',     canale: ''           },
+  { codice: 'gio_film2_nofoto',   sezione: 'Film',     canale: 'LA7'        },
+  { codice: '11_film_GIO_scont',  sezione: 'Film',     canale: 'RAI 4'      },
+  { codice: '12_TF_GIO',          sezione: 'Telefilm', canale: 'IRIS'       },
+  { codice: 'gio_tf0_nofoto',     sezione: 'Telefilm', canale: 'TOP CRIME'  },
+  { codice: '13_TF_GIO_scont',    sezione: 'Telefilm', canale: 'TOP CRIME'  },
+  { codice: '14_TF_GIO',          sezione: 'Telefilm', canale: 'RETE 4'     },
+  { codice: 'gio_tf1_nofoto',     sezione: 'Telefilm', canale: 'CANALE 20'  },
+  { codice: '15_TF_GIO_scont',    sezione: 'Telefilm', canale: 'CANALE 20'  },
+  { codice: '16_TF_GIO',          sezione: 'Telefilm', canale: 'ITALIA 1'   },
+  { codice: 'gio_tf2_nofoto',     sezione: 'Telefilm', canale: 'CANALE 20'  },
+  { codice: '17_TF_GIO',          sezione: 'Telefilm', canale: 'ITALIA 1'   },
+  { codice: '18_RAG_GIO',         sezione: 'Ragazzi',  canale: 'RAI YOYO'   },
+  { codice: '19_RAG_GIO_scont',   sezione: 'Ragazzi',  canale: 'RAI YOYO'   },
+  { codice: '20_RAG_GIO_scont',   sezione: 'Ragazzi',  canale: 'RAI GULP'   },
+  { codice: '21_RAG_GIO',         sezione: 'Ragazzi',  canale: 'RAI GULP'   },
+];
+
 function applyTemplate(key, savedRows) {
   const template = TEMPLATES[key];
   if (!template) return savedRows;

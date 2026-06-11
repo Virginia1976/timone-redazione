@@ -620,13 +620,14 @@ def autocomplete_personaggi():
 
 @app.route('/tif_thumb')
 def tif_thumb():
-    cartella = request.args.get('cartella', '').strip()
-    codice   = request.args.get('codice', '').strip()
+    cartella  = request.args.get('cartella', '').strip()
+    codice    = request.args.get('codice', '').strip()
+    scontorno = request.args.get('scontorno', '0') == '1'
     path = _safe_path(cartella, codice)
     if not path:
         return '', 400
     path_lower = _safe_path(cartella, codice.lower())
-    is_scont   = '_scont' in codice.lower()
+    is_scont   = '_scont' in codice.lower() or scontorno
 
     def _do():
         if is_scont:
@@ -687,8 +688,9 @@ def tif_thumb():
 
 @app.route('/tif_mtime', methods=['POST'])
 def tif_mtime():
-    data  = request.json or {}
-    files = data.get('files', [])
+    data        = request.json or {}
+    files       = data.get('files', [])
+    tutti_scont = bool(data.get('scontorni', False))
 
     # Raggruppa per cartella: una sola scandir per directory evita la
     # incoerenza tra la cache degli attributi e quella delle directory di macOS SMB.
@@ -703,7 +705,7 @@ def tif_mtime():
         wanted: dict[str, str] = {}
         for c in codici:
             wanted[c.lower() + '.tif'] = c
-            if '_scont' in c.lower():
+            if '_scont' in c.lower() or tutti_scont:
                 wanted[c.lower() + '.psd']  = c
                 wanted[c.lower() + '.jpg']  = c
                 wanted[c.lower() + '.jpeg'] = c

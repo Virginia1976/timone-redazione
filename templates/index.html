@@ -566,6 +566,16 @@ body.admin-on .timone-table tbody td.td-num:hover::after {
   border-bottom: 1px dashed transparent;
   transition: border-color .12s, background .12s, color .12s;
 }
+.canale-input {
+  width: 100%; max-width: 84px; border: none; background: transparent;
+  font-size: 11px; font-weight: 700; text-align: center; color: var(--text-soft);
+  padding: 1px 3px; border-radius: 3px; outline: none;
+  border-bottom: 1px dashed transparent;
+  transition: border-color .12s, background .12s, color .12s;
+}
+.canale-input:hover { border-bottom-color: var(--muted); }
+.canale-input:focus { background: rgba(124,58,237,.07); border-bottom-color: #7C3AED; color: var(--text); }
+.canale-input::placeholder { color: #cbd5e1; font-style: italic; font-weight: 400; }
 .sotto-canale-input:hover { border-bottom-color: var(--muted); }
 .sotto-canale-input:focus { background: rgba(124,58,237,.07); border-bottom-color: #7C3AED; color: var(--text); }
 .sotto-canale-input::placeholder { color: #cbd5e1; font-style: italic; }
@@ -587,7 +597,7 @@ body.admin-on .timone-table tbody td.td-num:hover::after {
   font-size: 12px; font-family: 'SF Mono', 'Cascadia Code', monospace;
   color: var(--text-soft); text-align: center; white-space: nowrap;
   outline: none; border-bottom: 1px solid transparent;
-  min-width: 40px; padding: 0 2px;
+  min-width: 40px; max-width: 112px; overflow: hidden; padding: 0 2px;
   transition: border-color .12s, color .12s;
 }
 .codice-editable:empty::before { content: attr(data-placeholder); color: #cbd5e1; }
@@ -1787,6 +1797,21 @@ const COLS_TV = [
   { key:'stagione',    label:'Stagione',       w:'62px',  input:'text',  placeholder:'—' },
   { key:'trama',       label:'Trama',          w:'150px', input:'trama', placeholder:'Trama…' },
   { key:'note',        label:'Note Redaz.',    w:'150px', input:'trama', placeholder:'Note…' },
+];
+
+// TvMia: stesse colonne di COLS_TV ma canale editabile e colonne testo più strette
+// per compensare la colonna canale che rimane visibile (groupField è 'sezione', non 'canale')
+const COLS_TVMIA = [
+  { key:'codice',      label:'',               w:'88px',  input:'codice' },
+  { key:'canale',      label:'Canale',         w:'90px',  input:'canale' },
+  { key:'orario',      label:'Orario',         w:'76px',  input:'orario' },
+  { key:'tipo',        label:'Tipo',           w:'108px', input:'tipo' },
+  { key:'titolo',      label:'Titolo',         w:'auto',  input:'text',  placeholder:'Titolo del programma…' },
+  { key:'personaggio', label:'Personaggio',    w:'120px', input:'text',  placeholder:'Protagonista…' },
+  { key:'anno',        label:'Anno',           w:'62px',  input:'text',  placeholder:'—' },
+  { key:'stagione',    label:'Stagione',       w:'62px',  input:'text',  placeholder:'—' },
+  { key:'trama',       label:'Trama',          w:'120px', input:'trama', placeholder:'Trama…' },
+  { key:'note',        label:'Note Redaz.',    w:'120px', input:'trama', placeholder:'Note…' },
 ];
 
 // Colonne per riviste
@@ -3594,6 +3619,14 @@ function buildRow(row, i, tbody, colsOverride) {
         sc.addEventListener('input', () => { row.sotto_canale = sc.value; markDirty(); });
         wrap.appendChild(sc);
       }
+      if (currentTimone === 'tvmia' && currentDay !== 'scontorni') {
+        const sc = document.createElement('input');
+        sc.type = 'text'; sc.className = 'sotto-canale-input';
+        sc.value = row.canale || '';
+        sc.placeholder = 'Canale';
+        sc.addEventListener('input', () => { row.canale = sc.value; markDirty(); });
+        wrap.appendChild(sc);
+      }
       if (row.asterisco) {
         const ast = document.createElement('span');
         ast.className = 'asterisco-badge'; ast.textContent = '✱';
@@ -3854,7 +3887,7 @@ function buildChannelGroupView(container, groupField = 'canale') {
 
   const isGiorno   = groupField === 'giorno';
   const isSezione  = groupField === 'sezione';
-  const colsFilt   = getCols().filter(c => c.key !== groupField);
+  const colsFilt   = getCols().filter(c => c.key !== groupField && !(isSezione && c.key === 'canale'));
 
   // Raggruppa righe consecutive per groupField (salta separatori se per giorno)
   const groups = [];

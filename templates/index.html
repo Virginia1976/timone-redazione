@@ -453,6 +453,7 @@ body {
 .timone-table tbody td {
   padding: 12px 14px; vertical-align: middle; font-size: 16px;
 }
+.timone-table tbody td[data-key="anno"] { white-space: nowrap; }
 .timone-table tbody td.td-num {
   text-align: center; color: var(--muted); font-size: 11px; font-weight: 600;
   width: 44px; background: #f8fafc; position: relative;
@@ -1794,10 +1795,10 @@ const COLS_TV = [
   { key:'tipo',        label:'Tipo',           w:'108px', input:'tipo' },
   { key:'titolo',      label:'Titolo',         w:'auto',  input:'text',  placeholder:'Titolo del programma…' },
   { key:'personaggio', label:'Personaggio',    w:'150px', input:'text',  placeholder:'Protagonista…' },
-  { key:'anno',        label:'Anno',           w:'62px',  input:'text',  placeholder:'—' },
+  { key:'anno',        label:'Anno',           w:'70px',  input:'text',  placeholder:'—' },
   { key:'stagione',    label:'Stagione',       w:'62px',  input:'text',  placeholder:'—' },
   { key:'trama',       label:'Trama',          w:'150px', input:'trama', placeholder:'Trama…' },
-  { key:'note',        label:'Note Redaz.',    w:'150px', input:'trama', placeholder:'Note…' },
+  { key:'note',        label:'Note Redaz.',    w:'142px', input:'trama', placeholder:'Note…' },
 ];
 
 // TvMia: stesse colonne di COLS_TV ma canale editabile e colonne testo più strette
@@ -1809,10 +1810,10 @@ const COLS_TVMIA = [
   { key:'tipo',        label:'Tipo',           w:'108px', input:'tipo' },
   { key:'titolo',      label:'Titolo',         w:'auto',  input:'text',  placeholder:'Titolo del programma…' },
   { key:'personaggio', label:'Personaggio',    w:'120px', input:'text',  placeholder:'Protagonista…' },
-  { key:'anno',        label:'Anno',           w:'62px',  input:'text',  placeholder:'—' },
+  { key:'anno',        label:'Anno',           w:'70px',  input:'text',  placeholder:'—' },
   { key:'stagione',    label:'Stagione',       w:'62px',  input:'text',  placeholder:'—' },
   { key:'trama',       label:'Trama',          w:'120px', input:'trama', placeholder:'Trama…' },
-  { key:'note',        label:'Note Redaz.',    w:'120px', input:'trama', placeholder:'Note…' },
+  { key:'note',        label:'Note Redaz.',    w:'112px', input:'trama', placeholder:'Note…' },
 ];
 
 // Colonne per riviste
@@ -1842,10 +1843,10 @@ const COLS_NUOVO = [
   { key:'tipo',        label:'Tipo',           w:'108px', input:'tipo' },
   { key:'titolo',      label:'Titolo',         w:'auto',  input:'text',  placeholder:'Titolo del programma…' },
   { key:'personaggio', label:'Personaggio',    w:'150px', input:'text',  placeholder:'Protagonista…' },
-  { key:'anno',        label:'Anno',           w:'62px',  input:'text',  placeholder:'—' },
+  { key:'anno',        label:'Anno',           w:'70px',  input:'text',  placeholder:'—' },
   { key:'stagione',    label:'Stagione',       w:'62px',  input:'text',  placeholder:'—' },
   { key:'trama',       label:'Trama',          w:'150px', input:'trama', placeholder:'Trama…' },
-  { key:'note',        label:'Note Redaz.',    w:'150px', input:'trama', placeholder:'Note…' },
+  { key:'note',        label:'Note Redaz.',    w:'142px', input:'trama', placeholder:'Note…' },
 ];
 
 // Colonne per Biscotti (DipiùTV) — senza Orario, Tipo, Anno, Stagione
@@ -1866,10 +1867,10 @@ const COLS_SCONTORNI_FACCETTE = [
   { key:'tipo',        label:'Tipo',           w:'108px', input:'tipo' },
   { key:'titolo',      label:'Titolo',         w:'auto',  input:'text',  placeholder:'Titolo del programma…' },
   { key:'personaggio', label:'Personaggio',    w:'150px', input:'text',  placeholder:'Protagonista…' },
-  { key:'anno',        label:'Anno',           w:'62px',  input:'text',  placeholder:'—' },
+  { key:'anno',        label:'Anno',           w:'70px',  input:'text',  placeholder:'—' },
   { key:'stagione',    label:'Stagione',       w:'62px',  input:'text',  placeholder:'—' },
   { key:'trama',       label:'Trama',          w:'150px', input:'trama', placeholder:'Trama…' },
-  { key:'note',        label:'Note Redaz.',    w:'150px', input:'trama', placeholder:'Note…' },
+  { key:'note',        label:'Note Redaz.',    w:'142px', input:'trama', placeholder:'Note…' },
 ];
 
 // ── Percorsi fissi per timone/giorno ─────────────────────────────────────────

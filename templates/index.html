@@ -4931,7 +4931,7 @@ function applyTimoniAttivi() {
 // ── Scontorni ─────────────────────────────────────────────────────────────────
 function isScont(row) {
   if (!row || !row.codice) return false;
-  return row.codice.includes('_scont');
+  return row.codice.includes('_scont') || isTuttiScontorni();
 }
 
 

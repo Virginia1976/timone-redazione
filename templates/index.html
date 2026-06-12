@@ -3964,8 +3964,9 @@ function buildChannelGroupView(container, groupField = 'canale') {
                 : (currentTimone === 'divadonna')       ? (group.val === 'Foto' ? '📷' : '📦')
                 : '📺';
     let groupLabel = group.val;
-    if (currentDay === 'scontorni' && currentWeek?.dal) {
-      const _off = { 'Sabato':0, 'Domenica':1, 'Lunedì':2, 'Martedì':3, 'Mercoledì':4, 'Giovedì':5, 'Venerdì':6 }[group.val];
+    if ((currentDay === 'scontorni' || currentTimone === 'nuovo' || currentDay === 'biscotti' || currentDay === 'compleanni') && currentWeek?.dal) {
+      const _dayOffMap = { 'SABATO':0, 'DOMENICA':1, 'LUNEDÌ':2, 'MARTEDÌ':3, 'MERCOLEDÌ':4, 'GIOVEDÌ':5, 'VENERDÌ':6 };
+      const _off = _dayOffMap[group.val.toUpperCase()];
       if (_off !== undefined) {
         const _d = new Date(currentWeek.dal + 'T12:00:00');
         _d.setDate(_d.getDate() + _off);
@@ -3974,35 +3975,10 @@ function buildChannelGroupView(container, groupField = 'canale') {
       }
     }
     hdr.innerHTML = `<span>${emoji} ${groupLabel}</span><span class="ch-count">${group.rows.length}</span><span class="ch-chevron">▶</span>`;
-    let btnExpHdr = null;
-    if (isGiorno) {
-      const hdrActions = document.createElement('div');
-      hdrActions.className = 'hdr-actions';
-      btnExpHdr = document.createElement('button');
-      btnExpHdr.className = 'btn-in-hdr';
-      btnExpHdr.textContent = isOpen ? '⊖ Comprimi' : '⊕ Espandi';
-      btnExpHdr.addEventListener('click', e => {
-        e.stopPropagation();
-        hdr.click();
-      });
-      hdrActions.appendChild(btnExpHdr);
-      if (!currentWeek?.chiusa) {
-        const btnCopiaHdr = document.createElement('button');
-        btnCopiaHdr.className = 'btn-in-hdr';
-        btnCopiaHdr.textContent = '↩ Copia sett. prec.';
-        btnCopiaHdr.addEventListener('click', e => {
-          e.stopPropagation();
-          copiaTitoliPrevSettimana(group.rows);
-        });
-        hdrActions.appendChild(btnCopiaHdr);
-      }
-      hdr.querySelector('.ch-chevron').before(hdrActions);
-    }
     hdr.addEventListener('click', () => {
       if (expandedChannels.has(group.val)) expandedChannels.delete(group.val);
       else expandedChannels.add(group.val);
       card.classList.toggle('expanded');
-      if (btnExpHdr) btnExpHdr.textContent = expandedChannels.has(group.val) ? '⊖ Comprimi' : '⊕ Espandi';
       // Risincronizza colori righe e mini-strip dai dati
       const allTrs = [...card.querySelectorAll('tbody tr')];
       const allStrips = [...card.querySelectorAll('.ch-strip')];

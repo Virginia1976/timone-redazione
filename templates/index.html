@@ -779,7 +779,7 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 .btn-copy-col:hover { color: var(--accent); background: var(--accent-light); opacity: 1; }
 
 /* ── Celle titolo/personaggio con pulsante copia ────────────────────────────── */
-.cell-copy-wrap { display: flex; align-items: stretch; }
+.cell-copy-wrap { display: flex; align-items: stretch; position: relative; }
 .cell-editable-inner {
   flex: 1; outline: none; cursor: text; border-radius: 4px; padding: 12px 14px;
   transition: background var(--transition), box-shadow var(--transition);
@@ -1210,8 +1210,9 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
   display: inline-flex; align-items: center; justify-content: center;
   width: 22px; height: 22px; border-radius: 5px; border: none; cursor: pointer;
   background: rgba(124,58,237,.12); color: #7C3AED;
-  font-size: 13px; line-height: 1; flex-shrink: 0;
-  transition: all .15s; padding: 0; margin-left: 1px;
+  font-size: 13px; line-height: 1;
+  position: absolute; top: 4px; right: 4px;
+  transition: all .15s; padding: 0;
 }
 .btn-scont:hover { background: #7C3AED; color: #fff; transform: scale(1.1); }
 
@@ -1862,15 +1863,15 @@ const COLS_BISCOTTI = [
 // Colonne per Scontorni faccette (TvMia) — come TV standard
 const COLS_SCONTORNI_FACCETTE = [
   { key:'codice',      label:'',               w:'88px',  input:'codice' },
-  { key:'canale',      label:'Canale',         w:'90px',  input:'canale' },
+  { key:'canale',      label:'Canale',         w:'68px',  input:'canale' },
   { key:'orario',      label:'Orario',         w:'76px',  input:'orario' },
-  { key:'tipo',        label:'Tipo',           w:'108px', input:'tipo' },
+  { key:'tipo',        label:'Tipo',           w:'88px',  input:'tipo' },
   { key:'titolo',      label:'Titolo',         w:'auto',  input:'text',  placeholder:'Titolo del programma…' },
-  { key:'personaggio', label:'Personaggio',    w:'150px', input:'text',  placeholder:'Protagonista…' },
+  { key:'personaggio', label:'Personaggio',    w:'200px', input:'text',  placeholder:'Protagonista…' },
   { key:'anno',        label:'Anno',           w:'70px',  input:'text',  placeholder:'—' },
   { key:'stagione',    label:'Stagione',       w:'62px',  input:'text',  placeholder:'—' },
-  { key:'trama',       label:'Trama',          w:'150px', input:'trama', placeholder:'Trama…' },
-  { key:'note',        label:'Note Redaz.',    w:'142px', input:'trama', placeholder:'Note…' },
+  { key:'trama',       label:'Trama',          w:'100px', input:'trama', placeholder:'Trama…' },
+  { key:'note',        label:'Note Redaz.',    w:'100px', input:'trama', placeholder:'Note…' },
 ];
 
 // ── Percorsi fissi per timone/giorno ─────────────────────────────────────────
@@ -3705,6 +3706,10 @@ function buildRow(row, i, tbody, colsOverride) {
       editDiv.setAttribute('data-placeholder', col.placeholder || '');
       editDiv.textContent = row[col.key] || '';
       editDiv.spellcheck = false;
+      if (col.key === 'personaggio' && isTuttiScontorni()) {
+        editDiv.style.minWidth = '0';
+        editDiv.style.overflow = 'hidden';
+      }
       editDiv.addEventListener('input', () => {
         row[col.key] = editDiv.textContent.trim();
         markDirty();

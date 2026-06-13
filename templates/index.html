@@ -742,6 +742,17 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 .archivio-menu .rfm-item { font-size: 13px; font-weight: 500; color: var(--text); background: none; border: none; width: 100%; text-align: left; cursor: pointer; }
 .archivio-menu .rfm-item:hover { background: #f5f3ff; }
 .archivio-menu .rfm-item.arm-attivo { color: #7c3aed; font-weight: 700; }
+.btn-fotine-trigger {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 9px; border-radius: 6px; border: 2px solid #DB2777;
+  background: var(--card); font-size: 12px; font-weight: 600;
+  color: #DB2777; cursor: pointer; white-space: nowrap;
+  transition: background .12s, border-color .12s;
+}
+.btn-fotine-trigger:hover { background: #fdf2f8; border-color: #be185d; }
+.btn-fotine-trigger .btn-foto-chevron { font-size: 9px; opacity: .6; }
+.fotine-menu .rfm-item { font-size: 13px; font-weight: 500; color: var(--text); background: none; border: none; width: 100%; text-align: left; cursor: pointer; }
+.fotine-menu .rfm-item:hover { background: #fdf2f8; color: #DB2777; }
 
 /* ── Admin bar (watcher + cartella archivio) ────────────────────────────────── */
 .admin-bar {
@@ -1668,6 +1679,12 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
   <button class="rfm-item arm-nome">Nome</button>
   <button class="rfm-item arm-titolo">Titolo</button>
   <button class="rfm-item arm-avanzata">Avanzata</button>
+</div>
+<div id="fotineMenu" class="ricerca-foto-menu fotine-menu">
+  <button class="rfm-item" data-cat="personaggi">👤 Personaggi</button>
+  <button class="rfm-item" data-cat="serie">📺 Serie</button>
+  <button class="rfm-item" data-cat="soap">💬 Soap</button>
+  <button class="rfm-item" data-cat="sport">⚽ Sport</button>
 </div>
 
 <!-- ── Scontorni: menu categoria ─────────────────────────────────────────────── -->
@@ -3896,6 +3913,18 @@ function buildRow(row, i, tbody, colsOverride) {
     });
   }
 
+  let btnFotine = null;
+  if (currentTimone === 'dipiu' && (_ruolo === 'editor' || _ruolo === 'admin')) {
+    btnFotine = document.createElement('button');
+    btnFotine.className = 'btn-fotine-trigger';
+    btnFotine.title = 'Cerca fotine in archivio TLPserver';
+    btnFotine.innerHTML = '🖼 Fotine <span class="btn-foto-chevron">▾</span>';
+    btnFotine.addEventListener('click', (e) => {
+      e.stopPropagation();
+      mostraFotineMenu(row, tr, btnFotine);
+    });
+  }
+
   let btnArchivio = null;
   if (_ruolo === 'admin') {
     btnArchivio = document.createElement('button');
@@ -3911,6 +3940,7 @@ function buildRow(row, i, tbody, colsOverride) {
   divA.appendChild(dot);
   if (btnFoto) divA.appendChild(btnFoto);
   if (btnFotoTif) divA.appendChild(btnFotoTif);
+  if (btnFotine) divA.appendChild(btnFotine);
   if (btnArchivio) divA.appendChild(btnArchivio);
   tdA.appendChild(divA);
   tr.appendChild(tdA);
@@ -4321,6 +4351,58 @@ document.querySelectorAll('#archivioMenu .rfm-item').forEach(btn => {
     _cercaEApriArchivio(_archivioMenuRow, tipo);
   });
 });
+
+// ── Fotine DIPIU ─────────────────────────────────────────────────────────────
+let _fotineMenuRow = null, _fotineMenuTr = null;
+
+function mostraFotineMenu(row, tr, triggerBtn) {
+  _fotineMenuRow = row;
+  _fotineMenuTr  = tr;
+  const menu = document.getElementById('fotineMenu');
+  menu.classList.add('show');
+  _posizionaMenu(menu, triggerBtn);
+}
+
+document.querySelectorAll('#fotineMenu .rfm-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('fotineMenu').classList.remove('show');
+    if (!_fotineMenuRow) return;
+    cercaFotinaDipiu(btn.dataset.cat, _fotineMenuRow, _fotineMenuTr);
+  });
+});
+
+async function cercaFotinaDipiu(categoria, row, tr) {
+  const titolo      = (row.titolo      || '').trim();
+  const personaggio = (row.personaggio || '').trim();
+
+  let query;
+  if (categoria === 'personaggi') {
+    if (!personaggio) { showStatus('Inserisci il personaggio', 'warn'); return; }
+    query = personaggio;
+  } else if (categoria === 'serie' || categoria === 'soap') {
+    if (!titolo) { showStatus('Inserisci il titolo', 'warn'); return; }
+    query = personaggio ? `${titolo} — ${personaggio}` : titolo;
+  } else if (categoria === 'sport') {
+    if (!personaggio) { showStatus('Inserisci il personaggio', 'warn'); return; }
+    query = titolo ? `${personaggio} (${titolo})` : personaggio;
+  }
+
+  document.getElementById('scontModalTitle').textContent = `Fotine "${query}"…`;
+  document.getElementById('scontModalBody').innerHTML = '<div class="scont-searching">Ricerca in corso…</div>';
+  document.getElementById('scontModal').classList.add('show');
+
+  try {
+    const res  = await fetch('/cerca_fotina_dipiu', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoria, titolo, personaggio }),
+    });
+    const data = await res.json();
+    showScontModal(data.results || [], query, row, tr, '▶ Apri fotina');
+  } catch {
+    showStatus('Errore ricerca fotine', 'error');
+    closeScontModal();
+  }
+}
 
 async function _cercaEApriArchivio(row, tipo) {
   const cartella = getCartellaArchivio();
@@ -5075,6 +5157,10 @@ document.addEventListener('click', e => {
       e.target.closest('.rfm-item')) {
     document.getElementById('archivioMenu').classList.remove('show');
   }
+  if ((!e.target.closest('#fotineMenu') && !e.target.closest('.btn-fotine-trigger')) ||
+      e.target.closest('.rfm-item')) {
+    document.getElementById('fotineMenu').classList.remove('show');
+  }
 });
 
 document.getElementById('scontModal').addEventListener('click', e => {
@@ -5085,7 +5171,7 @@ function closeScontModal() {
   document.getElementById('scontModal').classList.remove('show');
 }
 
-function showScontModal(results, query, row, tr) {
+function showScontModal(results, query, row, tr, openLabel = '▶ Apri scontorno') {
   document.getElementById('scontModalTitle').textContent =
     results.length ? `"${query}" — ${results.length} trovati` : `"${query}" — nessuno trovato`;
   const body = document.getElementById('scontModalBody');
@@ -5111,7 +5197,7 @@ function showScontModal(results, query, row, tr) {
 
       const btn = document.createElement('button');
       btn.className = 'btn-scont-apri';
-      btn.textContent = '▶ Apri scontorno';
+      btn.textContent = openLabel;
       btn.addEventListener('click', () => apriScontorno(r.path, r.relativo, row, tr));
 
       item.appendChild(thumb); item.appendChild(info); item.appendChild(btn);

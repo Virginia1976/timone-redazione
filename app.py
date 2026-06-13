@@ -56,7 +56,8 @@ EDITORIALE_SMB  = os.environ.get('EDITORIALE_SMB', '')
 VALID_KEY    = re.compile(r'^[a-z0-9_]{1,60}$')
 KNOWN_TIMONI = {'nuovotv', 'dipiutv', 'tvmia', 'nuovo', 'dipiu', 'divadonna'}
 
-TLP_SCONTORNI = pathlib.Path(os.environ.get('TLP_SCONTORNI', '/Volumes/TLPserver/ARCHIVIO_FOTO/__SCONTORNI'))
+TLP_SCONTORNI    = pathlib.Path(os.environ.get('TLP_SCONTORNI', '/Volumes/TLPserver/ARCHIVIO_FOTO/__SCONTORNI'))
+TLP_DIPIU_FOTINE = TLP_SCONTORNI / 'DIPIU_fotine_sfondino'
 
 CATEGORIE_TLP: dict[str, str] = {
     'film':        '__FILM',
@@ -899,6 +900,62 @@ def scarica_scontorno():
     ext = full.suffix.lower()
     mime = 'image/vnd.adobe.photoshop' if ext == '.psd' else 'image/jpeg'
     return send_file(str(full), mimetype=mime, as_attachment=True, download_name=full.name)
+
+
+_DIPIU_CARTELLE = {
+    'personaggi': 'PERSONAGGI',
+    'serie':      'SERIE',
+    'soap':       'SOAP',
+    'sport':      'SPORT',
+}
+
+@app.route('/cerca_fotina_dipiu', methods=['POST'])
+def cerca_fotina_dipiu():
+    if session.get('ruolo') not in ('editor', 'admin'):
+        return jsonify({'error': 'non autorizzato'}), 403
+    data        = request.json or {}
+    categoria   = data.get('categoria',   '').strip()
+    titolo      = data.get('titolo',      '').strip()
+    personaggio = data.get('personaggio', '').strip()
+
+    if categoria not in _DIPIU_CARTELLE:
+        return jsonify({'results': [], 'error': 'categoria non valida'}), 400
+
+    cartella = TLP_DIPIU_FOTINE / _DIPIU_CARTELLE[categoria]
+    if not cartella.exists():
+        return jsonify({'results': [], 'error': 'cartella non trovata'})
+
+    results: list[dict] = []
+    _NUM_TRAIL = re.compile(r'\d+$')
+    try:
+        for f in cartella.rglob('*'):
+            if f.suffix.lower() != '.tif':
+                continue
+            stem      = _NUM_TRAIL.sub('', f.stem).strip()
+            stem_low  = stem.lower()
+
+            if categoria == 'personaggi':
+                if personaggio and personaggio.lower() in stem_low:
+                    results.append({'path': str(f), 'nome': f.stem,
+                                    'relativo': str(f.relative_to(TLP_SCONTORNI))})
+
+            elif categoria in ('serie', 'soap'):
+                tit_key = strip_articolo(titolo).lower()
+                if tit_key and tit_key in stem_low:
+                    if not personaggio or personaggio.lower() in stem_low:
+                        results.append({'path': str(f), 'nome': f.stem,
+                                        'relativo': str(f.relative_to(TLP_SCONTORNI))})
+
+            elif categoria == 'sport':
+                if personaggio and personaggio.lower() in stem_low:
+                    if not titolo or titolo.lower() in stem_low:
+                        results.append({'path': str(f), 'nome': f.stem,
+                                        'relativo': str(f.relative_to(TLP_SCONTORNI))})
+    except Exception as e:
+        print(f'[CERCA_FOTINA_DIPIU] {e}')
+
+    results.sort(key=lambda r: r['nome'].lower())
+    return jsonify({'results': results})
 
 
 if __name__ == '__main__':

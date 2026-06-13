@@ -991,7 +991,7 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 .channel-card-body {
   background: color-mix(in srgb, var(--ch, #64748b) 4%, #ffffff);
 }
-.channel-card .timone-table { table-layout: fixed; }
+.channel-card .timone-table { table-layout: fixed; min-width: 0; }
 .channel-card .timone-table thead th {
   background: color-mix(in srgb, var(--ch, #64748b) 8%, #f8fafc);
 }
@@ -1827,6 +1827,16 @@ const COLS_RIVISTA = [
   { key:'note',        label:'Note Redaz.',    w:'150px', input:'trama', placeholder:'Note…' },
 ];
 
+// Colonne per Dipiu (rivista TV con canale editabile, trama/note molto strette)
+const COLS_DIPIU = [
+  { key:'codice',      label:'',            w:'88px',  input:'codice' },
+  { key:'canale',      label:'Canale',      w:'52px',  input:'canale' },
+  { key:'titolo',      label:'Titolo',      w:'200px', input:'text',  placeholder:'Titolo…' },
+  { key:'personaggio', label:'Personaggio', w:'180px', input:'text',  placeholder:'Protagonista…' },
+  { key:'trama',       label:'Trama',       w:'44px',  input:'trama', placeholder:'Trama…' },
+  { key:'note',        label:'Note Redaz.', w:'60px',  input:'trama', placeholder:'Note…' },
+];
+
 // Colonne per Compleanni
 const COLS_COMPLEANNI = [
   { key:'codice',      label:'',               w:'88px',  input:'codice' },
@@ -2043,6 +2053,38 @@ TEMPLATES['divadonna'] = [
   { codice:'box1',   canale:'Box', asterisco: true },
   { codice:'box2',   canale:'Box' },
   { codice:'box3',   canale:'Box' },
+];
+
+// Template Dipiu (rivista TV: 7 giorni × 4 righe, separatori collassabili)
+TEMPLATES['dipiu'] = [
+  { codice:'LUN1',    giorno:'Lunedì',    canale:'' },
+  { codice:'LUN2',    giorno:'Lunedì',    canale:'' },
+  { codice:'LUN3',    giorno:'Lunedì',    canale:'' },
+  { codice:'LUN4_SP', giorno:'Lunedì',    canale:'' },
+  { codice:'MAR1',    giorno:'Martedì',   canale:'' },
+  { codice:'MAR2',    giorno:'Martedì',   canale:'' },
+  { codice:'MAR3',    giorno:'Martedì',   canale:'' },
+  { codice:'MAR4_SP', giorno:'Martedì',   canale:'' },
+  { codice:'MER1',    giorno:'Mercoledì', canale:'' },
+  { codice:'MER2',    giorno:'Mercoledì', canale:'' },
+  { codice:'MER3',    giorno:'Mercoledì', canale:'' },
+  { codice:'MER4_SP', giorno:'Mercoledì', canale:'' },
+  { codice:'GIO1',    giorno:'Giovedì',   canale:'' },
+  { codice:'GIO2',    giorno:'Giovedì',   canale:'' },
+  { codice:'GIO3',    giorno:'Giovedì',   canale:'' },
+  { codice:'GIO4_SP', giorno:'Giovedì',   canale:'' },
+  { codice:'VEN1',    giorno:'Venerdì',   canale:'' },
+  { codice:'VEN2',    giorno:'Venerdì',   canale:'' },
+  { codice:'VEN3',    giorno:'Venerdì',   canale:'' },
+  { codice:'VEN4_SP', giorno:'Venerdì',   canale:'' },
+  { codice:'SAB1',    giorno:'Sabato',    canale:'' },
+  { codice:'SAB2',    giorno:'Sabato',    canale:'' },
+  { codice:'SAB3',    giorno:'Sabato',    canale:'' },
+  { codice:'SAB4_SP', giorno:'Sabato',    canale:'' },
+  { codice:'DOM1',    giorno:'Domenica',  canale:'' },
+  { codice:'DOM2',    giorno:'Domenica',  canale:'' },
+  { codice:'DOM3',    giorno:'Domenica',  canale:'' },
+  { codice:'DOM4_SP', giorno:'Domenica',  canale:'' },
 ];
 
 // Template Nuovo (un unico timone con tutti e 7 i giorni)
@@ -2658,7 +2700,7 @@ function applyTemplate(key, savedRows) {
   const merged = template.map(tpl => {
     if (tpl._separator) return { ...tpl };
     const saved = savedRows.find(r => r.codice === tpl.codice);
-    if (saved) return { ...saved, id: saved.id || newId(), codice: tpl.codice, canale: tpl.canale, ...(tpl.giorno   !== undefined ? { giorno:   tpl.giorno   } : {}), ...(tpl.sezione  !== undefined ? { sezione:  tpl.sezione  } : {}), sotto_canale: (tpl.sotto_canale !== undefined) ? (saved.sotto_canale !== undefined ? saved.sotto_canale : tpl.sotto_canale) : undefined, ...(tpl.asterisco ? { asterisco: true } : {}) };
+    if (saved) return { ...saved, id: saved.id || newId(), codice: tpl.codice, canale: (tpl.canale !== undefined && tpl.canale !== '') ? tpl.canale : (saved.canale ?? ''), ...(tpl.giorno   !== undefined ? { giorno:   tpl.giorno   } : {}), ...(tpl.sezione  !== undefined ? { sezione:  tpl.sezione  } : {}), sotto_canale: (tpl.sotto_canale !== undefined) ? (saved.sotto_canale !== undefined ? saved.sotto_canale : tpl.sotto_canale) : undefined, ...(tpl.asterisco ? { asterisco: true } : {}) };
     return { id: newId(), tipo: 'Programma TV', ...tpl };
   });
   const extras = savedRows.filter(r => r.codice && !templateCodici.has(r.codice));
@@ -2723,7 +2765,7 @@ let _archiveWeek     = null;   // {week_id,dal,al} della settimana archivio aper
 let _saveTimer       = null;
 let _lastSavedRows   = null;
 let savedCounts      = {};   // chiave → conteggio righe
-let expandedChannels = new Set(); // canali espansi nella vista a card
+let expandedChannels   = new Set(); // canali espansi nella vista a card
 
 // ── Chiave storage ────────────────────────────────────────────────────────────
 function storageKey() {
@@ -3349,6 +3391,7 @@ function getCols() {
   if (currentTimone === 'tvmia'   && currentDay === 'scontorni')  return COLS_SCONTORNI_FACCETTE;
   if (currentTimone === 'divadonna')                               return COLS_TV;
   if (currentTimone === 'nuovo')                                   return COLS_NUOVO;
+  if (currentTimone === 'dipiu')                                   return COLS_DIPIU;
   return TIMONI_META[currentTimone]?.tipo === 'tv' ? COLS_TV : COLS_RIVISTA;
 }
 
@@ -3374,8 +3417,8 @@ function renderTable() {
   const tableWrap    = document.querySelector('.table-wrap');
   const isScontorniFaccette = currentTimone === 'tvmia' && currentDay === 'scontorni';
   const isTvMiaGiorno       = currentTimone === 'tvmia' && currentDay !== 'scontorni';
-  const isGrouped    = currentTimone === 'nuovotv' || currentTimone === 'dipiutv' || currentTimone === 'divadonna' || currentTimone === 'nuovo' || isScontorniFaccette || isTvMiaGiorno;
-  const groupField   = (currentTimone === 'nuovo' || isScontorniFaccette) ? 'giorno'
+  const isGrouped    = currentTimone === 'nuovotv' || currentTimone === 'dipiutv' || currentTimone === 'divadonna' || currentTimone === 'nuovo' || currentTimone === 'dipiu' || isScontorniFaccette || isTvMiaGiorno;
+  const groupField   = (currentTimone === 'nuovo' || currentTimone === 'dipiu' || isScontorniFaccette) ? 'giorno'
                      : isTvMiaGiorno ? 'sezione' : 'canale';
 
   if (isGrouped) {
@@ -3464,6 +3507,7 @@ function renderTable() {
 
   currentRows.forEach((row, i) => buildRow(row, i, tbody));
 }
+
 
 function _makeScopriTuttoBtn() {
   const btn = document.createElement('button');
@@ -3580,9 +3624,11 @@ function buildRow(row, i, tbody, colsOverride) {
   if (row.colore) tr.classList.add(`row-${row.colore}`);
 
   // Numero
-  const tdN = document.createElement('td'); tdN.className = 'td-num';
-  tdN.textContent = i + 1;
-  tr.appendChild(tdN);
+  if (currentTimone !== 'dipiu') {
+    const tdN = document.createElement('td'); tdN.className = 'td-num';
+    tdN.textContent = i + 1;
+    tr.appendChild(tdN);
+  }
 
   // Colonne dati
   cols.forEach(col => {
@@ -3640,7 +3686,7 @@ function buildRow(row, i, tbody, colsOverride) {
 
     } else if (col.input === 'canale') {
       td.className = 'td-canale';
-      if (row.canale_editabile || currentTimone === 'tvmia') {
+      if (row.canale_editabile || currentTimone === 'tvmia' || currentTimone === 'dipiu') {
         const inp = document.createElement('input');
         inp.type = 'text'; inp.className = 'canale-input';
         inp.value = row.canale || '';
@@ -3969,7 +4015,17 @@ function buildChannelGroupView(container, groupField = 'canale') {
                 : (currentTimone === 'divadonna')       ? (group.val === 'Foto' ? '📷' : '📦')
                 : '📺';
     let groupLabel = group.val;
-    if ((currentDay === 'scontorni' || currentTimone === 'nuovo' || currentDay === 'biscotti' || currentDay === 'compleanni') && currentWeek?.dal) {
+    if (currentTimone === 'dipiu' && currentWeek?.dal) {
+      const _jsDayMap = { 'SABATO':6, 'DOMENICA':0, 'LUNEDÌ':1, 'MARTEDÌ':2, 'MERCOLEDÌ':3, 'GIOVEDÌ':4, 'VENERDÌ':5 };
+      const _target = _jsDayMap[group.val.toUpperCase()];
+      if (_target !== undefined) {
+        const _d = new Date(currentWeek.dal + 'T12:00:00');
+        let _diff = _target - _d.getDay(); if (_diff < 0) _diff += 7;
+        _d.setDate(_d.getDate() + _diff);
+        const _m = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+        groupLabel = `${group.val} · ${_d.getDate()} ${_m[_d.getMonth()]}`;
+      }
+    } else if ((currentDay === 'scontorni' || currentTimone === 'nuovo' || currentDay === 'biscotti' || currentDay === 'compleanni') && currentWeek?.dal) {
       const _dayOffMap = { 'SABATO':0, 'DOMENICA':1, 'LUNEDÌ':2, 'MARTEDÌ':3, 'MERCOLEDÌ':4, 'GIOVEDÌ':5, 'VENERDÌ':6 };
       const _off = _dayOffMap[group.val.toUpperCase()];
       if (_off !== undefined) {
@@ -4031,8 +4087,10 @@ function buildChannelGroupView(container, groupField = 'canale') {
 
     const thead   = document.createElement('thead');
     const theadTr = document.createElement('tr');
-    const thNum   = document.createElement('th'); thNum.textContent = '#';
-    theadTr.appendChild(thNum);
+    if (currentTimone !== 'dipiu') {
+      const thNum = document.createElement('th'); thNum.textContent = '#';
+      theadTr.appendChild(thNum);
+    }
     colsFilt.forEach(col => {
       const th = document.createElement('th');
       if (col.w && col.w !== 'auto') th.style.width = col.w;

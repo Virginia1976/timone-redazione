@@ -898,7 +898,9 @@ def scarica_scontorno():
     if not full.is_file():
         return 'file non trovato', 404
     ext = full.suffix.lower()
-    mime = 'image/vnd.adobe.photoshop' if ext == '.psd' else 'image/jpeg'
+    mime = ('image/vnd.adobe.photoshop' if ext == '.psd'
+            else 'image/tiff'           if ext in ('.tif', '.tiff')
+            else 'image/jpeg')
     return send_file(str(full), mimetype=mime, as_attachment=True, download_name=full.name)
 
 

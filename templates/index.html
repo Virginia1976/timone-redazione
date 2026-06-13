@@ -4537,7 +4537,7 @@ function revealTif(codice, silent = false) {
   const filePath = cartella + '/' + codice + '.tif';
   fetch('http://127.0.0.1:5020/apri?path=' + encodeURIComponent(filePath))
     .catch(function() {
-      window.location.href = 'timone://open?path=' + encodeURIComponent(filePath);
+      if (!silent) showStatus('TimoneOpener non attivo — esegui install_server.command', 'error');
     });
   return true;
 }

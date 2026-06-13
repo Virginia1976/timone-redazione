@@ -449,6 +449,7 @@ body {
 .timone-table tbody tr:hover td { background: #f8fafc; }
 .timone-table tr.row-giallo:hover td { background: #fdf0a0 !important; }
 .timone-table tr.row-grigio:hover td  { background: #b8c8d8 !important; }
+.timone-table tr.row-blu:hover td     { background: #bfdbfe !important; }
 
 .timone-table tbody td {
   padding: 12px 14px; vertical-align: middle; font-size: 16px;
@@ -525,12 +526,15 @@ body.admin-on .timone-table tbody td.td-num:hover::after {
 /* Colore riga */
 .timone-table tr.row-giallo   td { background: #fef9c3 !important; }
 .timone-table tr.row-grigio   td { background: #c8d3de !important; }
+.timone-table tr.row-blu      td { background: #dbeafe !important; }
 .timone-table tr.row-copiato  td { background: #f1f5f9 !important; color: #94a3b8 !important; font-style: italic; }
 .timone-table tr.row-giallo   td.td-azioni { background: #fef9c3 !important; }
 .timone-table tr.row-grigio   td.td-azioni { background: #c8d3de !important; }
+.timone-table tr.row-blu      td.td-azioni { background: #dbeafe !important; }
 .timone-table tr.row-copiato  td.td-azioni { background: #f1f5f9 !important; }
 .timone-table tr.row-giallo:hover td.td-azioni { background: #fdf0a0 !important; }
 .timone-table tr.row-grigio:hover td.td-azioni { background: #b8c8d8 !important; }
+.timone-table tr.row-blu:hover td.td-azioni    { background: #bfdbfe !important; }
 
 /* ── Separatore sezioni ─────────────────────────────────────────────────────── */
 .row-separator td {
@@ -692,6 +696,7 @@ body.admin-on .timone-table tbody td.td-num:hover::after {
 .color-dot:hover { transform: scale(1.18); }
 tr.row-giallo   .color-dot { background: #facc15; border-color: #d4a900; }
 tr.row-grigio   .color-dot { background: #94a3b8; border-color: #64748b; }
+tr.row-blu      .color-dot { background: #3b82f6; border-color: #1d4ed8; }
 tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 
 
@@ -973,6 +978,7 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 .ch-strip.strip-vuota    { background: #f8fafc; }
 .ch-strip.strip-giallo   { background: #fde047; }
 .ch-strip.strip-grigio   { background: #9aafc4; }
+.ch-strip.strip-blu      { background: #60a5fa; }
 .ch-strip.strip-nascosta { background: repeating-linear-gradient(
   90deg, #edf0f3 0px, #edf0f3 3px, #f8fafc 3px, #f8fafc 6px
 ); }
@@ -1020,8 +1026,10 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 }
 .channel-card .timone-table tr.row-giallo:hover td { background: #fdf0a0 !important; }
 .channel-card .timone-table tr.row-grigio:hover td  { background: #b8c8d8 !important; }
+.channel-card .timone-table tr.row-blu:hover td     { background: #bfdbfe !important; }
 .channel-card .timone-table tr.row-giallo:hover td.td-azioni { background: #fdf0a0 !important; }
 .channel-card .timone-table tr.row-grigio:hover td.td-azioni  { background: #b8c8d8 !important; }
+.channel-card .timone-table tr.row-blu:hover td.td-azioni     { background: #bfdbfe !important; }
 .channel-card .timone-table td[contenteditable]:focus {
   box-shadow: inset 0 0 0 1.5px var(--ch, #64748b);
 }
@@ -3863,12 +3871,13 @@ function buildRow(row, i, tbody, colsOverride) {
   const divA = document.createElement('div'); divA.className = 'row-actions';
 
   // Bollino colore (cicla: bianco → giallo → grigio → copiato → bianco)
+  // Per dipiu: bianco → blu → grigio → giallo → copiato → bianco
   // "copiato" è raggiungibile anche da grigio, così si può tornare indietro per errore
   const dot = document.createElement('div');
   dot.className = 'color-dot';
   dot.title = row.colore === 'copiato' ? 'Non lavorata — clic per iniziare a lavorarla' : 'Cambia colore riga';
   dot.addEventListener('click', () => {
-    const cycle = ['', 'grigio', 'giallo', 'copiato'];
+    const cycle = currentTimone === 'dipiu' ? ['', 'blu', 'grigio', 'giallo', 'copiato'] : ['', 'grigio', 'giallo', 'copiato'];
     const curr  = row.colore || '';
     const next  = cycle[(cycle.indexOf(curr) + 1) % cycle.length];
     setRowColor(tr, row, next);
@@ -3879,7 +3888,7 @@ function buildRow(row, i, tbody, colsOverride) {
       const allTrs = [...card.querySelectorAll('tbody tr')];
       const idx    = allTrs.indexOf(tr);
       const strip  = card.querySelectorAll('.ch-strip')[idx];
-      if (strip) strip.className = 'ch-strip ' + (next === 'giallo' ? 'strip-giallo' : next === 'grigio' ? 'strip-grigio' : 'strip-vuota');
+      if (strip) strip.className = 'ch-strip ' + (next === 'giallo' ? 'strip-giallo' : next === 'grigio' ? 'strip-grigio' : next === 'blu' ? 'strip-blu' : 'strip-vuota');
     }
     // Il cambio colore viene salvato subito (full save) per garantire
     // che il mtime cambi e l'altro browser riceva la notifica
@@ -4080,7 +4089,7 @@ function buildChannelGroupView(container, groupField = 'canale') {
           if (row.colore) tr.classList.add(`row-${row.colore}`);
         }
         const strip = allStrips[idx];
-        if (strip) strip.className = 'ch-strip ' + (row.nascosta ? 'strip-nascosta' : row.colore === 'giallo' ? 'strip-giallo' : row.colore === 'grigio' ? 'strip-grigio' : 'strip-vuota');
+        if (strip) strip.className = 'ch-strip ' + (row.nascosta ? 'strip-nascosta' : row.colore === 'giallo' ? 'strip-giallo' : row.colore === 'grigio' ? 'strip-grigio' : row.colore === 'blu' ? 'strip-blu' : 'strip-vuota');
       });
       // aggiorna testo pulsanti espandi/comprimi senza re-render completo
       const { part1Rows, part2Rows, hasSeparator } = getGroupedParts();

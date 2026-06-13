@@ -4659,7 +4659,7 @@ async function checkMtimes(cartella) {
       const row = currentRows.find(r => r.codice === codice);
       const img = document.querySelector(`img.codice-thumb[data-codice="${codice}"]`);
       const tr  = img?.closest('tr');
-      if (row && tr && (row.colore === '' || row.colore === 'giallo' || !row.colore)) {
+      if (currentTimone !== 'dipiu' && row && tr && (row.colore === '' || row.colore === 'giallo' || !row.colore)) {
         setRowColor(tr, row, 'grigio');
         markDirty();
       }

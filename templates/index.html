@@ -1253,21 +1253,24 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 
 .scont-modal-overlay {
   position: fixed; inset: 0; z-index: 9200;
-  background: rgba(0,0,0,.45);
-  display: none; align-items: center; justify-content: center;
+  pointer-events: none;
+  display: none;
 }
-.scont-modal-overlay.show { display: flex; animation: fadeIn .15s ease; }
+.scont-modal-overlay.show { display: block; animation: fadeIn .15s ease; }
 @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 
 .scont-modal-box {
   background: var(--card); border-radius: 18px;
   box-shadow: var(--shadow-lg); width: 860px; max-width: 95vw;
   max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
+  position: fixed; pointer-events: all;
 }
 .scont-modal-hdr {
   display: flex; align-items: center; gap: 10px;
   padding: 20px 24px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  cursor: grab; user-select: none;
 }
+.scont-modal-hdr.dragging { cursor: grabbing; }
 .scont-modal-hdr-title {
   flex: 1; font-size: 15px; font-weight: 700; color: var(--text);
 }
@@ -4399,7 +4402,7 @@ async function cercaFotinaDipiu(categoria, row, tr) {
 
   document.getElementById('scontModalTitle').textContent = `Fotine "${query}"…`;
   document.getElementById('scontModalBody').innerHTML = '<div class="scont-searching">Ricerca in corso…</div>';
-  document.getElementById('scontModal').classList.add('show');
+  _openScontModal();
 
   try {
     const res  = await fetch('/cerca_fotina_dipiu', {
@@ -5173,13 +5176,50 @@ document.addEventListener('click', e => {
   }
 });
 
-document.getElementById('scontModal').addEventListener('click', e => {
-  if (e.target === document.getElementById('scontModal')) closeScontModal();
-});
-
 function closeScontModal() {
   document.getElementById('scontModal').classList.remove('show');
 }
+
+function _openScontModal() {
+  const overlay = document.getElementById('scontModal');
+  const box = overlay.querySelector('.scont-modal-box');
+  const w = Math.min(860, Math.round(window.innerWidth * 0.95));
+  box.style.left = Math.round((window.innerWidth - w) / 2) + 'px';
+  box.style.top = '80px';
+  overlay.classList.add('show');
+}
+
+// Drag sul modal scontorni/fotine
+(function() {
+  const overlay = document.getElementById('scontModal');
+  const box = overlay.querySelector('.scont-modal-box');
+  const hdr = overlay.querySelector('.scont-modal-hdr');
+  let dragging = false, startX, startY, origLeft, origTop;
+
+  hdr.addEventListener('mousedown', e => {
+    if (e.target.closest('.scont-modal-close')) return;
+    dragging = true;
+    const r = box.getBoundingClientRect();
+    startX = e.clientX; startY = e.clientY;
+    origLeft = r.left; origTop = r.top;
+    hdr.classList.add('dragging');
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    let nl = origLeft + (e.clientX - startX);
+    let nt = origTop  + (e.clientY - startY);
+    nl = Math.max(0, Math.min(nl, window.innerWidth  - box.offsetWidth));
+    nt = Math.max(0, Math.min(nt, window.innerHeight - box.offsetHeight));
+    box.style.left = nl + 'px';
+    box.style.top  = nt + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (dragging) { dragging = false; hdr.classList.remove('dragging'); }
+  });
+})();
 
 function showScontModal(results, query, row, tr, openLabel = '▶ Apri scontorno') {
   document.getElementById('scontModalTitle').textContent =
@@ -5214,14 +5254,14 @@ function showScontModal(results, query, row, tr, openLabel = '▶ Apri scontorno
       body.appendChild(item);
     });
   }
-  document.getElementById('scontModal').classList.add('show');
+  _openScontModal();
 }
 
 async function cercaScontTitolo(titolo, categoria, row, tr) {
   if (!titolo) { showStatus('Inserisci prima il titolo', 'warn'); return; }
   document.getElementById('scontModalTitle').textContent = `Ricerca "${titolo}"…`;
   document.getElementById('scontModalBody').innerHTML = '<div class="scont-searching">Ricerca in corso…</div>';
-  document.getElementById('scontModal').classList.add('show');
+  _openScontModal();
   try {
     const res  = await fetch('/cerca_scontorno_titolo', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -5239,7 +5279,7 @@ async function cercaScontPersonaggio(personaggio, row, tr) {
   if (!personaggio) { showStatus('Inserisci prima il personaggio', 'warn'); return; }
   document.getElementById('scontModalTitle').textContent = `Ricerca "${personaggio}"…`;
   document.getElementById('scontModalBody').innerHTML = '<div class="scont-searching">Ricerca in corso…</div>';
-  document.getElementById('scontModal').classList.add('show');
+  _openScontModal();
   try {
     const res  = await fetch('/cerca_scontorno_personaggio', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },

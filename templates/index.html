@@ -3284,8 +3284,12 @@ function updateDayBar(timone, day) {
       btn.onclick = () => changeDay(sp.day);
     }
   }
-  bar.querySelectorAll('.day-pill').forEach(p =>
-    p.classList.toggle('active', p.dataset.day === day));
+  bar.querySelectorAll('.day-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.day === day);
+    p.querySelectorAll('.th-day-gialli').forEach(b => b.remove());
+    const g = savedCounts[`${timone}_${p.dataset.day}`]?.gialli || 0;
+    if (g > 0) p.insertAdjacentHTML('beforeend', `<span class="th-day-gialli">${g}</span>`);
+  });
 }
 
 function hideDayBar() {
@@ -5080,6 +5084,15 @@ function aggiornaNavBadgeGialli(counts) {
       if (g > 0) btn.insertAdjacentHTML('beforeend', `<span class="th-day-gialli">${g}</span>`);
     });
   });
+  // Day bar pills (se visibile)
+  const dayBar = document.getElementById('dayBar');
+  if (currentTimone && dayBar?.classList.contains('visible')) {
+    dayBar.querySelectorAll('.day-pill').forEach(p => {
+      p.querySelectorAll('.th-day-gialli').forEach(b => b.remove());
+      const g = counts[`${currentTimone}_${p.dataset.day}`]?.gialli || 0;
+      if (g > 0) p.insertAdjacentHTML('beforeend', `<span class="th-day-gialli">${g}</span>`);
+    });
+  }
   // Riviste / tv-unico: badge totale sul nav-tab
   ['nuovo', 'dipiu', 'divadonna'].forEach(timone => {
     const btn = document.querySelector(`.nav-tab[data-timone="${timone}"]`);

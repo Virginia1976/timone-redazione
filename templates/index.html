@@ -171,6 +171,7 @@ body {
   margin-left: auto; font-size: 11px; color: var(--muted);
   background: var(--bg); border-radius: 10px; padding: 1px 7px;
 }
+.day-item .th-day-gialli { margin-left: auto; }
 
 /* Separatore nav */
 .nav-sep {
@@ -1401,14 +1402,14 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
       <span class="arrow">▾</span>
     </button>
     <div class="days-dropdown" id="dd-nuovotv">
-      <button class="day-item" onclick="selectTimoneDay('nuovotv','sabato')">Sabato</button>
-      <button class="day-item" onclick="selectTimoneDay('nuovotv','domenica')">Domenica</button>
-      <button class="day-item" onclick="selectTimoneDay('nuovotv','lunedi')">Lunedì</button>
-      <button class="day-item" onclick="selectTimoneDay('nuovotv','martedi')">Martedì</button>
-      <button class="day-item" onclick="selectTimoneDay('nuovotv','mercoledi')">Mercoledì</button>
-      <button class="day-item" onclick="selectTimoneDay('nuovotv','giovedi')">Giovedì</button>
-      <button class="day-item" onclick="selectTimoneDay('nuovotv','venerdi')">Venerdì</button>
-      <button class="day-item" onclick="selectTimoneDay('nuovotv','compleanni')">Compleanni</button>
+      <button class="day-item" data-giorno="sabato"     onclick="selectTimoneDay('nuovotv','sabato')">Sabato</button>
+      <button class="day-item" data-giorno="domenica"   onclick="selectTimoneDay('nuovotv','domenica')">Domenica</button>
+      <button class="day-item" data-giorno="lunedi"     onclick="selectTimoneDay('nuovotv','lunedi')">Lunedì</button>
+      <button class="day-item" data-giorno="martedi"    onclick="selectTimoneDay('nuovotv','martedi')">Martedì</button>
+      <button class="day-item" data-giorno="mercoledi"  onclick="selectTimoneDay('nuovotv','mercoledi')">Mercoledì</button>
+      <button class="day-item" data-giorno="giovedi"    onclick="selectTimoneDay('nuovotv','giovedi')">Giovedì</button>
+      <button class="day-item" data-giorno="venerdi"    onclick="selectTimoneDay('nuovotv','venerdi')">Venerdì</button>
+      <button class="day-item" data-giorno="compleanni" onclick="selectTimoneDay('nuovotv','compleanni')">Compleanni</button>
     </div>
   </div>
 
@@ -1422,14 +1423,14 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
       <span class="arrow">▾</span>
     </button>
     <div class="days-dropdown" id="dd-dipiutv">
-      <button class="day-item" onclick="selectTimoneDay('dipiutv','sabato')">Sabato</button>
-      <button class="day-item" onclick="selectTimoneDay('dipiutv','domenica')">Domenica</button>
-      <button class="day-item" onclick="selectTimoneDay('dipiutv','lunedi')">Lunedì</button>
-      <button class="day-item" onclick="selectTimoneDay('dipiutv','martedi')">Martedì</button>
-      <button class="day-item" onclick="selectTimoneDay('dipiutv','mercoledi')">Mercoledì</button>
-      <button class="day-item" onclick="selectTimoneDay('dipiutv','giovedi')">Giovedì</button>
-      <button class="day-item" onclick="selectTimoneDay('dipiutv','venerdi')">Venerdì</button>
-      <button class="day-item" onclick="selectTimoneDay('dipiutv','biscotti')">Biscotti</button>
+      <button class="day-item" data-giorno="sabato"    onclick="selectTimoneDay('dipiutv','sabato')">Sabato</button>
+      <button class="day-item" data-giorno="domenica"  onclick="selectTimoneDay('dipiutv','domenica')">Domenica</button>
+      <button class="day-item" data-giorno="lunedi"    onclick="selectTimoneDay('dipiutv','lunedi')">Lunedì</button>
+      <button class="day-item" data-giorno="martedi"   onclick="selectTimoneDay('dipiutv','martedi')">Martedì</button>
+      <button class="day-item" data-giorno="mercoledi" onclick="selectTimoneDay('dipiutv','mercoledi')">Mercoledì</button>
+      <button class="day-item" data-giorno="giovedi"   onclick="selectTimoneDay('dipiutv','giovedi')">Giovedì</button>
+      <button class="day-item" data-giorno="venerdi"   onclick="selectTimoneDay('dipiutv','venerdi')">Venerdì</button>
+      <button class="day-item" data-giorno="biscotti"  onclick="selectTimoneDay('dipiutv','biscotti')">Biscotti</button>
     </div>
   </div>
 
@@ -1443,14 +1444,14 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
       <span class="arrow">▾</span>
     </button>
     <div class="days-dropdown" id="dd-tvmia">
-      <button class="day-item" onclick="selectTimoneDay('tvmia','scontorni')">Scontorni faccette</button>
-      <button class="day-item" onclick="selectTimoneDay('tvmia','sabato')">Sabato</button>
-      <button class="day-item" onclick="selectTimoneDay('tvmia','domenica')">Domenica</button>
-      <button class="day-item" onclick="selectTimoneDay('tvmia','lunedi')">Lunedì</button>
-      <button class="day-item" onclick="selectTimoneDay('tvmia','martedi')">Martedì</button>
-      <button class="day-item" onclick="selectTimoneDay('tvmia','mercoledi')">Mercoledì</button>
-      <button class="day-item" onclick="selectTimoneDay('tvmia','giovedi')">Giovedì</button>
-      <button class="day-item" onclick="selectTimoneDay('tvmia','venerdi')">Venerdì</button>
+      <button class="day-item" data-giorno="scontorni" onclick="selectTimoneDay('tvmia','scontorni')">Scontorni faccette</button>
+      <button class="day-item" data-giorno="sabato"    onclick="selectTimoneDay('tvmia','sabato')">Sabato</button>
+      <button class="day-item" data-giorno="domenica"  onclick="selectTimoneDay('tvmia','domenica')">Domenica</button>
+      <button class="day-item" data-giorno="lunedi"    onclick="selectTimoneDay('tvmia','lunedi')">Lunedì</button>
+      <button class="day-item" data-giorno="martedi"   onclick="selectTimoneDay('tvmia','martedi')">Martedì</button>
+      <button class="day-item" data-giorno="mercoledi" onclick="selectTimoneDay('tvmia','mercoledi')">Mercoledì</button>
+      <button class="day-item" data-giorno="giovedi"   onclick="selectTimoneDay('tvmia','giovedi')">Giovedì</button>
+      <button class="day-item" data-giorno="venerdi"   onclick="selectTimoneDay('tvmia','venerdi')">Venerdì</button>
     </div>
   </div>
 
@@ -3026,6 +3027,13 @@ async function openTimoneHome(timone) {
     rivistaWrap.style.display = '';
     const btn = document.getElementById('thWorkBtn');
     btn.onclick = () => selectTimone(timone);
+    const renderRivistaGialli = (counts) => {
+      const g = counts[timone]?.gialli || 0;
+      const badge = g > 0 ? ` <span class="th-day-gialli">${g}</span>` : '';
+      document.getElementById('thWorkBtn').innerHTML = `Vai al timone →${badge}`;
+    };
+    renderRivistaGialli(savedCounts);
+    fetch('/api/list').then(r => r.json()).then(data => { savedCounts = data; renderRivistaGialli(data); }).catch(() => {});
   }
 
   // Badge header
@@ -5045,7 +5053,31 @@ async function aggiornaConteggiWelcome() {
         document.getElementById('timone-home').style.display !== 'none') {
       renderDaysGrid(currentTimone);
     }
+    aggiornaNavBadgeGialli(data);
   } catch {}
+}
+
+function aggiornaNavBadgeGialli(counts) {
+  counts = counts || savedCounts;
+  // TV timoni: badge per-giorno nei dropdown
+  ['nuovotv', 'dipiutv', 'tvmia'].forEach(timone => {
+    const dd = document.getElementById(`dd-${timone}`);
+    if (!dd) return;
+    dd.querySelectorAll('.day-item[data-giorno]').forEach(btn => {
+      const giorno = btn.dataset.giorno;
+      const g = counts[`${timone}_${giorno}`]?.gialli || 0;
+      btn.querySelectorAll('.th-day-gialli').forEach(b => b.remove());
+      if (g > 0) btn.insertAdjacentHTML('beforeend', `<span class="th-day-gialli">${g}</span>`);
+    });
+  });
+  // Riviste / tv-unico: badge totale sul nav-tab
+  ['nuovo', 'dipiu', 'divadonna'].forEach(timone => {
+    const btn = document.querySelector(`.nav-tab[data-timone="${timone}"]`);
+    if (!btn) return;
+    btn.querySelectorAll('.th-day-gialli').forEach(b => b.remove());
+    const g = counts[timone]?.gialli || 0;
+    if (g > 0) btn.insertAdjacentHTML('beforeend', `<span class="th-day-gialli">${g}</span>`);
+  });
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────────

@@ -125,7 +125,7 @@ body {
 
 .nav-tab {
   display: flex; align-items: center; gap: 8px;
-  padding: 0 22px; border: none; background: none;
+  padding: 0 28px; border: none; background: none;
   font-size: 16px; font-weight: 700; color: var(--text-soft);
   cursor: pointer; border-bottom: 3px solid transparent;
   transition: all var(--transition); white-space: nowrap;
@@ -356,7 +356,7 @@ body {
 /* ── Nav tab split (name + arrow) ─────────────────────────────────────────────── */
 .nav-tab-name {
   display: flex; align-items: center; gap: 8px;
-  padding: 0 14px 0 22px; border: none; background: none;
+  padding: 0 18px 0 28px; border: none; background: none;
   font-size: 16px; font-weight: 700; color: var(--text-soft);
   cursor: pointer; border-bottom: 3px solid transparent;
   transition: all var(--transition); white-space: nowrap;
@@ -5059,8 +5059,18 @@ async function aggiornaConteggiWelcome() {
 
 function aggiornaNavBadgeGialli(counts) {
   counts = counts || savedCounts;
-  // TV timoni: badge per-giorno nei dropdown
+  // TV timoni: badge totale sul nav-tab-name + badge per-giorno nei dropdown
   ['nuovotv', 'dipiutv', 'tvmia'].forEach(timone => {
+    // Totale sul pulsante principale
+    const nameBtn = document.querySelector(`.nav-tab-name[data-timone="${timone}"]`);
+    if (nameBtn) {
+      nameBtn.querySelectorAll('.th-day-gialli').forEach(b => b.remove());
+      const tot = Object.entries(counts)
+        .filter(([k]) => k.startsWith(timone + '_'))
+        .reduce((s, [, v]) => s + (v.gialli || 0), 0);
+      if (tot > 0) nameBtn.insertAdjacentHTML('beforeend', `<span class="th-day-gialli">${tot}</span>`);
+    }
+    // Per-giorno nel dropdown
     const dd = document.getElementById(`dd-${timone}`);
     if (!dd) return;
     dd.querySelectorAll('.day-item[data-giorno]').forEach(btn => {

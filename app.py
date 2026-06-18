@@ -702,42 +702,56 @@ def tif_mtime():
         if cartella and codice:
             by_cartella.setdefault(cartella, []).append(codice)
 
-    def _scan_dir(cartella: str, codici: list[str]) -> dict[str, int | None]:
+    def _scan_dir(cartella: str, codici: list[str]) -> tuple[dict[str, int | None], list[str]]:
         wanted: dict[str, str] = {}
+        new_wanted: dict[str, str] = {}
         for c in codici:
             wanted[c.lower() + '.tif'] = c
             if '_scont' in c.lower() or tutti_scont:
                 wanted[c.lower() + '.psd']  = c
                 wanted[c.lower() + '.jpg']  = c
                 wanted[c.lower() + '.jpeg'] = c
+                new_wanted[c.lower() + '_new.psd']  = c
+                new_wanted[c.lower() + '_new.jpg']  = c
+                new_wanted[c.lower() + '_new.jpeg'] = c
         out = {c: None for c in codici}
+        new_set: set[str] = set()
         try:
             with os.scandir(cartella) as it:
                 for entry in it:
-                    codice = wanted.get(entry.name.lower())
-                    if codice is None:
+                    name_lc = entry.name.lower()
+                    c = new_wanted.get(name_lc)
+                    if c is not None:
+                        new_set.add(c)
+                        try:
+                            out[c] = round(entry.stat(follow_symlinks=False).st_mtime)
+                        except OSError:
+                            pass
                         continue
-                    if out[codice] is not None:
-                        continue  # già trovato con altra estensione
-                    try:
-                        out[codice] = round(entry.stat(follow_symlinks=False).st_mtime)
-                    except OSError:
-                        pass
+                    c = wanted.get(name_lc)
+                    if c is not None and out[c] is None:
+                        try:
+                            out[c] = round(entry.stat(follow_symlinks=False).st_mtime)
+                        except OSError:
+                            pass
         except OSError:
             pass
-        return out
+        return out, list(new_set)
 
     result: dict[str, int | None] = {}
+    new_codici: list[str] = []
     futures = {
         _io_pool.submit(_scan_dir, cartella, codici): cartella
         for cartella, codici in by_cartella.items()
     }
     for future in futures:
         try:
-            result.update(future.result(timeout=8))
+            mtimes, news = future.result(timeout=8)
+            result.update(mtimes)
+            new_codici.extend(news)
         except Exception:
             pass
-    return jsonify(result)
+    return jsonify({**result, '_new': new_codici})
 
 
 

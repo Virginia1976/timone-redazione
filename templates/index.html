@@ -589,7 +589,17 @@ body.admin-on .timone-table tbody td.td-num:hover::after {
 .td-codice { width: 116px; padding: 6px 8px !important; vertical-align: middle !important; }
 .codice-wrap {
   display: flex; flex-direction: column; align-items: center; gap: 3px;
-  cursor: pointer;
+  cursor: pointer; position: relative;
+}
+.codice-wrap[data-is-new] .codice-thumb { border-color: #e11d48; }
+.codice-wrap[data-is-new]::after {
+  content: '_NEW';
+  position: absolute; top: 0; left: 0;
+  background: rgba(225,29,72,.88); color: #fff;
+  font-size: 9px; font-weight: 700;
+  font-family: 'SF Mono','Cascadia Code',monospace;
+  padding: 1px 5px 2px; border-radius: 4px 0 4px 0;
+  pointer-events: none; z-index: 1;
 }
 .codice-thumb {
   width: 96px; height: auto;
@@ -4611,6 +4621,7 @@ function getCartella() {
 // ── Polling mtime (auto-grigio) ───────────────────────────────────────────────
 let _mtimeTimer    = null;
 let _initialMtimes = {};
+let _newCodici     = new Set();
 
 function startMtimePolling() {
   stopMtimePolling();
@@ -4626,6 +4637,7 @@ function startMtimePolling() {
 function stopMtimePolling() {
   if (_mtimeTimer) { clearInterval(_mtimeTimer); _mtimeTimer = null; }
   _initialMtimes = {};
+  _newCodici = new Set();
 }
 
 async function fetchInitialMtimes(cartella) {
@@ -4636,7 +4648,11 @@ async function fetchInitialMtimes(cartella) {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ files, scontorni: isTuttiScontorni() })
     });
-    _initialMtimes = await res.json();
+    const data = await res.json();
+    _newCodici = new Set(data._new || []);
+    const { _new: _, ...mtimes } = data;
+    _initialMtimes = mtimes;
+    _newCodici.forEach(c => applyNewBadge(c));
   } catch {}
 }
 
@@ -4648,8 +4664,15 @@ async function checkMtimes(cartella) {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ files, scontorni: isTuttiScontorni() })
     });
-    const current = await res.json();
-    Object.entries(current).forEach(([codice, mtime]) => {
+    const data = await res.json();
+    const newSet = new Set(data._new || []);
+
+    // Aggiorna badge _NEW
+    newSet.forEach(c => { if (!_newCodici.has(c)) { _newCodici.add(c); applyNewBadge(c); } });
+    [..._newCodici].forEach(c => { if (!newSet.has(c)) { _newCodici.delete(c); removeNewBadge(c); } });
+
+    Object.entries(data).forEach(([codice, mtime]) => {
+      if (codice === '_new') return;
       const init = _initialMtimes[codice];
       if (init === undefined) { _initialMtimes[codice] = mtime; return; }
       if (mtime === null) return;
@@ -4668,9 +4691,26 @@ async function checkMtimes(cartella) {
         markDirty();
       }
       _initialMtimes[codice] = mtime;
-      updateSingleThumb(img, codice, img?.dataset.cartella || getCartella());
+      const thumbCodice = _newCodici.has(codice) ? codice + '_NEW' : codice;
+      updateSingleThumb(img, thumbCodice, img?.dataset.cartella || getCartella());
     });
   } catch {}
+}
+
+function applyNewBadge(codice) {
+  const img  = document.querySelector(`img.codice-thumb[data-codice="${codice}"]`);
+  const wrap = img?.closest('.codice-wrap');
+  if (!wrap) return;
+  wrap.dataset.isNew = 'true';
+  updateSingleThumb(img, codice + '_NEW', img.dataset.cartella || getCartella());
+}
+
+function removeNewBadge(codice) {
+  const img  = document.querySelector(`img.codice-thumb[data-codice="${codice}"]`);
+  const wrap = img?.closest('.codice-wrap');
+  if (!wrap) return;
+  delete wrap.dataset.isNew;
+  updateSingleThumb(img, codice, img.dataset.cartella || getCartella());
 }
 
 // ── Autocomplete titoli ───────────────────────────────────────────────────────

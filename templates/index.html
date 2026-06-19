@@ -3290,6 +3290,11 @@ function updateDayBar(timone, day) {
     const g = savedCounts[`${timone}_${p.dataset.day}`]?.gialli || 0;
     if (g > 0) p.insertAdjacentHTML('beforeend', `<span class="th-day-gialli">${g}</span>`);
   });
+  // Rinfresca con dati freschi in background (risolve race condition all'avvio)
+  fetch('/api/list').then(r => r.json()).then(data => {
+    savedCounts = data;
+    aggiornaNavBadgeGialli(data);
+  }).catch(() => {});
 }
 
 function hideDayBar() {
@@ -5458,6 +5463,7 @@ async function apriScontorno(path, relativo, row, tr) {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 aggiornaConteggiWelcome();
+setInterval(aggiornaConteggiWelcome, 30000);
 initRuolo();
 </script>
 </body>

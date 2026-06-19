@@ -3351,7 +3351,7 @@ async function caricaTimone() {
   applyClosedState(chiusa);
 
   updateThumbnailSrcs();
-  if (currentRows.length && getCartella()) startMtimePolling();
+  if (currentRows.length && (getCartella() || isTuttiScontorni())) startMtimePolling();
   startRemotePolling(key);
 }
 
@@ -5028,7 +5028,7 @@ function rcReload() {
     _lastSavedRows = JSON.parse(JSON.stringify(currentRows.filter(r => !r._separator)));
     renderTable(); setDirty(false);
     updateThumbnailSrcs();
-    if (currentRows.length && getCartella()) startMtimePolling();
+    if (currentRows.length && (getCartella() || isTuttiScontorni())) startMtimePolling();
     showStatus('Timone aggiornato ✓', 'success');
   }
   hideDiffPanel();

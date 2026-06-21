@@ -4144,7 +4144,7 @@ function buildChannelGroupView(container, groupField = 'canale') {
     strips.className = 'channel-mini-strips';
     group.rows.forEach(row => {
       const s = document.createElement('div');
-      s.className = 'ch-strip ' + (row.nascosta ? 'strip-nascosta' : row.colore === 'giallo' ? 'strip-giallo' : row.colore === 'grigio' ? 'strip-grigio' : 'strip-vuota');
+      s.className = 'ch-strip ' + (row.nascosta ? 'strip-nascosta' : row.colore === 'giallo' ? 'strip-giallo' : row.colore === 'grigio' ? 'strip-grigio' : row.colore === 'blu' ? 'strip-blu' : 'strip-vuota');
       strips.appendChild(s);
     });
     card.appendChild(strips);

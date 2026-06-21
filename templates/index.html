@@ -437,7 +437,7 @@ body {
 }
 .timone-table thead th:first-child { width: 44px; text-align: center; }
 .timone-table thead th.col-azioni {
-  width: 270px; text-align: center;
+  width: 310px; text-align: center;
   position: sticky; right: 0; z-index: 4;
   background: #f8fafc;
   box-shadow: -3px 0 6px rgba(0,0,0,.07);
@@ -743,7 +743,8 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 .rfm-logo-google { width: 18px; height: 18px; }
 .rfm-logo-infotv { height: 16px; width: auto; }
 
-.row-actions { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.row-actions { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; }
+.row-actions-main { display: flex; align-items: center; justify-content: center; gap: 10px; }
 
 /* ── Archivio foto (admin only) ─────────────────────────────────────────────── */
 .btn-archivio-trigger {
@@ -821,6 +822,7 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
   content: attr(data-placeholder);
   color: #cbd5e1; font-style: italic; pointer-events: none;
 }
+.td-titolo, .td-personaggio { min-width: 120px; }
 .td-titolo .cell-editable-inner,
 .td-personaggio .cell-editable-inner {
   font-size: 18px; font-weight: 700;
@@ -1829,99 +1831,96 @@ const SEZIONE_EMOJI = {
 
 // Colonne per TV
 const COLS_TV = [
-  { key:'codice',      label:'',               w:'88px',  input:'codice' },
+  { key:'codice',      label:'',               w:'116px', input:'codice' },
   { key:'canale',      label:'Canale',         w:'90px',  input:'canale' },
   { key:'orario',      label:'Orario',         w:'76px',  input:'orario' },
-  { key:'tipo',        label:'Tipo',           w:'108px', input:'tipo' },
+  { key:'tipo',        label:'Tipo',           w:'60px',  input:'tipo' },
   { key:'titolo',      label:'Titolo',         w:'auto',  input:'text',  placeholder:'Titolo del programma…' },
-  { key:'personaggio', label:'Personaggio',    w:'150px', input:'text',  placeholder:'Protagonista…' },
-  { key:'anno',        label:'Anno',           w:'70px',  input:'text',  placeholder:'—' },
-  { key:'stagione',    label:'Stagione',       w:'62px',  input:'text',  placeholder:'—' },
-  { key:'trama',       label:'Trama',          w:'150px', input:'trama', placeholder:'Trama…' },
-  { key:'note',        label:'Note Redaz.',    w:'142px', input:'trama', placeholder:'Note…' },
+  { key:'personaggio', label:'Personaggio',    w:'auto',  input:'text',  placeholder:'Protagonista…' },
+  { key:'anno',        label:'Anno',           w:'64px',  input:'text',  placeholder:'—' },
+  { key:'stagione',    label:'Stag.',          w:'62px',  input:'text',  placeholder:'—' },
+  { key:'trama',       label:'Trama',          w:'72px',  input:'trama', placeholder:'Trama…' },
+  { key:'note',        label:'Note Redaz.',    w:'108px', input:'trama', placeholder:'Note…' },
 ];
 
-// TvMia: stesse colonne di COLS_TV ma canale editabile e colonne testo più strette
-// per compensare la colonna canale che rimane visibile (groupField è 'sezione', non 'canale')
+// TvMia: come COLS_TV ma senza colonna canale (editabile sotto la miniatura)
 const COLS_TVMIA = [
-  { key:'codice',      label:'',               w:'88px',  input:'codice' },
-  { key:'canale',      label:'Canale',         w:'90px',  input:'canale' },
+  { key:'codice',      label:'',               w:'116px', input:'codice' },
   { key:'orario',      label:'Orario',         w:'76px',  input:'orario' },
-  { key:'tipo',        label:'Tipo',           w:'108px', input:'tipo' },
+  { key:'tipo',        label:'Tipo',           w:'60px',  input:'tipo' },
   { key:'titolo',      label:'Titolo',         w:'auto',  input:'text',  placeholder:'Titolo del programma…' },
-  { key:'personaggio', label:'Personaggio',    w:'120px', input:'text',  placeholder:'Protagonista…' },
-  { key:'anno',        label:'Anno',           w:'70px',  input:'text',  placeholder:'—' },
-  { key:'stagione',    label:'Stagione',       w:'62px',  input:'text',  placeholder:'—' },
-  { key:'trama',       label:'Trama',          w:'120px', input:'trama', placeholder:'Trama…' },
-  { key:'note',        label:'Note Redaz.',    w:'112px', input:'trama', placeholder:'Note…' },
+  { key:'personaggio', label:'Personaggio',    w:'auto',  input:'text',  placeholder:'Protagonista…' },
+  { key:'anno',        label:'Anno',           w:'64px',  input:'text',  placeholder:'—' },
+  { key:'stagione',    label:'Stag.',          w:'62px',  input:'text',  placeholder:'—' },
+  { key:'trama',       label:'Trama',          w:'72px',  input:'trama', placeholder:'Trama…' },
+  { key:'note',        label:'Note Redaz.',    w:'108px', input:'trama', placeholder:'Note…' },
 ];
 
 // Colonne per riviste
 const COLS_RIVISTA = [
-  { key:'codice',      label:'',               w:'88px',  input:'codice' },
+  { key:'codice',      label:'',               w:'116px', input:'codice' },
   { key:'rubrica',     label:'Rubrica',        w:'120px', input:'text',  placeholder:'Rubrica / Sezione…' },
   { key:'titolo',      label:'Titolo / Servizio', w:'auto', input:'text', placeholder:'Titolo dell\'articolo…' },
-  { key:'personaggio', label:'Personaggio',    w:'150px', input:'text',  placeholder:'Protagonista…' },
-  { key:'trama',       label:'Trama',          w:'150px', input:'trama', placeholder:'Trama…' },
-  { key:'note',        label:'Note Redaz.',    w:'150px', input:'trama', placeholder:'Note…' },
+  { key:'personaggio', label:'Personaggio',    w:'auto',  input:'text',  placeholder:'Protagonista…' },
+  { key:'trama',       label:'Trama',          w:'72px',  input:'trama', placeholder:'Trama…' },
+  { key:'note',        label:'Note Redaz.',    w:'108px', input:'trama', placeholder:'Note…' },
 ];
 
-// Colonne per Dipiu (rivista TV con canale editabile, trama/note molto strette)
+// Colonne per Dipiu (rivista TV — canale editabile sotto la miniatura)
 const COLS_DIPIU = [
-  { key:'codice',      label:'',            w:'88px',  input:'codice' },
-  { key:'canale',      label:'Canale',      w:'40px',  input:'canale' },
-  { key:'tipo',        label:'Tipo',        w:'40px',  input:'tipo' },
-  { key:'titolo',      label:'Titolo',      w:'190px', input:'text',  placeholder:'Titolo…' },
-  { key:'personaggio', label:'Personaggio', w:'180px', input:'text',  placeholder:'Protagonista…' },
-  { key:'trama',       label:'Trama',       w:'44px',  input:'trama', placeholder:'Trama…' },
-  { key:'note',        label:'Note Redaz.', w:'60px',  input:'trama', placeholder:'Note…' },
+  { key:'codice',      label:'',            w:'116px', input:'codice' },
+  { key:'tipo',        label:'Tipo',        w:'60px',  input:'tipo' },
+  { key:'titolo',      label:'Titolo',      w:'auto',  input:'text',  placeholder:'Titolo…' },
+  { key:'personaggio', label:'Personaggio', w:'auto',  input:'text',  placeholder:'Protagonista…' },
+  { key:'anno',        label:'Anno',        w:'64px',  input:'text',  placeholder:'—' },
+  { key:'stagione',    label:'Stag.',       w:'62px',  input:'text',  placeholder:'—' },
+  { key:'trama',       label:'Trama',       w:'72px',  input:'trama', placeholder:'Trama…' },
+  { key:'note',        label:'Note Redaz.', w:'108px', input:'trama', placeholder:'Note…' },
 ];
 
 // Colonne per Compleanni
 const COLS_COMPLEANNI = [
-  { key:'codice',      label:'',               w:'88px',  input:'codice' },
+  { key:'codice',      label:'',               w:'116px', input:'codice' },
   { key:'personaggio', label:'Personaggio',    w:'auto',  input:'text',  placeholder:'Chi compie gli anni…' },
-  { key:'trama',       label:'Trama',          w:'220px', input:'trama', placeholder:'Trama…' },
-  { key:'note',        label:'Note Redaz.',    w:'180px', input:'trama', placeholder:'Note…' },
+  { key:'trama',       label:'Trama',          w:'72px',  input:'trama', placeholder:'Trama…' },
+  { key:'note',        label:'Note Redaz.',    w:'108px', input:'trama', placeholder:'Note…' },
 ];
 
-// Colonne per Nuovo (TV con giorno + canale in un unico timone)
+// Colonne per Nuovo (TV con giorno — canale editabile sotto la miniatura)
 const COLS_NUOVO = [
-  { key:'codice',      label:'',               w:'88px',  input:'codice' },
+  { key:'codice',      label:'',               w:'116px', input:'codice' },
   { key:'giorno',      label:'Giorno',         w:'100px', input:'giorno' },
-  { key:'canale',      label:'Canale',         w:'90px',  input:'canale' },
   { key:'orario',      label:'Orario',         w:'76px',  input:'orario' },
-  { key:'tipo',        label:'Tipo',           w:'108px', input:'tipo' },
+  { key:'tipo',        label:'Tipo',           w:'60px',  input:'tipo' },
   { key:'titolo',      label:'Titolo',         w:'auto',  input:'text',  placeholder:'Titolo del programma…' },
-  { key:'personaggio', label:'Personaggio',    w:'150px', input:'text',  placeholder:'Protagonista…' },
-  { key:'anno',        label:'Anno',           w:'70px',  input:'text',  placeholder:'—' },
-  { key:'stagione',    label:'Stagione',       w:'62px',  input:'text',  placeholder:'—' },
-  { key:'trama',       label:'Trama',          w:'150px', input:'trama', placeholder:'Trama…' },
-  { key:'note',        label:'Note Redaz.',    w:'142px', input:'trama', placeholder:'Note…' },
+  { key:'personaggio', label:'Personaggio',    w:'auto',  input:'text',  placeholder:'Protagonista…' },
+  { key:'anno',        label:'Anno',           w:'64px',  input:'text',  placeholder:'—' },
+  { key:'stagione',    label:'Stag.',          w:'62px',  input:'text',  placeholder:'—' },
+  { key:'trama',       label:'Trama',          w:'72px',  input:'trama', placeholder:'Trama…' },
+  { key:'note',        label:'Note Redaz.',    w:'108px', input:'trama', placeholder:'Note…' },
 ];
 
 // Colonne per Biscotti (DipiùTV) — senza Orario, Tipo, Anno, Stagione
 const COLS_BISCOTTI = [
-  { key:'codice',      label:'',               w:'88px',  input:'codice' },
+  { key:'codice',      label:'',               w:'116px', input:'codice' },
   { key:'canale',      label:'Giorno',         w:'110px', input:'canale' },
   { key:'titolo',      label:'Titolo',         w:'auto',  input:'text',  placeholder:'Titolo…' },
-  { key:'personaggio', label:'Personaggio',    w:'160px', input:'text',  placeholder:'Protagonista…' },
-  { key:'trama',       label:'Trama',          w:'200px', input:'trama', placeholder:'Trama…' },
-  { key:'note',        label:'Note Redaz.',    w:'180px', input:'trama', placeholder:'Note…' },
+  { key:'personaggio', label:'Personaggio',    w:'auto',  input:'text',  placeholder:'Protagonista…' },
+  { key:'trama',       label:'Trama',          w:'72px',  input:'trama', placeholder:'Trama…' },
+  { key:'note',        label:'Note Redaz.',    w:'108px', input:'trama', placeholder:'Note…' },
 ];
 
-// Colonne per Scontorni faccette (TvMia) — come TV standard
+// Colonne per Scontorni faccette (TvMia) — canale editabile sotto la miniatura
 const COLS_SCONTORNI_FACCETTE = [
-  { key:'codice',      label:'',               w:'88px',  input:'codice' },
-  { key:'canale',      label:'Canale',         w:'68px',  input:'canale' },
+  { key:'codice',      label:'',               w:'116px', input:'codice' },
   { key:'orario',      label:'Orario',         w:'76px',  input:'orario' },
-  { key:'tipo',        label:'Tipo',           w:'88px',  input:'tipo' },
+  { key:'tipo',        label:'Tipo',           w:'60px',  input:'tipo' },
   { key:'titolo',      label:'Titolo',         w:'auto',  input:'text',  placeholder:'Titolo del programma…' },
-  { key:'personaggio', label:'Personaggio',    w:'200px', input:'text',  placeholder:'Protagonista…' },
-  { key:'anno',        label:'Anno',           w:'70px',  input:'text',  placeholder:'—' },
-  { key:'stagione',    label:'Stagione',       w:'62px',  input:'text',  placeholder:'—' },
-  { key:'trama',       label:'Trama',          w:'100px', input:'trama', placeholder:'Trama…' },
-  { key:'note',        label:'Note Redaz.',    w:'100px', input:'trama', placeholder:'Note…' },
+  { key:'personaggio', label:'Personaggio',    w:'auto',  input:'text',  placeholder:'Protagonista…' },
+  { key:'anno',        label:'Anno',           w:'64px',  input:'text',  placeholder:'—' },
+  { key:'stagione',    label:'Stag.',          w:'62px',  input:'text',  placeholder:'—' },
+  { key:'trama',       label:'Trama',          w:'72px',  input:'trama', placeholder:'Trama…' },
+  { key:'note',        label:'Note Redaz.',    w:'108px', input:'trama', placeholder:'Note…' },
 ];
 
 // ── Percorsi fissi per timone/giorno ─────────────────────────────────────────
@@ -3724,7 +3723,7 @@ function buildRow(row, i, tbody, colsOverride) {
         sc.addEventListener('input', () => { row.sotto_canale = sc.value; markDirty(); });
         wrap.appendChild(sc);
       }
-      if (currentTimone === 'tvmia' && currentDay !== 'scontorni') {
+      if (currentTimone === 'tvmia' || currentTimone === 'dipiu' || currentTimone === 'nuovo') {
         const sc = document.createElement('input');
         sc.type = 'text'; sc.className = 'sotto-canale-input';
         sc.value = row.canale || '';
@@ -3977,10 +3976,13 @@ function buildRow(row, i, tbody, colsOverride) {
     });
   }
 
-  divA.appendChild(dot);
-  if (btnFoto) divA.appendChild(btnFoto);
-  if (btnFotoTif) divA.appendChild(btnFotoTif);
-  if (btnFotine) divA.appendChild(btnFotine);
+  const mainA = document.createElement('div');
+  mainA.className = 'row-actions-main';
+  mainA.appendChild(dot);
+  if (btnFoto) mainA.appendChild(btnFoto);
+  if (btnFotoTif) mainA.appendChild(btnFotoTif);
+  if (btnFotine) mainA.appendChild(btnFotine);
+  divA.appendChild(mainA);
   if (btnArchivio) divA.appendChild(btnArchivio);
   tdA.appendChild(divA);
   tr.appendChild(tdA);

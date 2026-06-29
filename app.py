@@ -162,6 +162,15 @@ def et50_login() -> bool:
     return _et50_ok
 
 
+def _invert_nome(s: str) -> str:
+    """Converte 'COGNOME NOME' → 'Nome Cognome' (formato DB infotv)."""
+    parts = s.strip().split()
+    if len(parts) < 2:
+        return s.title()
+    nome, cognome = parts[-1], ' '.join(parts[:-1])
+    return f"{nome.title()} {cognome.title()}"
+
+
 # ── Sessione PRJDIA (autocomplete personaggi) ─────────────────────────────────
 PRJDIA_LOGIN_API  = 'https://www.infotv.it/infotv-portal/rs/auth/login'
 PRJDIA_SEARCH_API = 'https://www.infotv.it/afo/rs/ricerca'
@@ -607,7 +616,7 @@ def autocomplete_personaggi():
         items = r.json().get('listaSchedePersonaggi', [])
         suggestions = [
             {
-                'nome':        (item.get('nomearte') or item.get('nomeanagrafico') or '').strip(),
+                'nome':        _invert_nome(item.get('nomearte') or item.get('nomeanagrafico') or ''),
                 'professione': (item.get('professione') or '').strip(),
             }
             for item in items[:20]

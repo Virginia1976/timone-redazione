@@ -352,6 +352,25 @@ body {
   font-size: 11px; font-weight: 800; border-radius: 10px;
   padding: 1px 7px; line-height: 1.5; vertical-align: middle;
 }
+/* Badge "da lavorare" (grigio) — solo account Redazione */
+.th-day-spunta {
+  display: inline-block; margin-left: 6px;
+  background: #94a3b8; color: #1e293b;
+  font-size: 11px; font-weight: 800; border-radius: 10px;
+  padding: 1px 7px; line-height: 1.5; vertical-align: middle;
+}
+/* Bottone spunta verde — solo account Redazione */
+.btn-spunta {
+  height: 28px; min-width: 44px; border-radius: 7px; flex-shrink: 0;
+  border: 2px solid #cbd5e1; background: transparent;
+  color: #94a3b8; font-size: 15px; font-weight: 900;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: border-color .13s, background .13s, color .13s; line-height: 1;
+  padding: 0 8px; margin-left: 10px; letter-spacing: .02em;
+}
+.btn-spunta:hover { border-color: #22c55e; color: #22c55e; background: #f0fdf4; }
+.btn-spunta.spuntata { background: #22c55e; border-color: #16a34a; color: #fff; }
+.btn-spunta.spuntata:hover { background: #16a34a; }
 
 /* ── Nav tab split (name + arrow) ─────────────────────────────────────────────── */
 .nav-tab-name {
@@ -1518,31 +1537,37 @@ body.sola-lettura .btn-copy-col { display: none; }
       <div class="card-icon">📺</div>
       <div class="card-label">NuovoTV</div>
       <div class="card-count"><strong id="cnt-nuovotv">—</strong> <span class="card-count-label">giallini</span></div>
+      <div class="card-count" id="cnt-dl-row-nuovotv" style="display:none"><strong id="cnt-dl-nuovotv">—</strong> <span class="card-count-label">da lavorare</span></div>
     </div>
     <div class="timone-card" data-timone="dipiutv" onclick="openTimoneHome('dipiutv')" style="cursor:pointer">
       <div class="card-icon">📺</div>
       <div class="card-label">DipiùTV</div>
       <div class="card-count"><strong id="cnt-dipiutv">—</strong> <span class="card-count-label">giallini</span></div>
+      <div class="card-count" id="cnt-dl-row-dipiutv" style="display:none"><strong id="cnt-dl-dipiutv">—</strong> <span class="card-count-label">da lavorare</span></div>
     </div>
     <div class="timone-card" data-timone="tvmia" onclick="openTimoneHome('tvmia')" style="cursor:pointer">
       <div class="card-icon">📺</div>
       <div class="card-label">TvMia</div>
       <div class="card-count"><strong id="cnt-tvmia">—</strong> <span class="card-count-label">giallini</span></div>
+      <div class="card-count" id="cnt-dl-row-tvmia" style="display:none"><strong id="cnt-dl-tvmia">—</strong> <span class="card-count-label">da lavorare</span></div>
     </div>
     <div class="timone-card" data-timone="nuovo" onclick="openTimoneHome('nuovo')" style="cursor:pointer">
       <div class="card-icon">📺</div>
       <div class="card-label">Nuovo</div>
       <div class="card-count"><strong id="cnt-nuovo">—</strong> <span class="card-count-label">giallini</span></div>
+      <div class="card-count" id="cnt-dl-row-nuovo" style="display:none"><strong id="cnt-dl-nuovo">—</strong> <span class="card-count-label">da lavorare</span></div>
     </div>
     <div class="timone-card" data-timone="dipiu" onclick="openTimoneHome('dipiu')" style="cursor:pointer">
       <div class="card-icon">📰</div>
       <div class="card-label">Dipiu</div>
       <div class="card-count"><strong id="cnt-dipiu">—</strong> <span class="card-count-label">giallini</span></div>
+      <div class="card-count" id="cnt-dl-row-dipiu" style="display:none"><strong id="cnt-dl-dipiu">—</strong> <span class="card-count-label">da lavorare</span></div>
     </div>
     <div class="timone-card" data-timone="divadonna" onclick="openTimoneHome('divadonna')" style="cursor:pointer">
       <div class="card-icon">📰</div>
       <div class="card-label">Diva e Donna</div>
       <div class="card-count"><strong id="cnt-divadonna">—</strong> <span class="card-count-label">giallini</span></div>
+      <div class="card-count" id="cnt-dl-row-divadonna" style="display:none"><strong id="cnt-dl-divadonna">—</strong> <span class="card-count-label">da lavorare</span></div>
     </div>
   </div>
 </div>
@@ -2862,10 +2887,13 @@ function renderDaysGrid(timone) {
   const meta     = TIMONI_META[timone];
   const daysGrid = document.getElementById('thDaysGrid');
   if (!meta || !daysGrid) return;
+  const isRedazione = _ruolo === 'redazione';
   daysGrid.innerHTML = (meta.giorni || []).map(g => {
     const gialli = savedCounts[`${timone}_${g}`]?.gialli || 0;
+    const dl     = savedCounts[`${timone}_${g}`]?.da_lavorare ?? 0;
     const badge  = gialli > 0 ? ` <span class="th-day-gialli">${gialli}</span>` : '';
-    return `<button class="th-day-btn" onclick="selectTimoneDay('${timone}','${g}')">${GIORNI_LABEL[g] || g}${badge}</button>`;
+    const dlBadge = (isRedazione && dl > 0) ? ` <span class="th-day-spunta">${dl}</span>` : '';
+    return `<button class="th-day-btn" onclick="selectTimoneDay('${timone}','${g}')">${GIORNI_LABEL[g] || g}${badge}${dlBadge}</button>`;
   }).join('');
 }
 
@@ -4008,6 +4036,15 @@ function buildRow(row, i, tbody, colsOverride) {
     });
   }
 
+  let btnSpunta = null;
+  if (_ruolo === 'redazione' && !isArchiveView) {
+    btnSpunta = document.createElement('button');
+    btnSpunta.className = 'btn-spunta' + (row.spunta ? ' spuntata' : '');
+    btnSpunta.title = row.spunta ? 'Lavorata — clic per rimuovere spunta' : 'Segna come lavorata';
+    btnSpunta.textContent = '✓';
+    btnSpunta.addEventListener('click', (e) => { e.stopPropagation(); toggleSpunta(row, btnSpunta, tr); });
+  }
+
   let btnArchivio = null;
   let btnWatcher = null;
   if (_ruolo === 'admin') {
@@ -4032,6 +4069,7 @@ function buildRow(row, i, tbody, colsOverride) {
   if (btnFoto) mainA.appendChild(btnFoto);
   if (btnFotoTif) mainA.appendChild(btnFotoTif);
   if (btnFotine) mainA.appendChild(btnFotine);
+  if (btnSpunta) mainA.appendChild(btnSpunta);
   divA.appendChild(mainA);
   if (btnArchivio) divA.appendChild(btnArchivio);
   if (btnWatcher) divA.appendChild(btnWatcher);
@@ -4126,6 +4164,8 @@ function buildChannelGroupView(container, groupField = 'canale') {
     const card   = document.createElement('div');
     card.className = 'channel-card' + (isOpen ? ' expanded' : '');
     card.style.setProperty('--ch', color);
+    card.dataset.groupVal   = group.val;
+    card.dataset.groupField = groupField;
 
     // ── Header cliccabile ────────────────────────────────────────────────────
     const hdr = document.createElement('div');
@@ -4158,7 +4198,9 @@ function buildChannelGroupView(container, groupField = 'canale') {
         groupLabel = `${group.val} · ${_d.getDate()} ${_m[_d.getMonth()]}`;
       }
     }
-    hdr.innerHTML = `<span>${emoji} ${groupLabel}</span><span class="ch-count">${group.rows.length}</span><span class="ch-chevron">▶</span>`;
+    const _dlCount = (_ruolo === 'redazione') ? group.rows.filter(r => !r.spunta).length : 0;
+    const _dlBadge = (_dlCount > 0) ? `<span class="th-day-spunta">${_dlCount}</span>` : '';
+    hdr.innerHTML = `<span>${emoji} ${groupLabel}</span><span class="ch-count">${group.rows.length}</span><span class="ch-chevron">▶</span>${_dlBadge}`;
     hdr.addEventListener('click', () => {
       if (expandedChannels.has(group.val)) expandedChannels.delete(group.val);
       else expandedChannels.add(group.val);
@@ -5112,48 +5154,123 @@ async function aggiornaConteggiWelcome() {
       renderDaysGrid(currentTimone);
     }
     aggiornaNavBadgeGialli(data);
+    aggiornaWelcomeSpuntaCounts();
   } catch {}
 }
 
 function aggiornaNavBadgeGialli(counts) {
   counts = counts || savedCounts;
+  const isRedazione = _ruolo === 'redazione';
   // TV timoni: badge totale sul nav-tab-name + badge per-giorno nei dropdown
   ['nuovotv', 'dipiutv', 'tvmia'].forEach(timone => {
     // Totale sul pulsante principale
     const nameBtn = document.querySelector(`.nav-tab-name[data-timone="${timone}"]`);
     if (nameBtn) {
-      nameBtn.querySelectorAll('.th-day-gialli').forEach(b => b.remove());
+      nameBtn.querySelectorAll('.th-day-gialli, .th-day-spunta').forEach(b => b.remove());
       const tot = Object.entries(counts)
         .filter(([k]) => k.startsWith(timone + '_'))
         .reduce((s, [, v]) => s + (v.gialli || 0), 0);
       if (tot > 0) nameBtn.insertAdjacentHTML('beforeend', `<span class="th-day-gialli">${tot}</span>`);
+      if (isRedazione) {
+        const dl = Object.entries(counts)
+          .filter(([k]) => k.startsWith(timone + '_'))
+          .reduce((s, [, v]) => s + (v.da_lavorare ?? 0), 0);
+        if (dl > 0) nameBtn.insertAdjacentHTML('beforeend', `<span class="th-day-spunta">${dl}</span>`);
+      }
     }
     // Per-giorno nel dropdown
     const dd = document.getElementById(`dd-${timone}`);
     if (!dd) return;
     dd.querySelectorAll('.day-item[data-giorno]').forEach(btn => {
       const giorno = btn.dataset.giorno;
-      const g = counts[`${timone}_${giorno}`]?.gialli || 0;
-      btn.querySelectorAll('.th-day-gialli').forEach(b => b.remove());
-      if (g > 0) btn.insertAdjacentHTML('beforeend', `<span class="th-day-gialli">${g}</span>`);
+      const g  = counts[`${timone}_${giorno}`]?.gialli || 0;
+      const dl = counts[`${timone}_${giorno}`]?.da_lavorare ?? 0;
+      btn.querySelectorAll('.th-day-gialli, .th-day-spunta').forEach(b => b.remove());
+      if (g  > 0) btn.insertAdjacentHTML('beforeend', `<span class="th-day-gialli">${g}</span>`);
+      if (isRedazione && dl > 0) btn.insertAdjacentHTML('beforeend', `<span class="th-day-spunta">${dl}</span>`);
     });
   });
   // Day bar pills (se visibile)
   const dayBar = document.getElementById('dayBar');
   if (currentTimone && dayBar?.classList.contains('visible')) {
     dayBar.querySelectorAll('.day-pill').forEach(p => {
-      p.querySelectorAll('.th-day-gialli').forEach(b => b.remove());
-      const g = counts[`${currentTimone}_${p.dataset.day}`]?.gialli || 0;
-      if (g > 0) p.insertAdjacentHTML('beforeend', `<span class="th-day-gialli">${g}</span>`);
+      const g  = counts[`${currentTimone}_${p.dataset.day}`]?.gialli || 0;
+      const dl = counts[`${currentTimone}_${p.dataset.day}`]?.da_lavorare ?? 0;
+      p.querySelectorAll('.th-day-gialli, .th-day-spunta').forEach(b => b.remove());
+      if (g  > 0) p.insertAdjacentHTML('beforeend', `<span class="th-day-gialli">${g}</span>`);
+      if (isRedazione && dl > 0) p.insertAdjacentHTML('beforeend', `<span class="th-day-spunta">${dl}</span>`);
     });
   }
   // Riviste / tv-unico: badge totale sul nav-tab
   ['nuovo', 'dipiu', 'divadonna'].forEach(timone => {
     const btn = document.querySelector(`.nav-tab[data-timone="${timone}"]`);
     if (!btn) return;
-    btn.querySelectorAll('.th-day-gialli').forEach(b => b.remove());
-    const g = counts[timone]?.gialli || 0;
-    if (g > 0) btn.insertAdjacentHTML('beforeend', `<span class="th-day-gialli">${g}</span>`);
+    btn.querySelectorAll('.th-day-gialli, .th-day-spunta').forEach(b => b.remove());
+    const g  = counts[timone]?.gialli || 0;
+    const dl = counts[timone]?.da_lavorare ?? 0;
+    if (g  > 0) btn.insertAdjacentHTML('beforeend', `<span class="th-day-gialli">${g}</span>`);
+    if (isRedazione && dl > 0) btn.insertAdjacentHTML('beforeend', `<span class="th-day-spunta">${dl}</span>`);
+  });
+}
+
+// ── Spunta redazione ──────────────────────────────────────────────────────────
+function toggleSpunta(row, btn, tr) {
+  row.spunta = !row.spunta;
+  btn.classList.toggle('spuntata', row.spunta);
+  btn.title = row.spunta ? 'Lavorata — clic per rimuovere spunta' : 'Segna come lavorata';
+
+  // Aggiorna badge nell'header del gruppo (in-place, senza re-render)
+  const card = tr.closest('.channel-card');
+  if (card) {
+    const groupVal   = card.dataset.groupVal;
+    const groupField = card.dataset.groupField;
+    if (groupVal && groupField) {
+      const dlCount = currentRows.filter(r => !r._separator && r[groupField] === groupVal && !r.spunta).length;
+      const hdr = card.querySelector('.channel-card-hdr');
+      if (hdr) {
+        let badge = hdr.querySelector('.th-day-spunta');
+        if (dlCount > 0) {
+          if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'th-day-spunta';
+            hdr.appendChild(badge);
+          }
+          badge.textContent = dlCount;
+        } else {
+          if (badge) badge.remove();
+        }
+      }
+    }
+  }
+
+  // Aggiorna contatori nav/welcome localmente (senza aspettare il polling)
+  const currentKey = currentTimone + (currentDay ? '_' + currentDay : '');
+  if (savedCounts[currentKey]) {
+    savedCounts[currentKey].da_lavorare = currentRows.filter(r => !r._separator && !r.spunta).length;
+  }
+  aggiornaNavBadgeGialli();
+  aggiornaWelcomeSpuntaCounts();
+
+  // Salva (come fa il bollino colore)
+  setDirty(true);
+  clearTimeout(_saveTimer);
+  salvaTimone(true);
+}
+
+function aggiornaWelcomeSpuntaCounts() {
+  if (_ruolo !== 'redazione') return;
+  Object.entries(TIMONI_META).forEach(([key, meta]) => {
+    const numEl = document.getElementById(`cnt-dl-${key}`);
+    const rowEl = document.getElementById(`cnt-dl-row-${key}`);
+    if (!numEl || !rowEl) return;
+    rowEl.style.display = '';
+    if (meta.tipo === 'tv') {
+      const days = ['sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi'];
+      const tot  = days.reduce((s, d) => s + (savedCounts[`${key}_${d}`]?.da_lavorare ?? 0), 0);
+      numEl.textContent = tot;
+    } else {
+      numEl.textContent = savedCounts[key]?.da_lavorare ?? '—';
+    }
   });
 }
 

@@ -418,8 +418,9 @@ def list_timoni():
                 data = json.loads(f.read_text('utf-8'))
                 rows = data.get('rows', [])
                 saved[f.stem] = {
-                    'total':  len(rows),
-                    'gialli': sum(1 for r in rows if r.get('colore') == 'giallo'),
+                    'total':       len(rows),
+                    'gialli':      sum(1 for r in rows if r.get('colore') == 'giallo'),
+                    'da_lavorare': sum(1 for r in rows if not r.get('spunta') and not r.get('_separator')),
                 }
             except Exception:
                 pass

@@ -600,17 +600,45 @@ def autocomplete_titoli():
         return jsonify([])
 
 
+def _cast_da_titolo(titolo: str) -> list:
+    """Cerca lo show per titolo in InfoTv e restituisce i nomi del cast (già invertiti)."""
+    body = {
+        "text": titolo,
+        "film": False, "tv": True, "personaggi": False, "sport": False,
+        "filter": "1", "scheda": True, "foto": False,
+        "tvmenu": False, "onlyfoto": False, "usableByTvmenu": False,
+        "incomplete": False, "parameters": [], "area": None,
+    }
+    try:
+        r = _prjdia.post(PRJDIA_SEARCH_API, json=body, timeout=8)
+        if r.status_code != 200:
+            return []
+        shows = r.json().get('listaSchedeTv', [])
+        if not shows:
+            return []
+        titolo_low = titolo.lower()
+        match = next((s for s in shows if (s.get('titolo') or '').lower() == titolo_low), shows[0])
+        cast_str = match.get('cast') or ''
+        print(f'[AC-P CAST] show={match.get("titolo")!r} cast={cast_str[:120]!r}')
+        nomi = [p.strip() for p in cast_str.split(';') if p.strip()]
+        return nomi
+    except Exception as e:
+        print(f'[AC-P CAST] errore: {e}')
+        return []
+
+
 @app.route('/autocomplete_personaggi', methods=['POST'])
 def autocomplete_personaggi():
     global _prjdia_ok
     data = request.json or {}
-    q = data.get('q', '').strip()
+    q      = data.get('q', '').strip()
+    titolo = data.get('titolo', '').strip()
     if len(q) < 2:
         return jsonify([])
     if not _prjdia_ok:
         prjdia_login()
 
-    body = {
+    body_p = {
         "text": q,
         "film": False, "tv": False, "personaggi": True, "sport": False,
         "filter": "1", "scheda": True, "foto": False,
@@ -618,27 +646,37 @@ def autocomplete_personaggi():
         "incomplete": False, "parameters": [], "area": None,
     }
 
-    def _query():
-        return _prjdia.post(PRJDIA_SEARCH_API, json=body, timeout=10)
-
     try:
-        r = _query()
+        r = _prjdia.post(PRJDIA_SEARCH_API, json=body_p, timeout=10)
         if r.status_code == 401:
             _prjdia_ok = False
             prjdia_login()
-            r = _query()
+            r = _prjdia.post(PRJDIA_SEARCH_API, json=body_p, timeout=10)
         if r.status_code != 200:
             return jsonify([])
-        items = r.json().get('listaSchedePersonaggi', [])
-        suggestions = [
-            {
-                'nome':        _invert_nome(item.get('nomearte') or item.get('nomeanagrafico') or ''),
-                'professione': (item.get('professione') or '').strip(),
-            }
-            for item in items[:20]
-            if (item.get('nomearte') or item.get('nomeanagrafico'))
-        ]
-        return jsonify(suggestions)
+
+        seen = set()
+        suggestions = []
+
+        # ── 1. schede personaggio autonome ────────────────────────────────────
+        for item in r.json().get('listaSchedePersonaggi', []):
+            nome = _invert_nome(item.get('nomearte') or item.get('nomeanagrafico') or '')
+            if nome and nome not in seen:
+                seen.add(nome)
+                suggestions.append({
+                    'nome':        nome,
+                    'professione': (item.get('professione') or '').strip(),
+                })
+
+        # ── 2. cast dallo show del titolo corrente (solo se nessun risultato) ────
+        if not suggestions and titolo:
+            q_low = q.lower()
+            for nome in _cast_da_titolo(titolo):
+                if nome and q_low in nome.lower() and nome not in seen:
+                    seen.add(nome)
+                    suggestions.append({'nome': nome, 'professione': ''})
+
+        return jsonify(suggestions[:20])
     except Exception as e:
         print(f'[AC-P] Errore: {e}')
         return jsonify([])

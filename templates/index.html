@@ -4882,7 +4882,7 @@ async function fetchPersonaggioAc(td, tr, row, term) {
   try {
     const res  = await fetch('/autocomplete_personaggi', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ q: term })
+      body: JSON.stringify({ q: term, titolo: row.titolo || '' })
     });
     const data = await res.json();
     if (!Array.isArray(data) || !data.length) { hideAc(); return; }

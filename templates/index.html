@@ -5333,6 +5333,8 @@ async function initRuolo() {
     _editorialeBase = d.editoriale_base || '';
     _editorialeSMB  = d.editoriale_smb  || '';
     if (_timoniAttivi.length) applyTimoniAttivi();
+    aggiornaWelcomeSpuntaCounts();
+    aggiornaNavBadgeGialli();
   } catch {}
 }
 

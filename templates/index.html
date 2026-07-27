@@ -435,7 +435,6 @@ body {
   border-bottom: 1px solid var(--border); white-space: nowrap;
   position: sticky; top: 0; z-index: 2;
 }
-.timone-table thead th:first-child { width: 44px; text-align: center; }
 .timone-table thead th.col-azioni {
   width: 310px; text-align: center;
   position: sticky; right: 0; z-index: 4;
@@ -456,19 +455,6 @@ body {
   padding: 12px 14px; vertical-align: middle; font-size: 16px;
 }
 .timone-table tbody td[data-key="anno"] { white-space: nowrap; }
-.timone-table tbody td.td-num {
-  text-align: center; color: var(--muted); font-size: 11px; font-weight: 600;
-  width: 44px; background: #f8fafc; position: relative;
-}
-body.watcher-on .timone-table tbody td.td-num::after {
-  content: 'W'; position: absolute; bottom: 1px; right: 2px;
-  font-size: 20px; font-weight: 900; line-height: 1; color: #059669;
-}
-body.admin-on .timone-table tbody td.td-num { cursor: pointer; }
-body.admin-on .timone-table tbody td.td-num:hover::after {
-  content: 'W'; position: absolute; bottom: 1px; right: 2px;
-  font-size: 20px; font-weight: 900; line-height: 1; color: #94a3b8;
-}
 
 /* Celle modificabili */
 .timone-table td[contenteditable] {
@@ -488,10 +474,10 @@ body.admin-on .timone-table tbody td.td-num:hover::after {
 
 /* Input orario */
 .td-orario {
-  width: 80px;
+  width: 72px; padding-left: 3px !important; padding-right: 3px !important;
 }
 .orario-input {
-  width: 100%; border: none; background: transparent; font-size: 14px;
+  width: 100%; border: none; background: transparent; font-size: 12px;
   color: var(--text); font-family: 'SF Mono', 'Cascadia Code', monospace;
   padding: 4px 6px; border-radius: 4px; outline: none;
   transition: background var(--transition);
@@ -499,14 +485,23 @@ body.admin-on .timone-table tbody td.td-num:hover::after {
 .orario-input:focus { background: rgba(255,107,53,.08); box-shadow: inset 0 0 0 1.5px var(--accent); }
 .orario-input::placeholder { color: #cbd5e1; font-style: italic; }
 
-/* Select tipo */
-.tipo-select {
-  border: none; background: transparent; font-size: 13px;
-  color: var(--text); padding: 4px 6px; border-radius: 4px;
-  cursor: pointer; outline: none; transition: background var(--transition);
-  width: 100%;
+/* Select tipo — emoji visibile (span), select nativo invisibile sopra */
+.tipo-wrap {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%; min-height: 28px;
 }
-.tipo-select:focus { background: rgba(255,107,53,.08); }
+.tipo-display { font-size: 17px; line-height: 1; pointer-events: none; user-select: none; }
+.tipo-wrap::after {
+  content: ''; display: block; pointer-events: none; flex-shrink: 0;
+  width: 0; height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid #aaa;
+}
+.tipo-select {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  opacity: 0; cursor: pointer; border: none; background: transparent;
+}
 
 /* Badge tipo */
 .tipo-badge {
@@ -759,6 +754,15 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 .archivio-menu .rfm-item { font-size: 13px; font-weight: 500; color: var(--text); background: none; border: none; width: 100%; text-align: left; cursor: pointer; }
 .archivio-menu .rfm-item:hover { background: #f5f3ff; }
 .archivio-menu .rfm-item.arm-attivo { color: #7c3aed; font-weight: 700; }
+.btn-watcher-row {
+  display: flex; align-items: center; gap: 3px;
+  padding: 4px 8px; border-radius: 6px; border: 2px solid #c4b5fd;
+  background: var(--card); font-size: 11px; font-weight: 700;
+  color: #7c3aed; cursor: pointer; white-space: nowrap;
+  transition: background .12s, border-color .12s;
+}
+.btn-watcher-row:hover { background: #f5f3ff; border-color: #7c3aed; }
+.btn-watcher-row.watcher-on { background: #7c3aed; color: white; border-color: #6d28d9; }
 .btn-fotine-trigger {
   display: flex; align-items: center; gap: 4px;
   padding: 4px 9px; border-radius: 6px; border: 2px solid #DB2777;
@@ -1230,7 +1234,7 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 #timone-section.settimana-chiusa .cell-editable-inner,
 #timone-section.settimana-chiusa .codice-editable { pointer-events: none; opacity: .78; }
 #timone-section.settimana-chiusa .orario-input,
-#timone-section.settimana-chiusa .tipo-select,
+#timone-section.settimana-chiusa .tipo-wrap,
 #timone-section.settimana-chiusa .trama-cell,
 #timone-section.settimana-chiusa .sotto-canale-input { pointer-events: none; opacity: .78; }
 #timone-section.settimana-chiusa .btn-row,
@@ -1833,8 +1837,8 @@ const SEZIONE_EMOJI = {
 const COLS_TV = [
   { key:'codice',      label:'',               w:'116px', input:'codice' },
   { key:'canale',      label:'Canale',         w:'90px',  input:'canale' },
-  { key:'orario',      label:'Orario',         w:'76px',  input:'orario' },
-  { key:'tipo',        label:'Tipo',           w:'60px',  input:'tipo' },
+  { key:'orario',      label:'Orario',         w:'72px',  input:'orario' },
+  { key:'tipo',        label:'Tipo',           w:'44px',  input:'tipo' },
   { key:'titolo',      label:'Titolo',         w:'auto',  input:'text',  placeholder:'Titolo del programma…' },
   { key:'personaggio', label:'Personaggio',    w:'auto',  input:'text',  placeholder:'Protagonista…' },
   { key:'anno',        label:'Anno',           w:'64px',  input:'text',  placeholder:'—' },
@@ -1846,8 +1850,8 @@ const COLS_TV = [
 // TvMia: come COLS_TV ma senza colonna canale (editabile sotto la miniatura)
 const COLS_TVMIA = [
   { key:'codice',      label:'',               w:'116px', input:'codice' },
-  { key:'orario',      label:'Orario',         w:'76px',  input:'orario' },
-  { key:'tipo',        label:'Tipo',           w:'60px',  input:'tipo' },
+  { key:'orario',      label:'Orario',         w:'72px',  input:'orario' },
+  { key:'tipo',        label:'Tipo',           w:'44px',  input:'tipo' },
   { key:'titolo',      label:'Titolo',         w:'auto',  input:'text',  placeholder:'Titolo del programma…' },
   { key:'personaggio', label:'Personaggio',    w:'auto',  input:'text',  placeholder:'Protagonista…' },
   { key:'anno',        label:'Anno',           w:'64px',  input:'text',  placeholder:'—' },
@@ -1869,7 +1873,7 @@ const COLS_RIVISTA = [
 // Colonne per Dipiu (rivista TV — canale editabile sotto la miniatura)
 const COLS_DIPIU = [
   { key:'codice',      label:'',            w:'116px', input:'codice' },
-  { key:'tipo',        label:'Tipo',        w:'60px',  input:'tipo' },
+  { key:'tipo',        label:'Tipo',        w:'44px',  input:'tipo' },
   { key:'titolo',      label:'Titolo',      w:'auto',  input:'text',  placeholder:'Titolo…' },
   { key:'personaggio', label:'Personaggio', w:'auto',  input:'text',  placeholder:'Protagonista…' },
   { key:'anno',        label:'Anno',        w:'64px',  input:'text',  placeholder:'—' },
@@ -1890,8 +1894,8 @@ const COLS_COMPLEANNI = [
 const COLS_NUOVO = [
   { key:'codice',      label:'',               w:'116px', input:'codice' },
   { key:'giorno',      label:'Giorno',         w:'100px', input:'giorno' },
-  { key:'orario',      label:'Orario',         w:'76px',  input:'orario' },
-  { key:'tipo',        label:'Tipo',           w:'60px',  input:'tipo' },
+  { key:'orario',      label:'Orario',         w:'72px',  input:'orario' },
+  { key:'tipo',        label:'Tipo',           w:'44px',  input:'tipo' },
   { key:'titolo',      label:'Titolo',         w:'auto',  input:'text',  placeholder:'Titolo del programma…' },
   { key:'personaggio', label:'Personaggio',    w:'auto',  input:'text',  placeholder:'Protagonista…' },
   { key:'anno',        label:'Anno',           w:'64px',  input:'text',  placeholder:'—' },
@@ -1913,8 +1917,8 @@ const COLS_BISCOTTI = [
 // Colonne per Scontorni faccette (TvMia) — canale editabile sotto la miniatura
 const COLS_SCONTORNI_FACCETTE = [
   { key:'codice',      label:'',               w:'116px', input:'codice' },
-  { key:'orario',      label:'Orario',         w:'76px',  input:'orario' },
-  { key:'tipo',        label:'Tipo',           w:'60px',  input:'tipo' },
+  { key:'orario',      label:'Orario',         w:'72px',  input:'orario' },
+  { key:'tipo',        label:'Tipo',           w:'44px',  input:'tipo' },
   { key:'titolo',      label:'Titolo',         w:'auto',  input:'text',  placeholder:'Titolo del programma…' },
   { key:'personaggio', label:'Personaggio',    w:'auto',  input:'text',  placeholder:'Protagonista…' },
   { key:'anno',        label:'Anno',           w:'64px',  input:'text',  placeholder:'—' },
@@ -3521,7 +3525,6 @@ function renderTable() {
   // Intestazione
   const thead = document.getElementById('theadRow');
   thead.innerHTML = '';
-  const thN = document.createElement('th'); thN.textContent = '#'; thead.appendChild(thN);
   cols.forEach(col => {
     const th = document.createElement('th');
     if (col.w && col.w !== 'auto') th.style.width = col.w;
@@ -3680,9 +3683,6 @@ function buildRow(row, i, tbody, colsOverride) {
 
   // Numero
   if (currentTimone !== 'dipiu') {
-    const tdN = document.createElement('td'); tdN.className = 'td-num';
-    tdN.textContent = i + 1;
-    tr.appendChild(tdN);
   }
 
   // Colonne dati
@@ -3772,16 +3772,33 @@ function buildRow(row, i, tbody, colsOverride) {
       td.appendChild(inp);
 
     } else if (col.input === 'tipo') {
+      const TIPO_OPTS = [
+        { value: 'Programma TV', icon: '📺', label: '📺 TV' },
+        { value: 'Film',         icon: '🎬', label: '🎬 Film' },
+      ];
+      const wrap = document.createElement('div');
+      wrap.className = 'tipo-wrap';
+      const display = document.createElement('span');
+      display.className = 'tipo-display';
+      const cur = TIPO_OPTS.find(o => o.value === row.tipo) || TIPO_OPTS[0];
+      display.textContent = cur.icon;
       const sel = document.createElement('select');
       sel.className = 'tipo-select';
-      [['Programma TV','📺 TV'],['Film','🎬 Film']].forEach(([v,lbl]) => {
+      TIPO_OPTS.forEach(({value, label}) => {
         const opt = document.createElement('option');
-        opt.value = v; opt.textContent = lbl;
-        if (row.tipo === v) opt.selected = true;
+        opt.value = value; opt.textContent = label;
+        if (row.tipo === value) opt.selected = true;
         sel.appendChild(opt);
       });
-      sel.addEventListener('change', () => { row.tipo = sel.value; markDirty(); });
-      td.appendChild(sel);
+      sel.addEventListener('change', () => {
+        row.tipo = sel.value;
+        const found = TIPO_OPTS.find(o => o.value === sel.value);
+        if (found) display.textContent = found.icon;
+        markDirty();
+      });
+      wrap.appendChild(display);
+      wrap.appendChild(sel);
+      td.appendChild(wrap);
 
     } else if (col.input === 'trama') {
       const cell = document.createElement('div');
@@ -3965,6 +3982,7 @@ function buildRow(row, i, tbody, colsOverride) {
   }
 
   let btnArchivio = null;
+  let btnWatcher = null;
   if (_ruolo === 'admin') {
     btnArchivio = document.createElement('button');
     btnArchivio.className = 'btn-archivio-trigger';
@@ -3974,6 +3992,11 @@ function buildRow(row, i, tbody, colsOverride) {
       e.stopPropagation();
       mostraArchivioMenu(row, btnArchivio);
     });
+    btnWatcher = document.createElement('button');
+    btnWatcher.className = 'btn-watcher-row' + (_watcherAttivo ? ' watcher-on' : '');
+    btnWatcher.title = 'Avvia/Ferma watcher';
+    btnWatcher.textContent = _watcherAttivo ? '⏹ W' : '▶ W';
+    btnWatcher.addEventListener('click', (e) => { e.stopPropagation(); adminWatcherClick(); });
   }
 
   const mainA = document.createElement('div');
@@ -3984,6 +4007,7 @@ function buildRow(row, i, tbody, colsOverride) {
   if (btnFotine) mainA.appendChild(btnFotine);
   divA.appendChild(mainA);
   if (btnArchivio) divA.appendChild(btnArchivio);
+  if (btnWatcher) divA.appendChild(btnWatcher);
   tdA.appendChild(divA);
   tr.appendChild(tdA);
   tbody.appendChild(tr);
@@ -4159,10 +4183,6 @@ function buildChannelGroupView(container, groupField = 'canale') {
 
     const thead   = document.createElement('thead');
     const theadTr = document.createElement('tr');
-    if (currentTimone !== 'dipiu') {
-      const thNum = document.createElement('th'); thNum.textContent = '#';
-      theadTr.appendChild(thNum);
-    }
     colsFilt.forEach(col => {
       const th = document.createElement('th');
       if (col.w && col.w !== 'auto') th.style.width = col.w;
@@ -4489,7 +4509,6 @@ async function adminWatcherClick() {
 }
 
 document.addEventListener('click', e => {
-  if (_ruolo === 'admin' && e.target.matches('td.td-num')) adminWatcherClick();
 });
 
 async function _startWatcher() {
@@ -4555,17 +4574,16 @@ async function _pollWatcherStatus() {
 function _updateWatcherUI(stato, tipo, cartella) {
   const btn    = document.getElementById('adminWatcherToggle');
   const status = document.getElementById('adminWatcherStatus');
-  if (!btn) return;
   if (stato === 'on') {
-    btn.textContent = '⏹ Ferma';
-    btn.classList.add('watcher-on');
+    if (btn) { btn.textContent = '⏹ Ferma'; btn.classList.add('watcher-on'); }
     document.body.classList.add('watcher-on');
     if (status) { status.textContent = `attivo · ${tipo || ''} · ${cartella || ''}`; status.className = 'admin-watcher-status on'; }
+    document.querySelectorAll('.btn-watcher-row').forEach(b => { b.textContent = '⏹ W'; b.classList.add('watcher-on'); });
   } else {
-    btn.textContent = '▶ Avvia';
-    btn.classList.remove('watcher-on');
+    if (btn) { btn.textContent = '▶ Avvia'; btn.classList.remove('watcher-on'); }
     document.body.classList.remove('watcher-on');
     if (status) { status.textContent = stato === 'incerto' ? '…' : ''; status.className = 'admin-watcher-status'; }
+    document.querySelectorAll('.btn-watcher-row').forEach(b => { b.textContent = '▶ W'; b.classList.remove('watcher-on'); });
   }
 }
 
@@ -4855,6 +4873,8 @@ function applyAc(item) {
     const val = item.codtipo === 'FILM' ? 'Film' : 'Programma TV';
     sel.value = val;
     _acRow.tipo = val;
+    const display = _acTr.querySelector('.tipo-display');
+    if (display) display.textContent = val === 'Film' ? '🎬' : '📺';
   }
 
   // Anno

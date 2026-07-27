@@ -1241,6 +1241,23 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 #timone-section.settimana-chiusa .btn-foto-tif-trigger,
 #timone-section.settimana-chiusa .color-dot { pointer-events: none; opacity: .25; }
 
+/* ── Read-only: account palinsesti ──────────────────────────────────────────── */
+body.sola-lettura td[contenteditable],
+body.sola-lettura .cell-editable-inner,
+body.sola-lettura .codice-editable { pointer-events: none; opacity: .78; }
+body.sola-lettura .orario-input,
+body.sola-lettura .tipo-wrap,
+body.sola-lettura .trama-cell,
+body.sola-lettura .sotto-canale-input { pointer-events: none; opacity: .78; }
+body.sola-lettura .btn-row,
+body.sola-lettura .btn-foto-tif-trigger,
+body.sola-lettura .color-dot { pointer-events: none; opacity: .25; }
+body.sola-lettura #btnSalva,
+body.sola-lettura #btnEsporta,
+body.sola-lettura .btn-add-row,
+body.sola-lettura .btn-chiudi-settimana,
+body.sola-lettura .btn-copy-col { display: none; }
+
 /* ── Scontorni ───────────────────────────────────────────────────────────────── */
 .btn-scont {
   display: inline-flex; align-items: center; justify-content: center;
@@ -5184,6 +5201,7 @@ async function initRuolo() {
     const d = await r.json();
     _ruolo          = d.ruolo || '';
     if (_ruolo === 'admin') document.body.classList.add('admin-on');
+    if (_ruolo === 'palinsesti') document.body.classList.add('sola-lettura');
     _timoniAttivi   = d.timoni_attivi || [];
     _editorialeBase = d.editoriale_base || '';
     _editorialeSMB  = d.editoriale_smb  || '';

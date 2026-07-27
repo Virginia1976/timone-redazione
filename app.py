@@ -36,12 +36,14 @@ _io_pool = ThreadPoolExecutor(max_workers=8, thread_name_prefix='smb-io')
 def _smb_call(fn, timeout=8):
     return _io_pool.submit(fn).result(timeout=timeout)
 
-EDITOR_USERNAME    = os.environ.get('EDITOR_USERNAME', '')
-EDITOR_PASSWORD    = os.environ.get('EDITOR_PASSWORD', '')
-REDAZIONE_USERNAME = os.environ.get('REDAZIONE_USERNAME', '')
-REDAZIONE_PASSWORD = os.environ.get('REDAZIONE_PASSWORD', '')
-ADMIN_USERNAME     = os.environ.get('ADMIN_USERNAME', '')
-ADMIN_PASSWORD     = os.environ.get('ADMIN_PASSWORD', '')
+EDITOR_USERNAME       = os.environ.get('EDITOR_USERNAME', '')
+EDITOR_PASSWORD       = os.environ.get('EDITOR_PASSWORD', '')
+REDAZIONE_USERNAME    = os.environ.get('REDAZIONE_USERNAME', '')
+REDAZIONE_PASSWORD    = os.environ.get('REDAZIONE_PASSWORD', '')
+ADMIN_USERNAME        = os.environ.get('ADMIN_USERNAME', '')
+ADMIN_PASSWORD        = os.environ.get('ADMIN_PASSWORD', '')
+PALINSESTI_USERNAME   = os.environ.get('PALINSESTI_USERNAME', 'palinsesti')
+PALINSESTI_PASSWORD   = os.environ.get('PALINSESTI_PASSWORD', 'palinsesti')
 
 _attivi_raw = os.environ.get('TIMONI_ATTIVI', '')
 TIMONI_ATTIVI = [t.strip() for t in _attivi_raw.split(',') if t.strip()] if _attivi_raw else []
@@ -208,6 +210,10 @@ def prjdia_login() -> bool:
     return _prjdia_ok
 
 
+def _sola_lettura():
+    return session.get('ruolo') == 'palinsesti'
+
+
 @app.before_request
 def require_login():
     if request.endpoint in ('login', 'logout', 'static'):
@@ -235,6 +241,10 @@ def login():
         elif u and pw and u == REDAZIONE_USERNAME and pw == REDAZIONE_PASSWORD:
             session.permanent = True
             session['ruolo'] = 'redazione'
+            return redirect(url_for('index'))
+        elif u and pw and u == PALINSESTI_USERNAME and pw == PALINSESTI_PASSWORD:
+            session.permanent = True
+            session['ruolo'] = 'palinsesti'
             return redirect(url_for('index'))
         else:
             error = 'Credenziali non valide'
@@ -285,6 +295,7 @@ def _atomic_write(path: pathlib.Path, text: str) -> None:
 
 @app.route('/api/save/<key>', methods=['POST'])
 def save(key):
+    if _sola_lettura(): return jsonify({'error': 'Accesso in sola lettura'}), 403
     if not VALID_KEY.match(key):
         return jsonify({'error': 'chiave non valida'}), 400
     timone = timone_from_key(key)
@@ -299,6 +310,7 @@ def save(key):
 
 @app.route('/api/patch/<key>', methods=['POST'])
 def patch_rows(key):
+    if _sola_lettura(): return jsonify({'error': 'Accesso in sola lettura'}), 403
     if not VALID_KEY.match(key):
         return jsonify({'error': 'chiave non valida'}), 400
     timone = timone_from_key(key)
@@ -329,6 +341,7 @@ _UPDATE_FIELDS = {'orario', 'titolo', 'tipo', 'personaggio', 'anno', 'stagione',
 
 @app.route('/api/update/<key>', methods=['POST'])
 def update_rows(key):
+    if _sola_lettura(): return jsonify({'error': 'Accesso in sola lettura'}), 403
     """Aggiorna campi di testo per codice. Usato da carica_timone.
     Body: { "updates": [{ "codice": "...", "titolo": "...", ... }] }
     Risposta: { "ok": true, "updated": N }
@@ -424,6 +437,7 @@ def get_week(timone):
 
 @app.route('/api/week/<timone>', methods=['POST'])
 def set_week(timone):
+    if _sola_lettura(): return jsonify({'error': 'Accesso in sola lettura'}), 403
     if timone not in KNOWN_TIMONI:
         return jsonify({'error': 'timone non valido'}), 400
     body    = request.get_json(force=True, silent=True) or {}
@@ -441,6 +455,7 @@ def set_week(timone):
 
 @app.route('/api/week/<timone>/chiudi', methods=['POST'])
 def chiudi_week(timone):
+    if _sola_lettura(): return jsonify({'error': 'Accesso in sola lettura'}), 403
     if timone not in KNOWN_TIMONI:
         return jsonify({'error': 'timone non valido'}), 400
     meta = get_week_meta(timone)

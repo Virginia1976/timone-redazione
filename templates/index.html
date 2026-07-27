@@ -3524,6 +3524,7 @@ function renderTable() {
     if (!currentWeek?.chiusa) secActions.appendChild(_makeCopiaBtn(isGiornoView ? null : hasSeparator ? part1Rows : null));
     updateAdminBar();
     buildChannelGroupView(channelsCont, groupField);
+    if (_ruolo === 'palinsesti') _applyReadOnly();
     return;
   }
 
@@ -3581,8 +3582,17 @@ function renderTable() {
   }
 
   currentRows.forEach((row, i) => buildRow(row, i, tbody));
+  if (_ruolo === 'palinsesti') _applyReadOnly();
 }
 
+function _applyReadOnly() {
+  document.querySelectorAll('#timone-section [contenteditable="true"]').forEach(el => {
+    el.contentEditable = 'false';
+  });
+  document.querySelectorAll('#timone-section input, #timone-section select').forEach(el => {
+    el.disabled = true;
+  });
+}
 
 function _makeScopriTuttoBtn() {
   const btn = document.createElement('button');

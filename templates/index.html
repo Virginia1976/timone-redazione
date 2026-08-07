@@ -3043,6 +3043,7 @@ async function openTimoneHome(timone) {
 
   if (isDirty) { autoSave(); }
 
+  const prevTimone = currentTimone;
   currentTimone = timone;
   currentDay    = null;
   expandedChannels.clear();
@@ -3055,15 +3056,16 @@ async function openTimoneHome(timone) {
   document.getElementById('thDot').style.background = meta.colore;
   document.getElementById('thTitle').textContent    = meta.label;
 
-  // Settimana — carica dal server
-  const week = await fetchWeek(timone);
-  currentWeek = week;
-  document.getElementById('weekDal').value = week.dal || '';
-  document.getElementById('weekAl').value  = week.al  || '';
+  // Settimana — aggiorna la globale; rispetta la scelta locale se si resta sullo stesso timone
+  await fetchWeek(timone);  // aggiorna _globalWeek
+  const keepLocal = timone === prevTimone && currentWeek?.week_id && currentWeek.week_id !== _globalWeek?.week_id;
+  if (!keepLocal) currentWeek = _globalWeek;
+  document.getElementById('weekDal').value = currentWeek?.dal || '';
+  document.getElementById('weekAl').value  = currentWeek?.al  || '';
   const badge = document.getElementById('weekSavedBadge');
   badge.textContent = '';
   badge.classList.remove('show');
-  updateWeekUI(week);
+  updateWeekUI(currentWeek);
 
   // Giorni (TV) o pulsante (rivista)
   const daysWrap    = document.getElementById('thDaysWrap');
@@ -3194,6 +3196,11 @@ async function applicaSettimana() {
   // Aggiorna solo la vista locale — non cambia il server né gli altri utenti
   const newWeek = { dal, al, week_id: dal, chiusa: false };
   updateWeekUI(newWeek);
+  if (changed) {
+    stopRemotePolling();
+    hideDiffPanel();
+    _ackedMtime = null;
+  }
   const badge = document.getElementById('weekSavedBadge');
   badge.textContent = changed ? 'Settimana cambiata ✓' : 'Settimana aggiornata ✓';
   badge.classList.add('show');

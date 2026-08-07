@@ -304,7 +304,6 @@ def _atomic_write(path: pathlib.Path, text: str) -> None:
         raise
 
 
-@app.route('/api/save/<key>', methods=['POST'])
 def _is_global_week_chiusa(timone: str) -> bool:
     """True solo se la settimana GLOBALE corrente è chiusa e la richiesta
     non specifica una settimana diversa tramite ?week=."""
@@ -315,6 +314,7 @@ def _is_global_week_chiusa(timone: str) -> bool:
     return not wid_param or wid_param == meta.get('week_id', '')
 
 
+@app.route('/api/save/<key>', methods=['POST'])
 def save(key):
     if _sola_lettura(): return jsonify({'error': 'Accesso in sola lettura'}), 403
     if not VALID_KEY.match(key):

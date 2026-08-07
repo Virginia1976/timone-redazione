@@ -3679,6 +3679,7 @@ function _makeCopiaBtn(partRows) {
 async function copiaTitoliPrevSettimana(partRows) {
   const key = storageKey();
   if (!key) return;
+  if (!confirm('Copiare i titoli dalla settimana precedente nelle righe ancora vuote?')) return;
   try {
     const res  = await fetch(`/api/copia-titoli/${key}`);
     const data = await res.json();

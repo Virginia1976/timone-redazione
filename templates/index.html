@@ -3382,8 +3382,11 @@ async function caricaTimone() {
   stopRemotePolling();
   hideDiffPanel();
 
-  // Aggiorna sempre la settimana per avere lo stato più recente
-  currentWeek = await fetchWeek(currentTimone);
+  // Aggiorna la settimana globale, ma rispetta la scelta locale dell'utente
+  await fetchWeek(currentTimone);  // aggiorna _globalWeek
+  if (!currentWeek?.week_id || currentWeek.week_id === _globalWeek?.week_id) {
+    currentWeek = _globalWeek;  // nessuna scelta locale: usa la globale
+  }
 
   try {
     const res  = await fetch(`/api/load/${key}${weekParam()}`);

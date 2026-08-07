@@ -116,6 +116,17 @@ def week_data_dir(timone: str) -> pathlib.Path:
     d.mkdir(exist_ok=True)
     return d
 
+
+def resolve_week_dir(timone: str) -> pathlib.Path:
+    """Risolve la directory settimana da ?week= nella query string (per-utente),
+    con fallback alla settimana globale corrente."""
+    wid = request.args.get('week', '').strip()
+    if wid and re.match(r'^\d{4}-\d{2}-\d{2}$', wid):
+        d = DATA_DIR / wid
+        d.mkdir(exist_ok=True)
+        return d
+    return week_data_dir(timone)
+
 TIMONI_META = {
     'nuovotv':   {'label': 'NuovoTV',     'percorso': 'NUOVOTV',   'tipo': 'tv'},
     'dipiutv':   {'label': 'DipiùTV',     'percorso': 'DIPIUTV',   'tipo': 'tv'},
@@ -294,15 +305,25 @@ def _atomic_write(path: pathlib.Path, text: str) -> None:
 
 
 @app.route('/api/save/<key>', methods=['POST'])
+def _is_global_week_chiusa(timone: str) -> bool:
+    """True solo se la settimana GLOBALE corrente è chiusa e la richiesta
+    non specifica una settimana diversa tramite ?week=."""
+    meta = get_week_meta(timone)
+    if not meta.get('chiusa'):
+        return False
+    wid_param = request.args.get('week', '').strip()
+    return not wid_param or wid_param == meta.get('week_id', '')
+
+
 def save(key):
     if _sola_lettura(): return jsonify({'error': 'Accesso in sola lettura'}), 403
     if not VALID_KEY.match(key):
         return jsonify({'error': 'chiave non valida'}), 400
     timone = timone_from_key(key)
-    if timone and get_week_meta(timone).get('chiusa'):
+    if timone and _is_global_week_chiusa(timone):
         return jsonify({'error': 'settimana chiusa', 'chiusa': True}), 403
     data = request.get_json(force=True, silent=True) or {}
-    d    = week_data_dir(timone) if timone else DATA_DIR
+    d    = resolve_week_dir(timone) if timone else DATA_DIR
     path = d / f'{key}.json'
     _atomic_write(path, json.dumps(data, ensure_ascii=False, indent=2))
     return jsonify({'ok': True, 'mtime': path.stat().st_mtime})
@@ -314,13 +335,13 @@ def patch_rows(key):
     if not VALID_KEY.match(key):
         return jsonify({'error': 'chiave non valida'}), 400
     timone = timone_from_key(key)
-    if timone and get_week_meta(timone).get('chiusa'):
+    if timone and _is_global_week_chiusa(timone):
         return jsonify({'error': 'settimana chiusa', 'chiusa': True}), 403
     body    = request.get_json(force=True, silent=True) or {}
     patches = body.get('patches', {})   # { codice: { campo: valore } }
     if not patches:
         return jsonify({'ok': True, 'mtime': None})
-    d    = week_data_dir(timone) if timone else DATA_DIR
+    d    = resolve_week_dir(timone) if timone else DATA_DIR
     path = d / f'{key}.json'
     try:
         existing = json.loads(path.read_text('utf-8')) if path.exists() else {'rows': []}
@@ -349,13 +370,13 @@ def update_rows(key):
     if not VALID_KEY.match(key):
         return jsonify({'error': 'chiave non valida'}), 400
     timone = timone_from_key(key)
-    if timone and get_week_meta(timone).get('chiusa'):
+    if timone and _is_global_week_chiusa(timone):
         return jsonify({'error': 'settimana chiusa', 'chiusa': True}), 403
     body    = request.get_json(force=True, silent=True) or {}
     updates = body.get('updates', [])
     if not updates:
         return jsonify({'error': 'nessun aggiornamento'}), 400
-    d    = week_data_dir(timone) if timone else DATA_DIR
+    d    = resolve_week_dir(timone) if timone else DATA_DIR
     path = d / f'{key}.json'
     try:
         existing = json.loads(path.read_text('utf-8')) if path.exists() else {'rows': []}
@@ -384,7 +405,7 @@ def load(key):
     if not VALID_KEY.match(key):
         return jsonify({'error': 'chiave non valida'}), 400
     timone = timone_from_key(key)
-    d      = week_data_dir(timone) if timone else DATA_DIR
+    d      = resolve_week_dir(timone) if timone else DATA_DIR
     path   = d / f'{key}.json'
     if path.exists():
         return jsonify(json.loads(path.read_text('utf-8')))
@@ -396,7 +417,7 @@ def data_mtime(key):
     if not VALID_KEY.match(key):
         return jsonify({'error': 'chiave non valida'}), 400
     timone = timone_from_key(key)
-    d      = week_data_dir(timone) if timone else DATA_DIR
+    d      = resolve_week_dir(timone) if timone else DATA_DIR
     path   = d / f'{key}.json'
     return jsonify({'mtime': path.stat().st_mtime if path.exists() else None})
 

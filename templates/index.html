@@ -1168,6 +1168,9 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 .week-status-chip.chiusa {
   background: #fee2e2; color: #991b1b; border-color: #fca5a5;
 }
+.week-status-chip.altra {
+  background: #fef3c7; color: #92400e; border-color: #fcd34d;
+}
 
 .btn-week-action {
   padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700;
@@ -2843,7 +2846,8 @@ function incollaColonna(key, rows) {
 let currentTimone    = null;
 let currentDay       = null;
 let currentRows      = [];
-let currentWeek      = null;   // metadati settimana corrente {dal,al,week_id,chiusa}
+let currentWeek      = null;   // settimana che l'utente sta visualizzando (locale)
+let _globalWeek      = null;   // settimana corrente globale del server (non cambia per azione locale)
 let isDirty          = false;
 let isArchiveView    = false;
 let _archiveWeek     = null;   // {week_id,dal,al} della settimana archivio aperta
@@ -2859,6 +2863,11 @@ function storageKey() {
   if (meta.tipo === 'tv' && currentDay)              return `${currentTimone}_${currentDay}`;
   if (meta.tipo === 'rivista' || meta.tipo === 'tv-unico') return currentTimone;
   return null;
+}
+
+function weekParam() {
+  const wid = currentWeek?.week_id;
+  return wid ? '?week=' + encodeURIComponent(wid) : '';
 }
 
 // ── Navigazione ───────────────────────────────────────────────────────────────
@@ -3105,7 +3114,9 @@ async function openTimoneHome(timone) {
 async function fetchWeek(timone) {
   try {
     const res = await fetch(`/api/week/${timone}`, { cache: 'no-store' });
-    return await res.json();
+    const data = await res.json();
+    _globalWeek = data;
+    return data;
   } catch {
     return { dal: '', al: '', week_id: '', chiusa: false };
   }
@@ -3135,6 +3146,7 @@ function formatGiornoLabel(giorno) {
 
 function updateWeekUI(week) {
   currentWeek = week;
+  const isGlobalWeek = !_globalWeek?.week_id || week?.week_id === _globalWeek?.week_id;
   const actionsRow = document.getElementById('weekActionsRow');
   const chip       = document.getElementById('weekStatusChip');
   const btnChiudi  = document.getElementById('btnChiudiSettimana');
@@ -3147,11 +3159,11 @@ function updateWeekUI(week) {
       chip.textContent = '🔒 Settimana chiusa';
       chip.className   = 'week-status-chip chiusa';
       btnChiudi.style.display = 'none';
-      btnRiapri.style.display = (_ruolo === 'editor' || _ruolo === 'admin') ? '' : 'none';
+      btnRiapri.style.display = isGlobalWeek && (_ruolo === 'editor' || _ruolo === 'admin') ? '' : 'none';
     } else {
-      chip.textContent = '🟢 Aperta';
-      chip.className   = 'week-status-chip';
-      btnChiudi.style.display = '';
+      chip.textContent = isGlobalWeek ? '🟢 Aperta' : '🗓 Altra settimana';
+      chip.className   = isGlobalWeek ? 'week-status-chip' : 'week-status-chip altra';
+      btnChiudi.style.display = isGlobalWeek ? '' : 'none';
       btnRiapri.style.display = 'none';
     }
   } else {
@@ -3165,40 +3177,40 @@ async function applicaSettimana() {
   const al  = document.getElementById('weekAl').value;
   if (!dal && !al) { showStatus('Inserisci almeno la data di inizio settimana', 'warn'); return; }
 
-  const current        = currentWeek;
-  const hasCurrentWeek = !!(current?.week_id);
-  const changed        = dal !== (current?.week_id || '');
+  const current = currentWeek;
+  const changed = dal !== (current?.week_id || '');
 
-  if (changed && hasCurrentWeek) {
+  if (changed && current?.week_id) {
     const dalFmt = dal ? new Date(dal + 'T00:00:00').toLocaleDateString('it-IT', {day:'numeric', month:'long', year:'numeric'}) : '?';
     const alFmt  = al  ? new Date(al  + 'T00:00:00').toLocaleDateString('it-IT', {day:'numeric', month:'long', year:'numeric'}) : '?';
     const ok = confirm(
-      `Stai passando a una nuova settimana (${dalFmt} – ${alFmt}).\n\n` +
-      `I dati della settimana corrente restano salvati nell\'archivio.\n` +
-      `Il timone verrà azzerato per la nuova settimana.\n\n` +
+      `Vuoi visualizzare la settimana ${dalFmt}${alFmt ? ' – ' + alFmt : ''}?\n\n` +
+      `La settimana corrente degli altri utenti resta invariata.\n\n` +
       `Continuare?`
     );
     if (!ok) return;
   }
-  try {
-    const res  = await fetch(`/api/week/${currentTimone}`, {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ dal, al })
-    });
-    const data = await res.json();
-    updateWeekUI(data);
-    const badge = document.getElementById('weekSavedBadge');
-    badge.textContent = changed ? 'Nuova settimana applicata ✓' : 'Settimana salvata ✓';
-    badge.classList.add('show');
-    clearTimeout(badge._t);
-    badge._t = setTimeout(() => badge.classList.remove('show'), 2400);
-    if (changed) showStatus('Nuova settimana — timone azzerato', 'warn');
-  } catch { showStatus('Errore nel salvataggio della settimana', 'error'); }
+
+  // Aggiorna solo la vista locale — non cambia il server né gli altri utenti
+  const newWeek = { dal, al, week_id: dal, chiusa: false };
+  updateWeekUI(newWeek);
+  const badge = document.getElementById('weekSavedBadge');
+  badge.textContent = changed ? 'Settimana cambiata ✓' : 'Settimana aggiornata ✓';
+  badge.classList.add('show');
+  clearTimeout(badge._t);
+  badge._t = setTimeout(() => badge.classList.remove('show'), 2400);
+  if (changed) {
+    if (currentDay) {
+      caricaTimone();
+    } else {
+      showStatus('Settimana cambiata — seleziona un giorno', 'warn');
+    }
+  }
 }
 
 async function chiudiSettimana() {
   if (!currentTimone) return;
-  const w = currentWeek;
+  const w = _globalWeek || currentWeek;  // opera sempre sulla settimana globale
   const label = (w?.dal || w?.al)
     ? [w.dal, w.al].filter(Boolean).join(' – ')
     : 'questa settimana';
@@ -3374,7 +3386,7 @@ async function caricaTimone() {
   currentWeek = await fetchWeek(currentTimone);
 
   try {
-    const res  = await fetch(`/api/load/${key}`);
+    const res  = await fetch(`/api/load/${key}${weekParam()}`);
     const data = await res.json();
     currentRows = applyTemplate(key, data.rows || []);
   } catch (e) {
@@ -3409,7 +3421,7 @@ async function salvaTimone(silent = false) {
   clearTimeout(_saveTimer);
   try {
     const nonSep = currentRows.filter(r => !r._separator);
-    const res  = await fetch(`/api/save/${key}`, {
+    const res  = await fetch(`/api/save/${key}${weekParam()}`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ rows: nonSep })
     });
@@ -3438,7 +3450,7 @@ async function autoSave() {
     const patches = computePatches(_lastSavedRows, nonSep);
     if (Object.keys(patches).length === 0) { setDirty(false); return; }
     try {
-      const res  = await fetch(`/api/patch/${key}`, {
+      const res  = await fetch(`/api/patch/${key}${weekParam()}`, {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ patches })
       });
@@ -5025,7 +5037,7 @@ const CAMPO_LABEL = {
 
 async function fetchMtime(key) {
   try {
-    const r = await fetch(`/api/mtime/${key}`);
+    const r = await fetch(`/api/mtime/${key}${weekParam()}`);
     const d = await r.json();
     return d.mtime;
   } catch { return null; }
@@ -5039,7 +5051,7 @@ function startRemotePolling(key) {
     if (_ackedMtime !== null && mtime <= _ackedMtime + 0.5) return; // nessuna modifica nuova
     // Qualcuno ha salvato — scarica e confronta
     try {
-      const res     = await fetch(`/api/load/${key}`);
+      const res     = await fetch(`/api/load/${key}${weekParam()}`);
       const data    = await res.json();
       const newRows = applyTemplate(key, data.rows || []);
       const diff    = computeDiff(currentRows, newRows);

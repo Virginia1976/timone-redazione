@@ -3239,6 +3239,7 @@ async function chiudiSettimana() {
       });
     }
     showStatus('Settimana chiusa 🔒 — Prossima settimana aperta', 'success');
+    currentWeek = null;  // forza openTimoneHome ad usare la nuova settimana globale
     await openTimoneHome(currentTimone);
   } catch { showStatus('Errore', 'error'); }
 }

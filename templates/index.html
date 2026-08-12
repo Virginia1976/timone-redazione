@@ -1226,6 +1226,18 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 .archive-day-selector {
   width: 100%; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
 }
+.lavorazione-item {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+}
+.lavorazione-dates {
+  font-size: 14px; font-weight: 700; color: var(--text);
+}
+.archive-set-lavorazione-btn {
+  padding: 5px 11px; border-radius: 7px; font-size: 12px; font-weight: 700;
+  background: none; color: var(--accent); border: 1.5px solid var(--accent);
+  cursor: pointer; transition: all var(--transition);
+}
+.archive-set-lavorazione-btn:hover { background: var(--accent); color: #fff; }
 .archive-empty { font-size: 13px; color: var(--text-soft); padding: 8px 0; }
 .archive-loading { font-size: 13px; color: var(--text-soft); padding: 8px 0; }
 
@@ -1612,10 +1624,32 @@ body.sola-lettura .btn-copy-col { display: none; }
     <button class="th-work-btn" id="thWorkBtn">Vai al timone →</button>
   </div>
 
-  <!-- Archivio settimane chiuse -->
+  <!-- Box: Settimana in lavorazione -->
+  <div class="archive-panel" id="lavorazionePanel" style="display:none">
+    <div class="archive-panel-toggle" onclick="toggleLavorazionePanel()">
+      <span>📅 Settimana in lavorazione</span>
+      <span id="lavorazioneArrow">▼</span>
+    </div>
+    <div class="archive-panel-body" id="lavorazionePanelBody" style="display:none">
+      <div id="lavorazioneContent"></div>
+    </div>
+  </div>
+
+  <!-- Box: Altre settimane -->
+  <div class="archive-panel" id="altrePanel" style="display:none">
+    <div class="archive-panel-toggle" onclick="toggleAltrePanel()">
+      <span>🗓 Altre settimane</span>
+      <span id="altreArrow">▼</span>
+    </div>
+    <div class="archive-panel-body" id="altrePanelBody" style="display:none">
+      <div id="altreList"></div>
+    </div>
+  </div>
+
+  <!-- Box: Archivio settimane chiuse -->
   <div class="archive-panel" id="archivePanel" style="display:none">
     <div class="archive-panel-toggle" onclick="toggleArchivePanel()">
-      <span>📁 Archivio settimane chiuse</span>
+      <span>🔒 Archivio settimane chiuse</span>
       <span id="archiveArrow">▼</span>
     </div>
     <div class="archive-panel-body" id="archivePanelBody" style="display:none">
@@ -2848,6 +2882,7 @@ let currentDay       = null;
 let currentRows      = [];
 let currentWeek      = null;   // settimana che l'utente sta visualizzando (locale)
 let _globalWeek      = null;   // settimana corrente globale del server (non cambia per azione locale)
+let _localWeekOverride = false; // true solo se l'utente ha scelto ESPLICITAMENTE una settimana diversa dalla globale
 let isDirty          = false;
 let isArchiveView    = false;
 let _archiveWeek     = null;   // {week_id,dal,al} della settimana archivio aperta
@@ -2906,40 +2941,125 @@ function renderDaysGrid(timone) {
   }).join('');
 }
 
-// ── Archivio settimane ────────────────────────────────────────────────────────
-async function loadArchiveList(timone) {
-  const panel = document.getElementById('archivePanel');
-  const list  = document.getElementById('archiveList');
-  panel.style.display = '';
-  list.innerHTML = '<div class="archive-loading">Caricamento…</div>';
-  try {
-    const res   = await fetch(`/api/archive/${timone}`, { cache: 'no-store' });
-    const weeks = await res.json();
-    if (!weeks.length) {
-      list.innerHTML = '<div class="archive-empty">Nessuna settimana archiviata.</div>';
-      return;
+// ── Archivio / Lavorazione / Altre settimane ─────────────────────────────────
+function _makeArchiveItem(timone, w, section) {
+  const meta    = TIMONI_META[timone];
+  const isTV    = meta?.tipo === 'tv';
+  const canEdit = _ruolo === 'editor' || _ruolo === 'admin';
+  const fmtD    = d => new Date(d + 'T00:00:00').toLocaleDateString('it-IT', { day:'numeric', month:'short', year:'numeric' });
+  const cv      = w.chiusa ? 'true' : 'false';
+  const item    = document.createElement('div');
+  item.className = 'archive-week-item';
+
+  const consultaBtn = isTV
+    ? `<button class="archive-week-btn" onclick="openArchiveDaySelector('${timone}','${w.week_id}','${w.dal}','${w.al}',this,${cv})">Consulta ▾</button>`
+    : `<button class="archive-week-btn" onclick="openArchiveTimone('${timone}','${w.week_id}','${w.dal}','${w.al}',null,${cv})">Consulta →</button>`;
+
+  let actionBtn = '';
+  if (section === 'lavorazione') {
+    // nessuna azione extra: è già la settimana corrente
+  } else if (section === 'altre') {
+    if (canEdit) {
+      actionBtn = `<button class="archive-set-lavorazione-btn" onclick="mettiInLavorazione('${timone}','${w.week_id}','${w.dal}','${w.al}')">↑ In lavorazione</button>`
+                + `<button class="archive-reopen-item-btn" onclick="chiudiArchiviata('${timone}','${w.week_id}','${w.dal}','${w.al}')">🔒 Chiudi</button>`;
     }
-    const meta   = TIMONI_META[timone];
-    const fmtD   = d => new Date(d + 'T00:00:00').toLocaleDateString('it-IT', { day:'numeric', month:'short', year:'numeric' });
-    const isTV   = meta.tipo === 'tv';
-    const canEdit = _ruolo === 'editor' || _ruolo === 'admin';
-    list.innerHTML = '';
-    weeks.forEach(w => {
-      const item = document.createElement('div');
-      item.className = 'archive-week-item';
-      const consultaBtn = isTV
-        ? `<button class="archive-week-btn" onclick="openArchiveDaySelector('${timone}','${w.week_id}','${w.dal}','${w.al}',this)">Consulta ▾</button>`
-        : `<button class="archive-week-btn" onclick="openArchiveTimone('${timone}','${w.week_id}','${w.dal}','${w.al}')">Consulta →</button>`;
-      const riaprBtn = canEdit
-        ? `<button class="archive-reopen-item-btn" onclick="riapreDaArchivio('${timone}','${w.week_id}','${w.dal}','${w.al}')">🔓 Riapri</button>`
-        : '';
-      item.innerHTML = `<div class="archive-week-dates">${fmtD(w.dal)} – ${fmtD(w.al)}</div>
-        <div class="archive-week-actions">${consultaBtn}${riaprBtn}</div>`;
-      list.appendChild(item);
-    });
-  } catch {
-    list.innerHTML = '<div class="archive-empty">Errore nel caricamento.</div>';
+  } else if (section === 'chiuse') {
+    const lockSpan = `<span style="opacity:.6">🔒</span>`;
+    const riaprBtn = canEdit
+      ? `<button class="archive-reopen-item-btn" onclick="riapreDaArchivio('${timone}','${w.week_id}','${w.dal}','${w.al}')">🔓 Riapri</button>`
+      : '';
+    item.innerHTML = `<div class="archive-week-dates">${lockSpan} ${fmtD(w.dal)} – ${fmtD(w.al)}</div>
+      <div class="archive-week-actions">${consultaBtn}${riaprBtn}</div>`;
+    return item;
   }
+
+  item.innerHTML = `<div class="archive-week-dates">${fmtD(w.dal)} – ${fmtD(w.al)}</div>
+    <div class="archive-week-actions">${consultaBtn}${actionBtn}</div>`;
+  return item;
+}
+
+async function loadAllArchivePanels(timone) {
+  // Box "Settimana in lavorazione"
+  const lavPanel   = document.getElementById('lavorazionePanel');
+  const lavContent = document.getElementById('lavorazioneContent');
+  const globalWeek = _globalWeek;
+  if (globalWeek?.week_id) {
+    lavPanel.style.display = '';
+    const fmtD = d => new Date(d + 'T00:00:00').toLocaleDateString('it-IT', { day:'numeric', month:'short', year:'numeric' });
+    const meta = TIMONI_META[timone];
+    const isTV = meta?.tipo === 'tv';
+    const cv   = globalWeek.chiusa ? 'true' : 'false';
+    lavContent.innerHTML = `<div class="lavorazione-item">
+      <div class="lavorazione-dates">${fmtD(globalWeek.dal)} – ${fmtD(globalWeek.al)}</div>
+      <div class="archive-week-actions">
+        <button class="archive-week-btn" onclick="tornaAllaSettimanaGlobale('${timone}')">Visualizza →</button>
+      </div>
+    </div>`;
+  } else {
+    lavPanel.style.display = 'none';
+  }
+
+  // Box "Altre settimane" e "Archivio chiuse"
+  const altrePanel   = document.getElementById('altrePanel');
+  const altreList    = document.getElementById('altreList');
+  const archivePanel = document.getElementById('archivePanel');
+  const archiveList  = document.getElementById('archiveList');
+
+  altreList.innerHTML   = '<div class="archive-loading">Caricamento…</div>';
+  archiveList.innerHTML = '<div class="archive-loading">Caricamento…</div>';
+  try {
+    const [resArchive, resAltre] = await Promise.all([
+      fetch(`/api/archive/${timone}`, { cache: 'no-store' }),
+      fetch(`/api/week/${timone}/applicate`, { cache: 'no-store' }),
+    ]);
+    const archivedWeeks = await resArchive.json();
+    const applicateIds  = new Set((await resAltre.json()).week_ids || []);
+
+    const chiuse = archivedWeeks.filter(w => w.chiusa);
+    const altre  = archivedWeeks.filter(w => !w.chiusa && applicateIds.has(w.week_id));
+
+    // Box Altre settimane
+    if (altre.length) {
+      altrePanel.style.display = '';
+      altreList.innerHTML = '';
+      altre.forEach(w => altreList.appendChild(_makeArchiveItem(timone, w, 'altre')));
+    } else {
+      altrePanel.style.display = 'none';
+      altreList.innerHTML = '';
+    }
+
+    // Box Archivio chiuse
+    if (chiuse.length) {
+      archivePanel.style.display = '';
+      archiveList.innerHTML = '';
+      chiuse.forEach(w => archiveList.appendChild(_makeArchiveItem(timone, w, 'chiuse')));
+    } else {
+      archivePanel.style.display = 'none';
+      archiveList.innerHTML = '';
+    }
+  } catch {
+    altreList.innerHTML   = '<div class="archive-empty">Errore nel caricamento.</div>';
+    archiveList.innerHTML = '<div class="archive-empty">Errore nel caricamento.</div>';
+  }
+}
+
+async function loadArchiveList(timone) {
+  await loadAllArchivePanels(timone);
+}
+
+function toggleLavorazionePanel() {
+  const body  = document.getElementById('lavorazionePanelBody');
+  const arrow = document.getElementById('lavorazioneArrow');
+  const open  = body.style.display === 'none';
+  body.style.display = open ? '' : 'none';
+  arrow.textContent  = open ? '▲' : '▼';
+}
+function toggleAltrePanel() {
+  const body  = document.getElementById('altrePanelBody');
+  const arrow = document.getElementById('altreArrow');
+  const open  = body.style.display === 'none';
+  body.style.display = open ? '' : 'none';
+  arrow.textContent  = open ? '▲' : '▼';
 }
 
 function toggleArchivePanel() {
@@ -2950,19 +3070,19 @@ function toggleArchivePanel() {
   arrow.textContent  = open ? '▲' : '▼';
 }
 
-function openArchiveDaySelector(timone, weekId, dal, al, btn) {
+function openArchiveDaySelector(timone, weekId, dal, al, btn, chiusa) {
   document.querySelectorAll('.archive-day-selector').forEach(el => el.remove());
   const meta = TIMONI_META[timone];
   if (!meta || meta.tipo !== 'tv') return;
   const wrap = document.createElement('div');
   wrap.className = 'archive-day-selector';
   wrap.innerHTML = (meta.giorni || []).map(g =>
-    `<button class="th-day-btn" onclick="openArchiveTimone('${timone}','${weekId}','${dal}','${al}','${g}')">${GIORNI_LABEL[g] || g}</button>`
+    `<button class="th-day-btn" onclick="openArchiveTimone('${timone}','${weekId}','${dal}','${al}','${g}',${!!chiusa})">${GIORNI_LABEL[g] || g}</button>`
   ).join('');
   btn.closest('.archive-week-item').appendChild(wrap);
 }
 
-async function openArchiveTimone(timone, weekId, dal, al, giorno) {
+async function openArchiveTimone(timone, weekId, dal, al, giorno, chiusa = true) {
   document.querySelectorAll('.archive-day-selector').forEach(el => el.remove());
   stopMtimePolling();
   stopRemotePolling();
@@ -2975,7 +3095,7 @@ async function openArchiveTimone(timone, weekId, dal, al, giorno) {
   _archiveWeek  = { week_id: weekId, dal, al };
   currentTimone = timone;
   currentDay    = giorno || null;
-  currentWeek   = { dal, al, week_id: weekId, chiusa: true };
+  currentWeek   = { dal, al, week_id: weekId, chiusa: !!chiusa };
   expandedChannels.clear();
 
   updateAccentColor(meta.colore);
@@ -3001,10 +3121,10 @@ async function openArchiveTimone(timone, weekId, dal, al, giorno) {
   document.getElementById('archiveBanner').style.display   = '';
   document.getElementById('weekClosedBanner').classList.remove('show');
   document.getElementById('archiveReopenBtn').style.display =
-    (_ruolo === 'editor' || _ruolo === 'admin') ? '' : 'none';
+    (chiusa && (_ruolo === 'editor' || _ruolo === 'admin')) ? '' : 'none';
 
   renderTable();
-  applyClosedState(true);
+  applyClosedState(!!chiusa);
 }
 
 function tornaAlTimone() {
@@ -3016,21 +3136,60 @@ function tornaAlTimone() {
 }
 
 async function riapreDaArchivio(timone, weekId, dal, al) {
-  const t   = timone   || currentTimone;
-  const wid = weekId   || _archiveWeek?.week_id;
-  const d   = dal      || _archiveWeek?.dal;
-  const a   = al       || _archiveWeek?.al;
+  const t   = timone || currentTimone;
+  const wid = weekId || _archiveWeek?.week_id;
+  const d   = dal    || _archiveWeek?.dal;
+  const a   = al     || _archiveWeek?.al;
   const fmtD = s => new Date(s + 'T00:00:00').toLocaleDateString('it-IT', { day:'numeric', month:'long', year:'numeric' });
-  if (!confirm(`Impostare la settimana ${fmtD(d)} – ${fmtD(a)} come settimana corrente?\n\nLa settimana attuale verrà archiviata.`)) return;
+  if (!confirm(`Rimuovere il blocco dalla settimana ${fmtD(d)} – ${fmtD(a)}?\n\nLa settimana resterà in archivio; non diventa quella corrente.`)) return;
+  try {
+    await fetch(`/api/week/${t}/riapri`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ week_id: wid })
+    });
+    showStatus('Settimana riaperta 🔓', 'success');
+    await loadArchiveList(t);
+  } catch { showStatus('Errore', 'error'); }
+}
+
+async function chiudiArchiviata(timone, weekId, dal, al) {
+  const t   = timone || currentTimone;
+  const fmtD = s => new Date(s + 'T00:00:00').toLocaleDateString('it-IT', { day:'numeric', month:'long', year:'numeric' });
+  if (!confirm(`Chiudere la settimana ${fmtD(dal)} – ${fmtD(al)}?\n\nDiventerà accessibile solo in lettura.`)) return;
+  try {
+    await fetch(`/api/week/${t}/chiudi-archiviata`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ week_id: weekId })
+    });
+    showStatus('Settimana chiusa 🔒', 'success');
+    await loadArchiveList(t);
+  } catch { showStatus('Errore', 'error'); }
+}
+
+function tornaAllaSettimanaGlobale(timone) {
+  _localWeekOverride = false;
+  currentWeek = _globalWeek;
+  document.getElementById('weekDal').value = currentWeek?.dal || '';
+  document.getElementById('weekAl').value  = currentWeek?.al  || '';
+  updateWeekUI(currentWeek);
+  // Aggiorna i badge dei giorni con la settimana globale
+  fetch('/api/list').then(r => r.json()).then(data => {
+    savedCounts = data;
+    renderDaysGrid(timone);
+  }).catch(() => { renderDaysGrid(timone); });
+}
+
+async function mettiInLavorazione(timone, weekId, dal, al) {
+  const t   = timone || currentTimone;
+  const fmtD = s => new Date(s + 'T00:00:00').toLocaleDateString('it-IT', { day:'numeric', month:'long', year:'numeric' });
+  if (!confirm(`Impostare la settimana ${fmtD(dal)} – ${fmtD(al)} come settimana in lavorazione?\n\nLa settimana precedente resta accessibile in archivio.`)) return;
   try {
     await fetch(`/api/week/${t}`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ dal: d, al: a })
+      body: JSON.stringify({ dal, al })
     });
-    isArchiveView = false;
-    _archiveWeek  = null;
-    document.getElementById('archiveBanner').style.display = 'none';
-    showStatus('Settimana riaperta come corrente', 'success');
+    showStatus('Settimana in lavorazione aggiornata ✓', 'success');
+    _localWeekOverride = false;
     await openTimoneHome(t);
   } catch { showStatus('Errore', 'error'); }
 }
@@ -3056,10 +3215,13 @@ async function openTimoneHome(timone) {
   document.getElementById('thDot').style.background = meta.colore;
   document.getElementById('thTitle').textContent    = meta.label;
 
-  // Settimana — aggiorna la globale; rispetta la scelta locale se si resta sullo stesso timone
+  // Settimana — aggiorna la globale; rispetta la scelta locale SOLO se l'utente l'ha scelta esplicitamente
   await fetchWeek(timone);  // aggiorna _globalWeek
-  const keepLocal = timone === prevTimone && currentWeek?.week_id && currentWeek.week_id !== _globalWeek?.week_id;
-  if (!keepLocal) currentWeek = _globalWeek;
+  const keepLocal = timone === prevTimone && _localWeekOverride && currentWeek?.week_id && currentWeek.week_id !== _globalWeek?.week_id;
+  if (!keepLocal) {
+    currentWeek = _globalWeek;
+    _localWeekOverride = false;
+  }
   document.getElementById('weekDal').value = currentWeek?.dal || '';
   document.getElementById('weekAl').value  = currentWeek?.al  || '';
   const badge = document.getElementById('weekSavedBadge');
@@ -3077,7 +3239,7 @@ async function openTimoneHome(timone) {
     rivistaWrap.style.display = 'none';
     // Prima render subito (pulsanti senza badge), poi aggiorna con i conteggi freschi
     renderDaysGrid(timone);
-    fetch('/api/list').then(r => r.json()).then(data => {
+    fetch('/api/list' + weekParam()).then(r => r.json()).then(data => {
       savedCounts = data;
       renderDaysGrid(timone);
     }).catch(() => {});
@@ -3092,7 +3254,7 @@ async function openTimoneHome(timone) {
       document.getElementById('thWorkBtn').innerHTML = `Vai al timone →${badge}`;
     };
     renderRivistaGialli(savedCounts);
-    fetch('/api/list').then(r => r.json()).then(data => { savedCounts = data; renderRivistaGialli(data); }).catch(() => {});
+    fetch('/api/list' + weekParam()).then(r => r.json()).then(data => { savedCounts = data; renderRivistaGialli(data); }).catch(() => {});
   }
 
   // Badge header
@@ -3165,7 +3327,8 @@ function updateWeekUI(week) {
     } else {
       chip.textContent = isGlobalWeek ? '🟢 Aperta' : '🗓 Altra settimana';
       chip.className   = isGlobalWeek ? 'week-status-chip' : 'week-status-chip altra';
-      btnChiudi.style.display = isGlobalWeek ? '' : 'none';
+      const canChiudi = isGlobalWeek && (_ruolo === 'editor' || _ruolo === 'admin');
+      btnChiudi.style.display = canChiudi ? '' : 'none';
       btnRiapri.style.display = 'none';
     }
   } else {
@@ -3195,6 +3358,15 @@ async function applicaSettimana() {
 
   // Aggiorna solo la vista locale — non cambia il server né gli altri utenti
   const newWeek = { dal, al, week_id: dal, chiusa: false };
+  // Segna come scelta esplicita solo se diversa dalla globale
+  _localWeekOverride = dal !== (_globalWeek?.week_id || '');
+  // Traccia settimana applicata sul server (non palinsesti)
+  if (changed && _ruolo !== 'palinsesti' && currentTimone) {
+    fetch(`/api/week/${currentTimone}/segna-applicata`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ week_id: dal })
+    }).catch(() => {});
+  }
   updateWeekUI(newWeek);
   if (changed) {
     stopRemotePolling();
@@ -3211,6 +3383,10 @@ async function applicaSettimana() {
       caricaTimone();
     } else {
       showStatus('Settimana cambiata — seleziona un giorno', 'warn');
+      fetch('/api/list' + weekParam()).then(r => r.json()).then(data => {
+        savedCounts = data;
+        if (currentTimone) renderDaysGrid(currentTimone);
+      }).catch(() => {});
     }
   }
 }
@@ -3359,7 +3535,7 @@ function updateDayBar(timone, day) {
     if (g > 0) p.insertAdjacentHTML('beforeend', `<span class="th-day-gialli">${g}</span>`);
   });
   // Rinfresca con dati freschi in background (risolve race condition all'avvio)
-  fetch('/api/list').then(r => r.json()).then(data => {
+  fetch('/api/list' + weekParam()).then(r => r.json()).then(data => {
     savedCounts = data;
     aggiornaNavBadgeGialli(data);
   }).catch(() => {});
@@ -3390,10 +3566,11 @@ async function caricaTimone() {
   stopRemotePolling();
   hideDiffPanel();
 
-  // Aggiorna la settimana globale, ma rispetta la scelta locale dell'utente
+  // Aggiorna la settimana globale, ma rispetta la scelta locale SOLO se esplicita
   await fetchWeek(currentTimone);  // aggiorna _globalWeek
-  if (!currentWeek?.week_id || currentWeek.week_id === _globalWeek?.week_id) {
-    currentWeek = _globalWeek;  // nessuna scelta locale: usa la globale
+  if (!_localWeekOverride || !currentWeek?.week_id || currentWeek.week_id === _globalWeek?.week_id) {
+    currentWeek = _globalWeek;
+    _localWeekOverride = false;
   }
 
   try {
@@ -5157,28 +5334,33 @@ function rcIgnore() {
 // ── Conteggi welcome ──────────────────────────────────────────────────────────
 async function aggiornaConteggiWelcome() {
   try {
-    const res  = await fetch('/api/list');
-    const data = await res.json();
-    savedCounts = data;
+    // Fetch globale per card welcome e nav badge (sempre settimana in lavorazione)
+    const res       = await fetch('/api/list');
+    const globalData = await res.json();
     // Aggiorna contatori nelle card welcome
     Object.entries(TIMONI_META).forEach(([key, meta]) => {
       const el = document.getElementById(`cnt-${key}`);
       if (!el) return;
       if (meta.tipo === 'tv') {
         const days = ['sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi'];
-        const tot  = days.reduce((s, d) => s + (data[`${key}_${d}`]?.gialli || 0), 0);
+        const tot  = days.reduce((s, d) => s + (globalData[`${key}_${d}`]?.gialli || 0), 0);
         el.textContent = tot || '0';
       } else {
-        el.textContent = data[key]?.gialli || '0';
+        el.textContent = globalData[key]?.gialli || '0';
       }
     });
-    // Aggiorna anche i bottoni-giorno se si è nella home di un timone TV
+    aggiornaNavBadgeGialli(globalData);
+    aggiornaWelcomeSpuntaCounts();
+    // Aggiorna i bottoni-giorno con la settimana locale dell'utente (può differire dalla globale)
     if (currentTimone && TIMONI_META[currentTimone]?.tipo === 'tv' &&
         document.getElementById('timone-home').style.display !== 'none') {
+      const wp = weekParam();
+      const localData = wp ? await fetch('/api/list' + wp).then(r => r.json()) : globalData;
+      savedCounts = localData;
       renderDaysGrid(currentTimone);
+    } else {
+      savedCounts = globalData;
     }
-    aggiornaNavBadgeGialli(data);
-    aggiornaWelcomeSpuntaCounts();
   } catch {}
 }
 

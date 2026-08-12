@@ -52,6 +52,8 @@ DATA_DIR        = pathlib.Path(__file__).parent / 'data'
 DATA_DIR.mkdir(exist_ok=True)
 WEEKS_DIR       = DATA_DIR / '_weeks'
 WEEKS_DIR.mkdir(exist_ok=True)
+WEEKS_CHIUSA_DIR = WEEKS_DIR / 'chiuse'
+WEEKS_CHIUSA_DIR.mkdir(exist_ok=True)
 EDITORIALE_BASE = os.environ.get('EDITORIALE_BASE', '/Volumes/EDITORIALE')
 EDITORIALE_SMB  = os.environ.get('EDITORIALE_SMB', '')
 
@@ -92,11 +94,28 @@ def timone_from_key(key: str) -> str | None:
     return None
 
 
+def _chiusa_flag_path(week_id: str) -> pathlib.Path:
+    return WEEKS_CHIUSA_DIR / week_id
+
+def is_week_chiusa(timone: str, week_id: str) -> bool:
+    return bool(week_id) and _chiusa_flag_path(week_id).exists()
+
+def set_week_chiusa_flag(timone: str, week_id: str, chiusa: bool) -> None:
+    p = _chiusa_flag_path(week_id)
+    if chiusa:
+        p.touch()
+    else:
+        p.unlink(missing_ok=True)
+
+
 def get_week_meta(timone: str) -> dict:
     path = WEEKS_DIR / f'{timone}.json'
     if path.exists():
         try:
-            return json.loads(path.read_text('utf-8'))
+            meta = json.loads(path.read_text('utf-8'))
+            week_id = meta.get('week_id', '')
+            meta['chiusa'] = is_week_chiusa(timone, week_id)
+            return meta
         except Exception:
             pass
     return {'dal': '', 'al': '', 'week_id': '', 'chiusa': False}
@@ -305,13 +324,11 @@ def _atomic_write(path: pathlib.Path, text: str) -> None:
 
 
 def _is_global_week_chiusa(timone: str) -> bool:
-    """True solo se la settimana GLOBALE corrente è chiusa e la richiesta
-    non specifica una settimana diversa tramite ?week=."""
-    meta = get_week_meta(timone)
-    if not meta.get('chiusa'):
-        return False
+    """True se la settimana che si sta accedendo è chiusa (flag per-settimana)."""
     wid_param = request.args.get('week', '').strip()
-    return not wid_param or wid_param == meta.get('week_id', '')
+    if wid_param and re.match(r'^\d{4}-\d{2}-\d{2}$', wid_param):
+        return is_week_chiusa(timone, wid_param)
+    return get_week_meta(timone).get('chiusa', False)
 
 
 @app.route('/api/save/<key>', methods=['POST'])
@@ -424,9 +441,13 @@ def data_mtime(key):
 
 @app.route('/api/list')
 def list_timoni():
+    week_param = request.args.get('week', '').strip()
     saved = {}
     for timone in KNOWN_TIMONI:
-        wid = (get_week_meta(timone).get('week_id') or '').strip()
+        if week_param and re.match(r'^\d{4}-\d{2}-\d{2}$', week_param):
+            wid = week_param
+        else:
+            wid = (get_week_meta(timone).get('week_id') or '').strip()
         if not wid:
             continue   # nessuna settimana impostata, nulla da contare
         d      = DATA_DIR / wid
@@ -468,21 +489,41 @@ def set_week(timone):
     current = get_week_meta(timone)
     new_wid = dal   # la data di inizio è l'identificatore della settimana
     changed = new_wid != current.get('week_id', '')
-    new_meta = {'dal': dal, 'al': al, 'week_id': new_wid, 'chiusa': False}
+    new_meta = {'dal': dal, 'al': al, 'week_id': new_wid}
     set_week_meta(timone, new_meta)
     if new_wid:
         (DATA_DIR / new_wid).mkdir(exist_ok=True)
-    return jsonify({'ok': True, 'changed': changed, **new_meta})
+        set_week_chiusa_flag(timone, new_wid, False)  # impostare come globale rimuove il flag chiusa
+    chiusa = is_week_chiusa(timone, new_wid) if new_wid else False
+    return jsonify({'ok': True, 'changed': changed, 'chiusa': chiusa, **new_meta})
 
 
 @app.route('/api/week/<timone>/chiudi', methods=['POST'])
 def chiudi_week(timone):
     if _sola_lettura(): return jsonify({'error': 'Accesso in sola lettura'}), 403
+    if session.get('ruolo') not in ('editor', 'admin'):
+        return jsonify({'error': 'Solo editor e admin possono chiudere le settimane'}), 403
     if timone not in KNOWN_TIMONI:
         return jsonify({'error': 'timone non valido'}), 400
-    meta = get_week_meta(timone)
-    meta['chiusa'] = True
-    set_week_meta(timone, meta)
+    week_id = get_week_meta(timone).get('week_id', '')
+    if week_id:
+        set_week_chiusa_flag(timone, week_id, True)
+    return jsonify({'ok': True})
+
+
+@app.route('/api/week/<timone>/chiudi-archiviata', methods=['POST'])
+def chiudi_week_archiviata(timone):
+    if session.get('ruolo') not in ('editor', 'admin'):
+        return jsonify({'error': 'Solo editor e admin possono chiudere le settimane'}), 403
+    if timone not in KNOWN_TIMONI:
+        return jsonify({'error': 'timone non valido'}), 400
+    body = request.get_json(force=True, silent=True) or {}
+    week_id = body.get('week_id', '').strip()
+    if not week_id or not re.match(r'^\d{4}-\d{2}-\d{2}$', week_id):
+        return jsonify({'error': 'week_id non valido'}), 400
+    if week_id == get_week_meta(timone).get('week_id', ''):
+        return jsonify({'error': 'Usa /chiudi per la settimana corrente'}), 400
+    set_week_chiusa_flag(timone, week_id, True)
     return jsonify({'ok': True})
 
 
@@ -542,9 +583,10 @@ def riapri_week(timone):
         return jsonify({'ok': False, 'error': 'non autorizzato'}), 403
     if timone not in KNOWN_TIMONI:
         return jsonify({'error': 'timone non valido'}), 400
-    meta = get_week_meta(timone)
-    meta['chiusa'] = False
-    set_week_meta(timone, meta)
+    body = request.get_json(force=True, silent=True) or {}
+    week_id = body.get('week_id') or get_week_meta(timone).get('week_id', '')
+    if week_id:
+        set_week_chiusa_flag(timone, week_id, False)
     return jsonify({'ok': True})
 
 
@@ -567,8 +609,49 @@ def list_archive(timone):
         )
         if has_data:
             al = dal + timedelta(days=6)
-            weeks.append({'week_id': d.name, 'dal': d.name, 'al': al.isoformat()})
+            weeks.append({'week_id': d.name, 'dal': d.name, 'al': al.isoformat(),
+                          'chiusa': is_week_chiusa(timone, d.name)})
     return jsonify(weeks)
+
+
+# ── Settimane applicate (tracking per "Altre settimane") ──────────────────────
+
+def _applicate_path(timone: str) -> pathlib.Path:
+    return WEEKS_DIR / f'applicate_{timone}.json'
+
+def get_applicate(timone: str) -> list:
+    p = _applicate_path(timone)
+    try:
+        return json.loads(p.read_text('utf-8')) if p.exists() else []
+    except Exception:
+        return []
+
+def add_applicata(timone: str, week_id: str) -> None:
+    ids = get_applicate(timone)
+    if week_id not in ids:
+        ids.append(week_id)
+        _applicate_path(timone).write_text(json.dumps(ids), encoding='utf-8')
+
+
+@app.route('/api/week/<timone>/segna-applicata', methods=['POST'])
+def segna_applicata(timone):
+    if _sola_lettura(): return jsonify({'ok': False}), 403
+    if timone not in KNOWN_TIMONI:
+        return jsonify({'error': 'timone non valido'}), 400
+    body = request.get_json(force=True, silent=True) or {}
+    week_id = body.get('week_id', '').strip()
+    if week_id and re.match(r'^\d{4}-\d{2}-\d{2}$', week_id):
+        add_applicata(timone, week_id)
+    return jsonify({'ok': True})
+
+
+@app.route('/api/week/<timone>/applicate')
+def list_applicate(timone):
+    if timone not in KNOWN_TIMONI:
+        return jsonify({'error': 'timone non valido'}), 400
+    current_wid = get_week_meta(timone).get('week_id', '')
+    ids = [w for w in get_applicate(timone) if w != current_wid]
+    return jsonify({'week_ids': ids})
 
 
 @app.route('/api/archive/load/<week_id>/<key>')

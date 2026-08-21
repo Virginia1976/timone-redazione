@@ -94,14 +94,14 @@ def timone_from_key(key: str) -> str | None:
     return None
 
 
-def _chiusa_flag_path(week_id: str) -> pathlib.Path:
-    return WEEKS_CHIUSA_DIR / week_id
+def _chiusa_flag_path(timone: str, week_id: str) -> pathlib.Path:
+    return WEEKS_CHIUSA_DIR / f'{timone}_{week_id}'
 
 def is_week_chiusa(timone: str, week_id: str) -> bool:
-    return bool(week_id) and _chiusa_flag_path(week_id).exists()
+    return bool(week_id) and _chiusa_flag_path(timone, week_id).exists()
 
 def set_week_chiusa_flag(timone: str, week_id: str, chiusa: bool) -> None:
-    p = _chiusa_flag_path(week_id)
+    p = _chiusa_flag_path(timone, week_id)
     if chiusa:
         p.touch()
     else:
@@ -650,7 +650,7 @@ def list_applicate(timone):
     if timone not in KNOWN_TIMONI:
         return jsonify({'error': 'timone non valido'}), 400
     current_wid = get_week_meta(timone).get('week_id', '')
-    ids = [w for w in get_applicate(timone) if w != current_wid]
+    ids = [w for w in get_applicate(timone) if w != current_wid and not is_week_chiusa(timone, w)]
     return jsonify({'week_ids': ids})
 
 

@@ -3016,7 +3016,19 @@ async function loadAllArchivePanels(timone) {
     const applicateIds  = new Set((await resAltre.json()).week_ids || []);
 
     const chiuse = archivedWeeks.filter(w => w.chiusa);
-    const altre  = archivedWeeks.filter(w => !w.chiusa && applicateIds.has(w.week_id));
+    // "Altre settimane": costruisce la lista a partire da applicateIds (non da archivedWeeks)
+    // così include anche settimane applicate ma ancora prive di dati in archivio
+    const archivedMap = new Map(archivedWeeks.map(w => [w.week_id, w]));
+    const altre = [...applicateIds]
+      .map(wid => {
+        if (archivedMap.has(wid)) return archivedMap.get(wid);
+        const alDate = new Date(wid + 'T00:00:00');
+        alDate.setDate(alDate.getDate() + 6);
+        const alStr = `${alDate.getFullYear()}-${String(alDate.getMonth()+1).padStart(2,'0')}-${String(alDate.getDate()).padStart(2,'0')}`;
+        return { week_id: wid, dal: wid, al: alStr, chiusa: false };
+      })
+      .filter(w => !w.chiusa)
+      .sort((a, b) => b.week_id.localeCompare(a.week_id));
 
     // Box Altre settimane
     if (altre.length) {
@@ -3360,12 +3372,12 @@ async function applicaSettimana() {
   const newWeek = { dal, al, week_id: dal, chiusa: false };
   // Segna come scelta esplicita solo se diversa dalla globale
   _localWeekOverride = dal !== (_globalWeek?.week_id || '');
-  // Traccia settimana applicata sul server (non palinsesti)
+  // Traccia settimana applicata sul server (non palinsesti) e aggiorna i panel
   if (changed && _ruolo !== 'palinsesti' && currentTimone) {
     fetch(`/api/week/${currentTimone}/segna-applicata`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ week_id: dal })
-    }).catch(() => {});
+    }).then(() => loadAllArchivePanels(currentTimone)).catch(() => {});
   }
   updateWeekUI(newWeek);
   if (changed) {

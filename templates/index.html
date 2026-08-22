@@ -5354,7 +5354,7 @@ async function aggiornaConteggiWelcome() {
       const el = document.getElementById(`cnt-${key}`);
       if (!el) return;
       if (meta.tipo === 'tv') {
-        const days = ['sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi'];
+        const days = meta.giorni || ['sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi'];
         const tot  = days.reduce((s, d) => s + (globalData[`${key}_${d}`]?.gialli || 0), 0);
         el.textContent = tot || '0';
       } else {

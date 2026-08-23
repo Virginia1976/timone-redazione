@@ -1508,7 +1508,8 @@ body.sola-lettura .btn-copy-col { display: none; }
       <button class="day-item" data-giorno="martedi"   onclick="selectTimoneDay('tvmia','martedi')">Martedì</button>
       <button class="day-item" data-giorno="mercoledi" onclick="selectTimoneDay('tvmia','mercoledi')">Mercoledì</button>
       <button class="day-item" data-giorno="giovedi"   onclick="selectTimoneDay('tvmia','giovedi')">Giovedì</button>
-      <button class="day-item" data-giorno="venerdi"   onclick="selectTimoneDay('tvmia','venerdi')">Venerdì</button>
+      <button class="day-item" data-giorno="venerdi"    onclick="selectTimoneDay('tvmia','venerdi')">Venerdì</button>
+      <button class="day-item" data-giorno="streaming"  onclick="selectTimoneDay('tvmia','streaming')">🎬 Streaming</button>
     </div>
   </div>
 
@@ -1848,7 +1849,7 @@ const TIMONI_META = {
   dipiutv:   { label:'DipiùTV',     tipo:'tv',      colore:'#7C3AED', icona:'📺',
                giorni:['sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi','biscotti'] },
   tvmia:     { label:'TvMia',       tipo:'tv',      colore:'#0891B2', icona:'📺',
-               giorni:['scontorni','sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi'] },
+               giorni:['scontorni','sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi','streaming'] },
   nuovo:     { label:'Nuovo',       tipo:'tv-unico', colore:'#059669', icona:'📺' },
   dipiu:     { label:'Dipiu',       tipo:'rivista', colore:'#DB2777', icona:'📰' },
   divadonna: { label:'Diva e Donna',tipo:'rivista', colore:'#E11D48', icona:'📰' },
@@ -1857,7 +1858,7 @@ const TIMONI_META = {
 const GIORNI_LABEL = {
   sabato:'Sabato', domenica:'Domenica', lunedi:'Lunedì',
   martedi:'Martedì', mercoledi:'Mercoledì', giovedi:'Giovedì', venerdi:'Venerdì',
-  compleanni:'Compleanni', biscotti:'Biscotti', scontorni:'Scontorni faccette'
+  compleanni:'Compleanni', biscotti:'Biscotti', scontorni:'Scontorni faccette', streaming:'Streaming'
 };
 
 const CANALE_COLORS = {
@@ -2573,6 +2574,25 @@ TEMPLATES['dipiutv_domenica'] = [
   { codice:'dom_20', canale:'Radio', sotto_canale:'Radio 1'      },
   { codice:'dom_21', canale:'Radio', sotto_canale:'Radio 3'      },
   { codice:'dom_22', canale:'Radio', sotto_canale:'Radio Deejay' },
+];
+
+// Template TvMia Streaming (Film + Telefilm, due sezioni espandibili)
+TEMPLATES['tvmia_streaming'] = [
+  // ── FILM ──────────────────────────────────────────────────────────────────
+  { codice: '01BoxF',       sezione: 'Film',     canale: '' },
+  { codice: '02BoxF',       sezione: 'Film',     canale: '' },
+  { codice: '03BoxF',       sezione: 'Film',     canale: '' },
+  // ── TELEFILM ──────────────────────────────────────────────────────────────
+  { codice: '09BoxTF',      sezione: 'Telefilm', canale: '' },
+  { codice: '10BoxTF',      sezione: 'Telefilm', canale: '' },
+  { codice: '11BoxTF',      sezione: 'Telefilm', canale: '' },
+  { codice: '12BoxTF',      sezione: 'Telefilm', canale: '' },
+  { codice: '13BoxTF',      sezione: 'Telefilm', canale: '' },
+  { codice: '14bisNetflix', sezione: 'Telefilm', canale: '' },
+  { codice: '14Netflix',    sezione: 'Telefilm', canale: '' },
+  { codice: '15Netflix',    sezione: 'Telefilm', canale: '' },
+  { codice: '16Netflix',    sezione: 'Telefilm', canale: '' },
+  { codice: '17Netflix',    sezione: 'Telefilm', canale: '' },
 ];
 
 // Template TvMia Scontorni faccette (28 scontorni, 4 per giorno, raggruppati per giorno)

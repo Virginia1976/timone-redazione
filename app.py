@@ -800,8 +800,14 @@ def tif_thumb():
     def _do():
         if is_scont:
             actual = None
+            # Per tutti_scont (scontorni-faccette): il codice non ha _scont ma il file sì,
+            # quindi cerchiamo prima <codice>_scont.<ext>, poi <codice>.<ext> come fallback
+            if scontorno and '_scont' not in codice.lower():
+                bases = [codice + '_scont', codice.lower() + '_scont', codice, codice.lower()]
+            else:
+                bases = [codice, codice.lower()]
             for ext in ('.psd', '.jpg', '.jpeg'):
-                for base in (codice, codice.lower()):
+                for base in bases:
                     p = os.path.join(cartella, base + ext)
                     if os.path.isfile(p):
                         actual = p
@@ -875,9 +881,15 @@ def tif_mtime():
         for c in codici:
             wanted[c.lower() + '.tif'] = c
             if '_scont' in c.lower() or tutti_scont:
-                wanted[c.lower() + '.psd']  = c
-                wanted[c.lower() + '.jpg']  = c
-                wanted[c.lower() + '.jpeg'] = c
+                if tutti_scont and '_scont' not in c.lower():
+                    # Per tutti_scont: traccia solo i file _scont, non il canvas
+                    wanted[c.lower() + '_scont.psd']  = c
+                    wanted[c.lower() + '_scont.jpg']  = c
+                    wanted[c.lower() + '_scont.jpeg'] = c
+                else:
+                    wanted[c.lower() + '.psd']  = c
+                    wanted[c.lower() + '.jpg']  = c
+                    wanted[c.lower() + '.jpeg'] = c
                 new_wanted[c.lower() + '_new.psd']  = c
                 new_wanted[c.lower() + '_new.jpg']  = c
                 new_wanted[c.lower() + '_new.jpeg'] = c

@@ -5019,7 +5019,7 @@ async function checkMtimes(cartella) {
       if (codice === '_new') return;
       const init = _initialMtimes[codice];
       if (init === undefined) { _initialMtimes[codice] = mtime; return; }
-      if (mtime === null) return;
+      if (mtime === null) { if (init !== null) _initialMtimes[codice] = null; return; }
 
       const appeared = init === null;                        // file non c'era, ora c'è
       const modified = init !== null && mtime - init >= 2;  // file modificato

@@ -3305,6 +3305,7 @@ async function openTimoneHome(timone) {
 
   // Carica archivio settimane
   loadArchiveList(timone);
+  saveNavState('home', timone, null);
 }
 
 // ── Settimana (API-based) ─────────────────────────────────────────────────────
@@ -3506,6 +3507,7 @@ function selectTimoneDay(timone, day) {
   updateAccentColor(meta.colore);
   updateNavActive(timone);
   if (day === 'biscotti' || day === 'scontorni') hideDayBar(); else updateDayBar(timone, day);
+  saveNavState('day', timone, day);
   caricaTimone();
 }
 
@@ -3523,6 +3525,7 @@ function selectTimone(timone) {
   updateAccentColor(meta.colore);
   updateNavActive(timone);
   hideDayBar();
+  saveNavState('rivista', timone, null);
   caricaTimone();
 }
 
@@ -3532,6 +3535,7 @@ function changeDay(day) {
   currentDay = day;
   expandedChannels.clear();
   updateDayBar(currentTimone, day);
+  saveNavState('day', currentTimone, day);
   caricaTimone();
 }
 
@@ -5869,10 +5873,27 @@ async function apriScontorno(path, relativo, row, tr) {
   });
 })();
 
+// ── Nav state persistence (sopravvive al refresh) ─────────────────────────────
+function saveNavState(view, timone, day) {
+  sessionStorage.setItem('navState', JSON.stringify({ view, timone, day }));
+}
+
+async function restoreNavState() {
+  try {
+    const raw = sessionStorage.getItem('navState');
+    if (!raw) return;
+    const { view, timone, day } = JSON.parse(raw);
+    if (!timone || !isTimoneAttivo(timone)) return;
+    if (view === 'home')    { await openTimoneHome(timone); }
+    else if (view === 'rivista') { selectTimone(timone); }
+    else if (view === 'day' && day) { selectTimoneDay(timone, day); }
+  } catch {}
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 aggiornaConteggiWelcome();
 setInterval(aggiornaConteggiWelcome, 5000);
-initRuolo();
+initRuolo().then(restoreNavState);
 </script>
 </body>
 </html>

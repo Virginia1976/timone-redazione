@@ -11,6 +11,7 @@ import json
 import os
 import pathlib
 import re
+import unicodedata
 import shutil
 import subprocess
 import tempfile
@@ -998,7 +999,7 @@ def cerca_scontorno_titolo():
     if not cartella.exists():
         return jsonify({'results': [], 'error': 'cartella non trovata'})
 
-    titolo_lower = strip_articolo(titolo).lower()
+    titolo_lower = unicodedata.normalize('NFC', strip_articolo(titolo)).lower()
     is_serie = categoria in ('serie', 'soap', 'cartoni', 'documentari')
     results: list[dict] = []
     try:
@@ -1006,7 +1007,7 @@ def cerca_scontorno_titolo():
             if f.suffix.lower() not in ('.psd', '.jpg', '.jpeg'):
                 continue
             label = f.parent.name if is_serie else f.stem
-            nome  = strip_articolo(strip_parens(label)).lower()
+            nome  = unicodedata.normalize('NFC', strip_articolo(strip_parens(label))).lower()
             if titolo_lower in nome:
                 results.append({
                     'path':     str(f),

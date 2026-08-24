@@ -854,12 +854,7 @@ def tif_thumb():
                     with Image.open(thumb_png) as img:
                         img.thumbnail((192, 144))
                         buf = io.BytesIO()
-                        if img.mode != 'RGB':
-                            bg = Image.new('RGBA', img.size, (255, 255, 255, 255))
-                            bg.alpha_composite(img.convert('RGBA'))
-                            bg.convert('RGB').save(buf, format='JPEG', quality=85)
-                        else:
-                            img.save(buf, format='JPEG', quality=85)
+                        img.convert('RGB').save(buf, format='JPEG', quality=85)
                         buf.seek(0)
                         return buf.read()
                 return None

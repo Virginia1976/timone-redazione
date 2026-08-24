@@ -801,16 +801,23 @@ def tif_thumb():
     def _do():
         if is_scont:
             actual = None
-            # Per tutti_scont (scontorni-faccette): il codice non ha _scont ma il file sì,
-            # quindi cerchiamo prima <codice>_scont.<ext>, poi <codice>.<ext> come fallback
+            # Usa scandir per evitare la cache stat SMB (os.path.isfile può dare falso negativo
+            # su file appena comparsi). stessa tecnica di tif_mtime.
             if scontorno and '_scont' not in codice.lower():
-                bases = [codice + '_scont', codice.lower() + '_scont', codice, codice.lower()]
+                priority = [codice.lower() + '_scont', codice.lower()]
             else:
-                bases = [codice, codice.lower()]
-            for ext in ('.psd', '.jpg', '.jpeg'):
-                for base in bases:
-                    p = os.path.join(cartella, base + ext)
-                    if os.path.isfile(p):
+                priority = [codice.lower()]
+            dir_files: dict[str, str] = {}
+            try:
+                with os.scandir(cartella) as it:
+                    for entry in it:
+                        dir_files[entry.name.lower()] = entry.path
+            except OSError:
+                pass
+            for base in priority:
+                for ext in ('.psd', '.jpg', '.jpeg'):
+                    p = dir_files.get(base + ext)
+                    if p:
                         actual = p
                         break
                 if actual:

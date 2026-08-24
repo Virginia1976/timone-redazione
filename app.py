@@ -801,27 +801,41 @@ def tif_thumb():
     def _do():
         if is_scont:
             actual = None
-            # Usa scandir per evitare la cache stat SMB (os.path.isfile può dare falso negativo
-            # su file appena comparsi). stessa tecnica di tif_mtime.
             if scontorno and '_scont' not in codice.lower():
-                priority = [codice.lower() + '_scont', codice.lower()]
-            else:
-                priority = [codice.lower()]
-            dir_files: dict[str, str] = {}
-            try:
-                with os.scandir(cartella) as it:
-                    for entry in it:
-                        dir_files[entry.name.lower()] = entry.path
-            except OSError:
-                pass
-            for base in priority:
+                # tutti_scont: file _scont cercati via scandir (bypass SMB stat cache
+                # per file appena comparsi); canvas cercata con os.path.isfile come fallback
+                scont_found: dict[str, str] = {}
+                try:
+                    with os.scandir(cartella) as it:
+                        for entry in it:
+                            nl = entry.name.lower()
+                            for ext in ('.psd', '.jpg', '.jpeg'):
+                                if nl == codice.lower() + '_scont' + ext:
+                                    scont_found[ext] = entry.path
+                except OSError:
+                    pass
                 for ext in ('.psd', '.jpg', '.jpeg'):
-                    p = dir_files.get(base + ext)
-                    if p:
-                        actual = p
+                    if ext in scont_found:
+                        actual = scont_found[ext]
                         break
-                if actual:
-                    break
+                if actual is None:
+                    for ext in ('.psd', '.jpg', '.jpeg'):
+                        for base in (codice, codice.lower()):
+                            p = os.path.join(cartella, base + ext)
+                            if os.path.isfile(p):
+                                actual = p
+                                break
+                        if actual:
+                            break
+            else:
+                for ext in ('.psd', '.jpg', '.jpeg'):
+                    for base in (codice, codice.lower()):
+                        p = os.path.join(cartella, base + ext)
+                        if os.path.isfile(p):
+                            actual = p
+                            break
+                    if actual:
+                        break
         else:
             actual = path if os.path.isfile(path) else (path_lower if path_lower and os.path.isfile(path_lower) else None)
         if actual is None:

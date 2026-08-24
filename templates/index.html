@@ -5620,9 +5620,13 @@ function mostraParoleMenu(row, tr, btn) {
     menu.appendChild(b);
   });
   const rect = btn.getBoundingClientRect();
-  menu.style.top  = (rect.bottom + 4) + 'px';
   menu.style.left = rect.left + 'px';
+  menu.style.top  = (rect.bottom + 4) + 'px';
   menu.classList.add('show');
+  const mh = menu.offsetHeight;
+  if (rect.bottom + 4 + mh > window.innerHeight) {
+    menu.style.top = Math.max(4, rect.top - mh - 4) + 'px';
+  }
 }
 
 document.getElementById('scontParoleMenu').addEventListener('click', e => {
@@ -5632,9 +5636,13 @@ document.getElementById('scontParoleMenu').addEventListener('click', e => {
   document.getElementById('scontParoleMenu').classList.remove('show');
   const tipoMenu = document.getElementById('scontTipoMenu');
   const rect = _scontBtn ? _scontBtn.getBoundingClientRect() : b.getBoundingClientRect();
-  tipoMenu.style.top  = (rect.bottom + 4) + 'px';
   tipoMenu.style.left = rect.left + 'px';
+  tipoMenu.style.top  = (rect.bottom + 4) + 'px';
   tipoMenu.classList.add('show');
+  const mh = tipoMenu.offsetHeight;
+  if (rect.bottom + 4 + mh > window.innerHeight) {
+    tipoMenu.style.top = Math.max(4, rect.top - mh - 4) + 'px';
+  }
 });
 
 document.getElementById('scontTipoMenu').addEventListener('click', e => {
@@ -5652,9 +5660,13 @@ function mostraCatMenu(row, tr, btn) {
   _scontRow = row; _scontTr = tr;
   const menu = document.getElementById('scontCatMenu');
   const rect = btn.getBoundingClientRect();
-  menu.style.top  = (rect.bottom + 4) + 'px';
   menu.style.left = rect.left + 'px';
+  menu.style.top  = (rect.bottom + 4) + 'px';
   menu.classList.add('show');
+  const mh = menu.offsetHeight;
+  if (rect.bottom + 4 + mh > window.innerHeight) {
+    menu.style.top = Math.max(4, rect.top - mh - 4) + 'px';
+  }
 }
 
 document.getElementById('scontCatMenu').addEventListener('click', e => {

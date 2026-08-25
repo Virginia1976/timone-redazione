@@ -5611,7 +5611,17 @@ function mostraParoleMenu(row, tr, btn) {
   if (!row.personaggio) { showStatus('Inserisci prima il personaggio', 'warn'); return; }
   _scontRow = row; _scontTr = tr; _scontBtn = btn;
   const menu  = document.getElementById('scontParoleMenu');
-  const parole = [...new Set(row.personaggio.split(/\s+/).filter(p => p.length > 1))];
+  const _PART = new Set(['de','di','del','della','degli','dei','dello','lo','la','le','dal','dalla','dai','dalle','van','von','san','santa','d\'']);
+  const _wds = row.personaggio.trim().split(/\s+/);
+  const _grps = [];
+  for (let _i = 0; _i < _wds.length; _i++) {
+    if (_PART.has(_wds[_i].toLowerCase()) && _i + 1 < _wds.length) {
+      _grps.push(_wds[_i] + ' ' + _wds[_i + 1]); _i++;
+    } else {
+      _grps.push(_wds[_i]);
+    }
+  }
+  const parole = [...new Set(_grps)].filter(p => p.length > 1);
   menu.innerHTML = '';
   parole.forEach(parola => {
     const b = document.createElement('button');

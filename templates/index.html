@@ -172,6 +172,8 @@ body {
   background: var(--bg); border-radius: 10px; padding: 1px 7px;
 }
 .day-item .th-day-gialli { margin-left: auto; }
+.day-item .th-day-rossi  { margin-left: auto; }
+.day-item .th-day-gialli ~ .th-day-rossi { margin-left: 0; }
 
 /* Separatore nav */
 .nav-sep {
@@ -352,6 +354,13 @@ body {
   font-size: 11px; font-weight: 800; border-radius: 10px;
   padding: 1px 7px; line-height: 1.5; vertical-align: middle;
 }
+/* Badge rossi sui bottoni giorno */
+.th-day-rossi {
+  display: inline-block; margin-left: 6px;
+  background: #ef4444; color: #fff;
+  font-size: 11px; font-weight: 800; border-radius: 10px;
+  padding: 1px 7px; line-height: 1.5; vertical-align: middle;
+}
 /* Badge "da lavorare" (grigio) — solo account Redazione */
 .th-day-spunta {
   display: inline-block; margin-left: 6px;
@@ -469,6 +478,7 @@ body {
 .timone-table tr.row-giallo:hover td { background: #fdf0a0 !important; }
 .timone-table tr.row-grigio:hover td  { background: #b8c8d8 !important; }
 .timone-table tr.row-blu:hover td     { background: #bfdbfe !important; }
+.timone-table tr.row-rosso:hover td   { background: #fca5a5 !important; }
 
 .timone-table tbody td {
   padding: 12px 14px; vertical-align: middle; font-size: 16px;
@@ -542,14 +552,17 @@ body {
 .timone-table tr.row-giallo   td { background: #fef9c3 !important; }
 .timone-table tr.row-grigio   td { background: #c8d3de !important; }
 .timone-table tr.row-blu      td { background: #dbeafe !important; }
+.timone-table tr.row-rosso    td { background: #fee2e2 !important; }
 .timone-table tr.row-copiato  td { background: #f1f5f9 !important; color: #94a3b8 !important; font-style: italic; }
 .timone-table tr.row-giallo   td.td-azioni { background: #fef9c3 !important; }
 .timone-table tr.row-grigio   td.td-azioni { background: #c8d3de !important; }
 .timone-table tr.row-blu      td.td-azioni { background: #dbeafe !important; }
+.timone-table tr.row-rosso    td.td-azioni { background: #fee2e2 !important; }
 .timone-table tr.row-copiato  td.td-azioni { background: #f1f5f9 !important; }
 .timone-table tr.row-giallo:hover td.td-azioni { background: #fdf0a0 !important; }
 .timone-table tr.row-grigio:hover td.td-azioni { background: #b8c8d8 !important; }
 .timone-table tr.row-blu:hover td.td-azioni    { background: #bfdbfe !important; }
+.timone-table tr.row-rosso:hover td.td-azioni  { background: #fca5a5 !important; }
 
 /* ── Separatore sezioni ─────────────────────────────────────────────────────── */
 .row-separator td {
@@ -722,6 +735,7 @@ body {
 tr.row-giallo   .color-dot { background: #facc15; border-color: #d4a900; }
 tr.row-grigio   .color-dot { background: #94a3b8; border-color: #64748b; }
 tr.row-blu      .color-dot { background: #3b82f6; border-color: #1d4ed8; }
+tr.row-rosso    .color-dot { background: #ef4444; border-color: #dc2626; }
 tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 
 
@@ -1015,6 +1029,7 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 .ch-strip.strip-giallo   { background: #fde047; }
 .ch-strip.strip-grigio   { background: #9aafc4; }
 .ch-strip.strip-blu      { background: #60a5fa; }
+.ch-strip.strip-rosso    { background: #f87171; }
 .ch-strip.strip-nascosta { background: repeating-linear-gradient(
   90deg, #edf0f3 0px, #edf0f3 3px, #f8fafc 3px, #f8fafc 6px
 ); }
@@ -1063,9 +1078,11 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 .channel-card .timone-table tr.row-giallo:hover td { background: #fdf0a0 !important; }
 .channel-card .timone-table tr.row-grigio:hover td  { background: #b8c8d8 !important; }
 .channel-card .timone-table tr.row-blu:hover td     { background: #bfdbfe !important; }
+.channel-card .timone-table tr.row-rosso:hover td   { background: #fca5a5 !important; }
 .channel-card .timone-table tr.row-giallo:hover td.td-azioni { background: #fdf0a0 !important; }
 .channel-card .timone-table tr.row-grigio:hover td.td-azioni  { background: #b8c8d8 !important; }
 .channel-card .timone-table tr.row-blu:hover td.td-azioni     { background: #bfdbfe !important; }
+.channel-card .timone-table tr.row-rosso:hover td.td-azioni   { background: #fca5a5 !important; }
 .channel-card .timone-table td[contenteditable]:focus {
   box-shadow: inset 0 0 0 1.5px var(--ch, #64748b);
 }
@@ -1092,6 +1109,7 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
   border-bottom: 1px solid var(--border) !important;
 }
 .row-hidden-placeholder.row-giallo td { background: #fde047 !important; }
+.row-hidden-placeholder.row-rosso  td { background: #fca5a5 !important; }
 .row-hidden-inner {
   display: flex; align-items: center; gap: 8px;
   padding: 2px 14px; height: 100%;
@@ -2955,10 +2973,12 @@ function renderDaysGrid(timone) {
   const isRedazione = _ruolo === 'redazione';
   daysGrid.innerHTML = (meta.giorni || []).map(g => {
     const gialli = savedCounts[`${timone}_${g}`]?.gialli || 0;
+    const rossi  = savedCounts[`${timone}_${g}`]?.rossi  || 0;
     const dl     = savedCounts[`${timone}_${g}`]?.da_lavorare ?? 0;
-    const badge  = gialli > 0 ? ` <span class="th-day-gialli">${gialli}</span>` : '';
+    const badge   = gialli > 0 ? ` <span class="th-day-gialli">${gialli}</span>` : '';
+    const badgeR  = rossi  > 0 ? ` <span class="th-day-rossi">${rossi}</span>`   : '';
     const dlBadge = (isRedazione && dl > 0) ? ` <span class="th-day-spunta">${dl}</span>` : '';
-    return `<button class="th-day-btn" onclick="selectTimoneDay('${timone}','${g}')">${GIORNI_LABEL[g] || g}${badge}${dlBadge}</button>`;
+    return `<button class="th-day-btn" onclick="selectTimoneDay('${timone}','${g}')">${GIORNI_LABEL[g] || g}${badge}${badgeR}${dlBadge}</button>`;
   }).join('');
 }
 
@@ -3283,8 +3303,10 @@ async function openTimoneHome(timone) {
     btn.onclick = () => selectTimone(timone);
     const renderRivistaGialli = (counts) => {
       const g = counts[timone]?.gialli || 0;
-      const badge = g > 0 ? ` <span class="th-day-gialli">${g}</span>` : '';
-      document.getElementById('thWorkBtn').innerHTML = `Vai al timone →${badge}`;
+      const r = counts[timone]?.rossi  || 0;
+      const badge  = g > 0 ? ` <span class="th-day-gialli">${g}</span>` : '';
+      const badgeR = r > 0 ? ` <span class="th-day-rossi">${r}</span>`  : '';
+      document.getElementById('thWorkBtn').innerHTML = `Vai al timone →${badge}${badgeR}`;
     };
     renderRivistaGialli(savedCounts);
     fetch('/api/list' + weekParam()).then(r => r.json()).then(data => { savedCounts = data; renderRivistaGialli(data); }).catch(() => {});
@@ -3567,9 +3589,11 @@ function updateDayBar(timone, day) {
   }
   bar.querySelectorAll('.day-pill').forEach(p => {
     p.classList.toggle('active', p.dataset.day === day);
-    p.querySelectorAll('.th-day-gialli').forEach(b => b.remove());
+    p.querySelectorAll('.th-day-gialli, .th-day-rossi').forEach(b => b.remove());
     const g = savedCounts[`${timone}_${p.dataset.day}`]?.gialli || 0;
+    const r = savedCounts[`${timone}_${p.dataset.day}`]?.rossi  || 0;
     if (g > 0) p.insertAdjacentHTML('beforeend', `<span class="th-day-gialli">${g}</span>`);
+    if (r > 0) p.insertAdjacentHTML('beforeend', `<span class="th-day-rossi">${r}</span>`);
   });
   // Rinfresca con dati freschi in background (risolve race condition all'avvio)
   fetch('/api/list' + weekParam()).then(r => r.json()).then(data => {
@@ -4217,7 +4241,7 @@ function buildRow(row, i, tbody, colsOverride) {
   dot.className = 'color-dot';
   dot.title = row.colore === 'copiato' ? 'Non lavorata — clic per iniziare a lavorarla' : 'Cambia colore riga';
   dot.addEventListener('click', () => {
-    const cycle = currentTimone === 'dipiu' ? ['', 'blu', 'grigio', 'giallo', 'copiato'] : ['', 'grigio', 'giallo', 'copiato'];
+    const cycle = currentTimone === 'dipiu' ? ['', 'blu', 'grigio', 'giallo', 'rosso', 'copiato'] : ['', 'grigio', 'giallo', 'rosso', 'copiato'];
     const curr  = row.colore || '';
     const next  = cycle[(cycle.indexOf(curr) + 1) % cycle.length];
     setRowColor(tr, row, next);
@@ -4228,7 +4252,7 @@ function buildRow(row, i, tbody, colsOverride) {
       const allTrs = [...card.querySelectorAll('tbody tr')];
       const idx    = allTrs.indexOf(tr);
       const strip  = card.querySelectorAll('.ch-strip')[idx];
-      if (strip) strip.className = 'ch-strip ' + (next === 'giallo' ? 'strip-giallo' : next === 'grigio' ? 'strip-grigio' : next === 'blu' ? 'strip-blu' : 'strip-vuota');
+      if (strip) strip.className = 'ch-strip ' + (next === 'giallo' ? 'strip-giallo' : next === 'grigio' ? 'strip-grigio' : next === 'blu' ? 'strip-blu' : next === 'rosso' ? 'strip-rosso' : 'strip-vuota');
     }
     // Il cambio colore viene salvato subito (full save) per garantire
     // che il mtime cambi e l'altro browser riceva la notifica
@@ -4453,7 +4477,7 @@ function buildChannelGroupView(container, groupField = 'canale') {
           if (row.colore) tr.classList.add(`row-${row.colore}`);
         }
         const strip = allStrips[idx];
-        if (strip) strip.className = 'ch-strip ' + (row.nascosta ? 'strip-nascosta' : row.colore === 'giallo' ? 'strip-giallo' : row.colore === 'grigio' ? 'strip-grigio' : row.colore === 'blu' ? 'strip-blu' : 'strip-vuota');
+        if (strip) strip.className = 'ch-strip ' + (row.nascosta ? 'strip-nascosta' : row.colore === 'giallo' ? 'strip-giallo' : row.colore === 'grigio' ? 'strip-grigio' : row.colore === 'blu' ? 'strip-blu' : row.colore === 'rosso' ? 'strip-rosso' : 'strip-vuota');
       });
       // aggiorna testo pulsanti espandi/comprimi senza re-render completo
       const { part1Rows, part2Rows, hasSeparator } = getGroupedParts();
@@ -4475,7 +4499,7 @@ function buildChannelGroupView(container, groupField = 'canale') {
     strips.className = 'channel-mini-strips';
     group.rows.forEach(row => {
       const s = document.createElement('div');
-      s.className = 'ch-strip ' + (row.nascosta ? 'strip-nascosta' : row.colore === 'giallo' ? 'strip-giallo' : row.colore === 'grigio' ? 'strip-grigio' : row.colore === 'blu' ? 'strip-blu' : 'strip-vuota');
+      s.className = 'ch-strip ' + (row.nascosta ? 'strip-nascosta' : row.colore === 'giallo' ? 'strip-giallo' : row.colore === 'grigio' ? 'strip-grigio' : row.colore === 'blu' ? 'strip-blu' : row.colore === 'rosso' ? 'strip-rosso' : 'strip-vuota');
       strips.appendChild(s);
     });
     card.appendChild(strips);
@@ -5409,11 +5433,15 @@ function aggiornaNavBadgeGialli(counts) {
     // Totale sul pulsante principale
     const nameBtn = document.querySelector(`.nav-tab-name[data-timone="${timone}"]`);
     if (nameBtn) {
-      nameBtn.querySelectorAll('.th-day-gialli, .th-day-spunta').forEach(b => b.remove());
+      nameBtn.querySelectorAll('.th-day-gialli, .th-day-rossi, .th-day-spunta').forEach(b => b.remove());
       const tot = Object.entries(counts)
         .filter(([k]) => k.startsWith(timone + '_'))
         .reduce((s, [, v]) => s + (v.gialli || 0), 0);
+      const totR = Object.entries(counts)
+        .filter(([k]) => k.startsWith(timone + '_'))
+        .reduce((s, [, v]) => s + (v.rossi || 0), 0);
       if (tot > 0) nameBtn.insertAdjacentHTML('beforeend', `<span class="th-day-gialli">${tot}</span>`);
+      if (totR > 0) nameBtn.insertAdjacentHTML('beforeend', `<span class="th-day-rossi">${totR}</span>`);
       if (isRedazione) {
         const dl = Object.entries(counts)
           .filter(([k]) => k.startsWith(timone + '_'))
@@ -5427,9 +5455,11 @@ function aggiornaNavBadgeGialli(counts) {
     dd.querySelectorAll('.day-item[data-giorno]').forEach(btn => {
       const giorno = btn.dataset.giorno;
       const g  = counts[`${timone}_${giorno}`]?.gialli || 0;
+      const r  = counts[`${timone}_${giorno}`]?.rossi  || 0;
       const dl = counts[`${timone}_${giorno}`]?.da_lavorare ?? 0;
-      btn.querySelectorAll('.th-day-gialli, .th-day-spunta').forEach(b => b.remove());
+      btn.querySelectorAll('.th-day-gialli, .th-day-rossi, .th-day-spunta').forEach(b => b.remove());
       if (g  > 0) btn.insertAdjacentHTML('beforeend', `<span class="th-day-gialli">${g}</span>`);
+      if (r  > 0) btn.insertAdjacentHTML('beforeend', `<span class="th-day-rossi">${r}</span>`);
       if (isRedazione && dl > 0) btn.insertAdjacentHTML('beforeend', `<span class="th-day-spunta">${dl}</span>`);
     });
   });
@@ -5438,9 +5468,11 @@ function aggiornaNavBadgeGialli(counts) {
   if (currentTimone && dayBar?.classList.contains('visible')) {
     dayBar.querySelectorAll('.day-pill').forEach(p => {
       const g  = counts[`${currentTimone}_${p.dataset.day}`]?.gialli || 0;
+      const r  = counts[`${currentTimone}_${p.dataset.day}`]?.rossi  || 0;
       const dl = counts[`${currentTimone}_${p.dataset.day}`]?.da_lavorare ?? 0;
-      p.querySelectorAll('.th-day-gialli, .th-day-spunta').forEach(b => b.remove());
+      p.querySelectorAll('.th-day-gialli, .th-day-rossi, .th-day-spunta').forEach(b => b.remove());
       if (g  > 0) p.insertAdjacentHTML('beforeend', `<span class="th-day-gialli">${g}</span>`);
+      if (r  > 0) p.insertAdjacentHTML('beforeend', `<span class="th-day-rossi">${r}</span>`);
       if (isRedazione && dl > 0) p.insertAdjacentHTML('beforeend', `<span class="th-day-spunta">${dl}</span>`);
     });
   }
@@ -5448,10 +5480,12 @@ function aggiornaNavBadgeGialli(counts) {
   ['nuovo', 'dipiu', 'divadonna'].forEach(timone => {
     const btn = document.querySelector(`.nav-tab[data-timone="${timone}"]`);
     if (!btn) return;
-    btn.querySelectorAll('.th-day-gialli, .th-day-spunta').forEach(b => b.remove());
+    btn.querySelectorAll('.th-day-gialli, .th-day-rossi, .th-day-spunta').forEach(b => b.remove());
     const g  = counts[timone]?.gialli || 0;
+    const r  = counts[timone]?.rossi  || 0;
     const dl = counts[timone]?.da_lavorare ?? 0;
     if (g  > 0) btn.insertAdjacentHTML('beforeend', `<span class="th-day-gialli">${g}</span>`);
+    if (r  > 0) btn.insertAdjacentHTML('beforeend', `<span class="th-day-rossi">${r}</span>`);
     if (isRedazione && dl > 0) btn.insertAdjacentHTML('beforeend', `<span class="th-day-spunta">${dl}</span>`);
   });
 }

@@ -463,6 +463,7 @@ def list_timoni():
                 saved[f.stem] = {
                     'total':       len(rows),
                     'gialli':      sum(1 for r in rows if r.get('colore') == 'giallo'),
+                    'rossi':       sum(1 for r in rows if r.get('colore') == 'rosso'),
                     'da_lavorare': sum(1 for r in rows if not r.get('spunta') and not r.get('_separator')),
                 }
             except Exception:

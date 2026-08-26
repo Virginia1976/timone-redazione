@@ -725,7 +725,11 @@ def _cast_da_titolo(titolo: str) -> list:
             shows = data.get(chiave, [])
             if not shows:
                 continue
-            match = next((s for s in shows if (s.get('titolo') or '').lower() == titolo_low), None)
+            match = next(
+                (s for s in shows if (s.get('titolo') or '').lower() == titolo_low),
+                next((s for s in shows if len(s.get('titolo') or '') >= 5
+                      and (s.get('titolo') or '').lower() in titolo_low), None)
+            )
             if match is None:
                 continue
             cast_str = match.get('cast') or ''

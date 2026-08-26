@@ -707,10 +707,10 @@ def autocomplete_titoli():
 
 
 def _cast_da_titolo(titolo: str) -> list:
-    """Cerca lo show per titolo in InfoTv e restituisce i nomi del cast (già invertiti)."""
+    """Cerca il titolo in InfoTv (TV, film, sport) e restituisce i nomi del cast."""
     body = {
         "text": titolo,
-        "film": False, "tv": True, "personaggi": False, "sport": False,
+        "film": True, "tv": True, "personaggi": False, "sport": True,
         "filter": "1", "scheda": True, "foto": False,
         "tvmenu": False, "onlyfoto": False, "usableByTvmenu": False,
         "incomplete": False, "parameters": [], "area": None,
@@ -719,15 +719,21 @@ def _cast_da_titolo(titolo: str) -> list:
         r = _prjdia.post(PRJDIA_SEARCH_API, json=body, timeout=8)
         if r.status_code != 200:
             return []
-        shows = r.json().get('listaSchedeTv', [])
-        if not shows:
-            return []
+        data = r.json()
         titolo_low = titolo.lower()
-        match = next((s for s in shows if (s.get('titolo') or '').lower() == titolo_low), shows[0])
-        cast_str = match.get('cast') or ''
-        print(f'[AC-P CAST] show={match.get("titolo")!r} cast={cast_str[:120]!r}')
-        nomi = [p.strip() for p in cast_str.split(';') if p.strip()]
-        return nomi
+        for chiave in ('listaSchedeTv', 'listaSchedeCinema', 'listaSchedeSport'):
+            shows = data.get(chiave, [])
+            if not shows:
+                continue
+            match = next((s for s in shows if (s.get('titolo') or '').lower() == titolo_low), None)
+            if match is None:
+                continue
+            cast_str = match.get('cast') or ''
+            print(f'[AC-P CAST/{chiave}] show={match.get("titolo")!r} cast={cast_str[:120]!r}')
+            nomi = [p.strip() for p in cast_str.split(';') if p.strip()]
+            if nomi:
+                return nomi
+        return []
     except Exception as e:
         print(f'[AC-P CAST] errore: {e}')
         return []
@@ -774,8 +780,8 @@ def autocomplete_personaggi():
                     'professione': (item.get('professione') or '').strip(),
                 })
 
-        # ── 2. cast dallo show del titolo corrente (solo se nessun risultato) ────
-        if not suggestions and titolo:
+        # ── 2. cast dallo show del titolo corrente (sempre, se disponibile) ────
+        if titolo:
             q_low = q.lower()
             for nome in _cast_da_titolo(titolo):
                 if nome and q_low in nome.lower() and nome not in seen:

@@ -5201,7 +5201,10 @@ function applyAc(item) {
   // Tipo
   const sel = _acTr.querySelector('.tipo-select');
   if (sel) {
-    const val = item.codtipo === 'FILM' ? 'Film' : 'Programma TV';
+    const _tipoLow = (item.tipo || '').toLowerCase();
+    const isFilm = item.codtipo === 'FILM' || item.codtipo === 'FILMTV'
+                || _tipoLow.startsWith('film') || _tipoLow.startsWith('corto');
+    const val = isFilm ? 'Film' : 'Programma TV';
     sel.value = val;
     _acRow.tipo = val;
     const display = _acTr.querySelector('.tipo-display');

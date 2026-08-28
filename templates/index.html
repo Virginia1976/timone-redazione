@@ -5020,7 +5020,7 @@ async function fetchInitialMtimes(cartella) {
     _newCodici = new Set(data._new || []);
     const { _new: _, ...mtimes } = data;
     _initialMtimes = mtimes;
-    _newCodici.forEach(c => applyNewBadge(c));
+    _newCodici.forEach(c => { applyNewBadge(c); applyNewGrey(c); });
   } catch {}
 }
 
@@ -5036,7 +5036,7 @@ async function checkMtimes(cartella) {
     const newSet = new Set(data._new || []);
 
     // Aggiorna badge _NEW
-    newSet.forEach(c => { if (!_newCodici.has(c)) { _newCodici.add(c); applyNewBadge(c); } });
+    newSet.forEach(c => { if (!_newCodici.has(c)) { _newCodici.add(c); applyNewBadge(c); applyNewGrey(c); } });
     [..._newCodici].forEach(c => { if (!newSet.has(c)) { _newCodici.delete(c); removeNewBadge(c); } });
 
     Object.entries(data).forEach(([codice, mtime]) => {
@@ -5060,9 +5060,28 @@ async function checkMtimes(cartella) {
       }
       _initialMtimes[codice] = mtime;
       const thumbCodice = _newCodici.has(codice) ? codice + '_NEW' : codice;
-      updateSingleThumb(img, thumbCodice, img?.dataset.cartella || getCartella());
+      const thumbCartella = img?.dataset.cartella || getCartella();
+      updateSingleThumb(img, thumbCodice, thumbCartella);
+      // Se il file è appena comparso, qlmanage potrebbe non aver ancora generato
+      // la miniatura: retry dopo 6s solo se il placeholder è ancora visibile.
+      if (appeared) setTimeout(() => {
+        const img2 = document.querySelector(`img.codice-thumb[data-codice="${thumbCodice}"]`);
+        if (img2 && img2.src === THUMB_PH) updateSingleThumb(img2, thumbCodice, thumbCartella);
+      }, 6000);
     });
   } catch {}
+}
+
+function applyNewGrey(codice) {
+  // applyNewBadge() may have already changed dataset.codice to codice+'_NEW'
+  let img = document.querySelector(`img.codice-thumb[data-codice="${codice}"]`);
+  if (!img) img = document.querySelector(`img.codice-thumb[data-codice="${codice}_NEW"]`);
+  const tr  = img?.closest('tr');
+  const row = currentRows.find(r => r.codice === codice);
+  if (currentTimone !== 'dipiu' && row && tr && (row.colore === '' || row.colore === 'giallo' || !row.colore)) {
+    setRowColor(tr, row, 'grigio');
+    markDirty();
+  }
 }
 
 function applyNewBadge(codice) {

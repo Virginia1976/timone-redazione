@@ -2927,6 +2927,7 @@ let isArchiveView    = false;
 let _archiveWeek     = null;   // {week_id,dal,al} della settimana archivio aperta
 let _saveTimer       = null;
 let _lastSavedRows   = null;
+let _loadGen         = 0;   // incrementato ad ogni caricaTimone; previene race condition su navigazione rapida
 let savedCounts      = {};   // chiave → conteggio righe
 let expandedChannels   = new Set(); // canali espansi nella vista a card
 
@@ -3620,15 +3621,18 @@ function updateAccentColor(color) {
 
 // ── Carica / Salva ────────────────────────────────────────────────────────────
 async function caricaTimone() {
+  const myGen = ++_loadGen;
   const key  = storageKey();
   if (!key) return;
 
+  clearTimeout(_saveTimer);  // annulla autosave pendente del timone precedente
   stopMtimePolling();
   stopRemotePolling();
   hideDiffPanel();
 
   // Aggiorna la settimana globale, ma rispetta la scelta locale SOLO se esplicita
   await fetchWeek(currentTimone);  // aggiorna _globalWeek
+  if (myGen !== _loadGen) return;  // navigazione più recente già avviata
   if (!_localWeekOverride || !currentWeek?.week_id || currentWeek.week_id === _globalWeek?.week_id) {
     currentWeek = _globalWeek;
     _localWeekOverride = false;
@@ -3637,13 +3641,16 @@ async function caricaTimone() {
   try {
     const res  = await fetch(`/api/load/${key}${weekParam()}`);
     const data = await res.json();
+    if (myGen !== _loadGen) return;  // navigazione più recente già avviata
     currentRows = applyTemplate(key, data.rows || []);
   } catch (e) {
+    if (myGen !== _loadGen) return;
     currentRows = applyTemplate(key, []);
   }
   _lastSavedRows = JSON.parse(JSON.stringify(currentRows.filter(r => !r._separator)));
 
   _ackedMtime = await fetchMtime(key);
+  if (myGen !== _loadGen) return;
 
   renderTable();
   updateBadge();

@@ -813,32 +813,27 @@ def tif_thumb():
         if is_scont:
             actual = None
             if scontorno and '_scont' not in codice.lower():
-                # tutti_scont: file _scont cercati via scandir (bypass SMB stat cache
-                # per file appena comparsi); canvas cercata con os.path.isfile come fallback
-                scont_found: dict[str, str] = {}
-                try:
-                    with os.scandir(cartella) as it:
-                        for entry in it:
-                            nl = entry.name.lower()
-                            for ext in ('.psd', '.jpg', '.jpeg'):
-                                if nl == codice.lower() + '_scont' + ext:
-                                    scont_found[ext] = entry.path
-                except OSError:
-                    pass
-                for ext in ('.psd', '.jpg', '.jpeg'):
-                    if ext in scont_found:
-                        actual = scont_found[ext]
-                        break
-                if actual is None:
-                    for ext in ('.psd', '.jpg', '.jpeg'):
-                        for base in (codice, codice.lower()):
-                            p = os.path.join(cartella, base + ext)
-                            if os.path.isfile(p):
-                                actual = p
-                                break
-                        if actual:
-                            break
+                # tutti_scont: file _scont cercati via scandir con prefix match
+                # (bypass SMB stat cache per file appena comparsi); canvas come fallback
+                prefix = codice.lower() + '_scont'
             else:
+                prefix = codice.lower()
+            scont_found: dict[str, str] = {}
+            try:
+                with os.scandir(cartella) as it:
+                    for entry in it:
+                        nl = entry.name.lower()
+                        stem, ext = os.path.splitext(nl)
+                        if ext in ('.psd', '.jpg', '.jpeg') and _stem_matches(stem, prefix):
+                            scont_found.setdefault(ext, entry.path)
+            except OSError:
+                pass
+            for ext in ('.psd', '.jpg', '.jpeg'):
+                if ext in scont_found:
+                    actual = scont_found[ext]
+                    break
+            if actual is None and scontorno and '_scont' not in codice.lower():
+                # fallback canvas (file senza _scont)
                 for ext in ('.psd', '.jpg', '.jpeg'):
                     for base in (codice, codice.lower()):
                         p = os.path.join(cartella, base + ext)
@@ -893,6 +888,17 @@ def tif_thumb():
 
 
 
+def _stem_matches(stem: str, prefix: str) -> bool:
+    """True se lo stem del file (senza estensione, minuscolo) corrisponde al prefisso del codice.
+    Accetta suffissi come ' (2026)' o ' (s1)' ma rifiuta caratteri alfanumerici o '_' subito dopo."""
+    if stem == prefix:
+        return True
+    if not stem.startswith(prefix):
+        return False
+    c = stem[len(prefix)]
+    return c != '_' and not c.isalnum()
+
+
 @app.route('/tif_mtime', methods=['POST'])
 def tif_mtime():
     data        = request.json or {}
@@ -909,43 +915,56 @@ def tif_mtime():
             by_cartella.setdefault(cartella, []).append(codice)
 
     def _scan_dir(cartella: str, codici: list[str]) -> tuple[dict[str, int | None], list[str]]:
-        wanted: dict[str, str] = {}
-        new_wanted: dict[str, str] = {}
+        SCONT_EXTS = {'.psd', '.jpg', '.jpeg'}
+        tif_exact: dict[str, str] = {}
+        scont_prefixes: list[tuple[str, str]] = []  # (prefix_lc, codice)
+
         for c in codici:
-            wanted[c.lower() + '.tif'] = c
+            tif_exact[c.lower() + '.tif'] = c
             if '_scont' in c.lower() or tutti_scont:
                 if tutti_scont and '_scont' not in c.lower():
                     # Per tutti_scont: traccia solo i file _scont, non il canvas
-                    wanted[c.lower() + '_scont.psd']  = c
-                    wanted[c.lower() + '_scont.jpg']  = c
-                    wanted[c.lower() + '_scont.jpeg'] = c
+                    prefix = c.lower() + '_scont'
                 else:
-                    wanted[c.lower() + '.psd']  = c
-                    wanted[c.lower() + '.jpg']  = c
-                    wanted[c.lower() + '.jpeg'] = c
-                new_wanted[c.lower() + '_new.psd']  = c
-                new_wanted[c.lower() + '_new.jpg']  = c
-                new_wanted[c.lower() + '_new.jpeg'] = c
+                    prefix = c.lower()
+                scont_prefixes.append((prefix, c))
+
         out = {c: None for c in codici}
         new_set: set[str] = set()
         try:
             with os.scandir(cartella) as it:
                 for entry in it:
                     name_lc = entry.name.lower()
-                    c = new_wanted.get(name_lc)
+                    # .tif: match esatto
+                    c = tif_exact.get(name_lc)
                     if c is not None:
-                        new_set.add(c)
                         try:
                             out[c] = round(entry.stat(follow_symlinks=False).st_mtime)
                         except OSError:
                             pass
                         continue
-                    c = wanted.get(name_lc)
-                    if c is not None and out[c] is None:
-                        try:
-                            out[c] = round(entry.stat(follow_symlinks=False).st_mtime)
-                        except OSError:
-                            pass
+                    # scont: prefix match (accetta suffissi anno/stagione come " (2026)" o " (s1)")
+                    if not scont_prefixes:
+                        continue
+                    stem_lc, ext_lc = os.path.splitext(name_lc)
+                    if ext_lc not in SCONT_EXTS:
+                        continue
+                    is_new = stem_lc.endswith('_new')
+                    base_stem = stem_lc[:-4] if is_new else stem_lc
+                    for prefix, c in scont_prefixes:
+                        if _stem_matches(base_stem, prefix):
+                            if is_new:
+                                new_set.add(c)
+                                try:
+                                    out[c] = round(entry.stat(follow_symlinks=False).st_mtime)
+                                except OSError:
+                                    pass
+                            elif out[c] is None:
+                                try:
+                                    out[c] = round(entry.stat(follow_symlinks=False).st_mtime)
+                                except OSError:
+                                    pass
+                            break
         except OSError:
             pass
         return out, list(new_set)

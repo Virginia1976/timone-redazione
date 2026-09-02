@@ -814,6 +814,12 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
   padding: 6px 14px 6px 18px;
   background: #faf5ff; border-bottom: 1px solid #e9d5ff;
   font-size: 12px;
+  position: sticky;
+  top: calc(var(--header-h) + var(--nav-h));
+  z-index: 70;
+}
+#dayBar.visible ~ #timone-section .admin-bar {
+  top: calc(var(--header-h) + var(--nav-h) + var(--day-h));
 }
 .admin-bar-label { font-weight: 600; color: #7c3aed; white-space: nowrap; }
 .admin-bar-sep { color: var(--border); margin: 0 2px; }
@@ -3774,13 +3780,14 @@ function renderTable() {
   // Titolo sezione
   document.getElementById('sectionTitle').textContent = meta.label;
   document.getElementById('sectionDot').style.background = meta.colore;
+  const isTVGiorni = ['nuovotv','dipiutv','tvmia'].includes(currentTimone);
   const dayLbl = currentDay ? GIORNI_LABEL[currentDay] || currentDay : '';
   document.getElementById('sectionDayLabel').textContent =
+    (isTVGiorni && currentDay && currentDay !== 'scontorni') ?
+      formatGiornoLabel(currentDay).replace(/^./, c => c.toUpperCase()) :
     dayLbl ? `Settimana · ${dayLbl}` :
     meta?.tipo === 'tv-unico' ? 'Settimana · Sab–Ven' : 'Segnalazioni';
-  const isTVGiorni = ['nuovotv','dipiutv','tvmia'].includes(currentTimone);
-  document.getElementById('sectionWeekLabel').textContent =
-    (isTVGiorni && currentDay && currentDay !== 'scontorni') ? formatGiornoLabel(currentDay) : formatWeekLabel();
+  document.getElementById('sectionWeekLabel').textContent = formatWeekLabel();
 
   // Badge
   updateBadge();
@@ -4569,9 +4576,18 @@ function markDirty() {
 
 // ── Badge ─────────────────────────────────────────────────────────────────────
 function updateBadge() {
-  const meta  = TIMONI_META[currentTimone] || {};
-  const day   = currentDay ? ` · ${GIORNI_LABEL[currentDay] || currentDay}` : '';
-  document.getElementById('badgeText').textContent = (meta.label || '') + day;
+  const meta = TIMONI_META[currentTimone] || {};
+  const isTVGiorni = ['nuovotv','dipiutv','tvmia'].includes(currentTimone);
+  let dayStr = '';
+  if (currentDay) {
+    if (isTVGiorni && currentDay !== 'scontorni') {
+      const full = formatGiornoLabel(currentDay);
+      dayStr = full ? ` · ${full.replace(/^./, c => c.toUpperCase())}` : ` · ${GIORNI_LABEL[currentDay] || currentDay}`;
+    } else {
+      dayStr = ` · ${GIORNI_LABEL[currentDay] || currentDay}`;
+    }
+  }
+  document.getElementById('badgeText').textContent = (meta.label || '') + dayStr;
 }
 
 // ── Esporta ───────────────────────────────────────────────────────────────────

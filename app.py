@@ -1051,7 +1051,7 @@ def cerca_scontorno_titolo():
         return jsonify({'results': [], 'error': 'cartella non trovata'})
 
     titolo_lower = unicodedata.normalize('NFC', strip_articolo(titolo)).lower()
-    is_serie = categoria in ('serie', 'soap', 'cartoni', 'documentari')
+    is_serie = categoria in ('serie', 'soap', 'cartoni')
     results: list[dict] = []
     try:
         for f in cartella.rglob('*'):

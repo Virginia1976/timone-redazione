@@ -821,6 +821,8 @@ def tif_thumb():
                 prefix = base_lc + '_scont'
             else:
                 prefix = codice.lower()
+                if prefix.endswith('_new'):
+                    prefix = prefix[:-4]
             scont_found: dict[str, str] = {}
             try:
                 with os.scandir(cartella) as it:

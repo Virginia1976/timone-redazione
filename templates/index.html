@@ -5075,7 +5075,8 @@ async function checkMtimes(cartella) {
       if (modified) console.log(`[auto-grigio] ${codice}: mtime +${mtime - init}s (${init} → ${mtime})`);
 
       const row = currentRows.find(r => r.codice === codice);
-      const img = document.querySelector(`img.codice-thumb[data-codice="${codice}"]`);
+      const img = document.querySelector(`img.codice-thumb[data-codice="${codice}"]`)
+               || document.querySelector(`img.codice-thumb[data-codice="${codice}_NEW"]`);
       const tr  = img?.closest('tr');
       if (currentTimone !== 'dipiu' && row && tr && (row.colore === '' || row.colore === 'giallo' || !row.colore)) {
         setRowColor(tr, row, 'grigio');
@@ -5116,7 +5117,8 @@ function applyNewBadge(codice) {
 }
 
 function removeNewBadge(codice) {
-  const img  = document.querySelector(`img.codice-thumb[data-codice="${codice}"]`);
+  let img  = document.querySelector(`img.codice-thumb[data-codice="${codice}"]`);
+  if (!img) img = document.querySelector(`img.codice-thumb[data-codice="${codice}_NEW"]`);
   const wrap = img?.closest('.codice-wrap');
   if (!wrap) return;
   delete wrap.dataset.isNew;

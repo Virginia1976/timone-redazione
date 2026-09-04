@@ -815,7 +815,10 @@ def tif_thumb():
             if scontorno and '_scont' not in codice.lower():
                 # tutti_scont: file _scont cercati via scandir con prefix match
                 # (bypass SMB stat cache per file appena comparsi); canvas come fallback
-                prefix = codice.lower() + '_scont'
+                # strip _NEW suffix (marker UI) prima di costruire il prefix
+                codice_lc = codice.lower()
+                base_lc = codice_lc[:-4] if codice_lc.endswith('_new') else codice_lc
+                prefix = base_lc + '_scont'
             else:
                 prefix = codice.lower()
             scont_found: dict[str, str] = {}
@@ -824,8 +827,11 @@ def tif_thumb():
                     for entry in it:
                         nl = entry.name.lower()
                         stem, ext = os.path.splitext(nl)
-                        if ext in ('.psd', '.jpg', '.jpeg') and _stem_matches(stem, prefix):
-                            scont_found.setdefault(ext, entry.path)
+                        if ext in ('.psd', '.jpg', '.jpeg'):
+                            # strip _new dal stem (come fa tif_mtime) per matchare lun_03_scont_new.psd
+                            match_stem = stem[:-4] if stem.endswith('_new') else stem
+                            if _stem_matches(match_stem, prefix):
+                                scont_found.setdefault(ext, entry.path)
             except OSError:
                 pass
             for ext in ('.psd', '.jpg', '.jpeg'):

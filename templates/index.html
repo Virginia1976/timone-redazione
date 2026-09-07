@@ -1461,6 +1461,7 @@ body.sola-lettura .btn-copy-col { display: none; }
 
   <div class="header-center">
     <div id="currentBadge">
+      <img id="badgeLogo" style="height:28px;width:auto;object-fit:contain;flex-shrink:0;display:none;border-radius:4px">
       <span id="badgeDot" style="width:9px;height:9px;border-radius:50%;background:var(--accent);flex-shrink:0"></span>
       <span id="badgeText">—</span>
       <span class="unsaved-dot" id="unsavedDot"></span>
@@ -1880,15 +1881,15 @@ body.sola-lettura .btn-copy-col { display: none; }
 <script>
 // ── Configurazione ────────────────────────────────────────────────────────────
 const TIMONI_META = {
-  nuovotv:   { label:'NuovoTV',     tipo:'tv',      colore:'#FF6B35', icona:'📺',
+  nuovotv:   { label:'NuovoTV',     tipo:'tv',      colore:'#FF6B35', icona:'📺', logo:'loghi/nuovotv.png',
                giorni:['sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi','compleanni'] },
-  dipiutv:   { label:'DipiùTV',     tipo:'tv',      colore:'#7C3AED', icona:'📺',
+  dipiutv:   { label:'DipiùTV',     tipo:'tv',      colore:'#7C3AED', icona:'📺', logo:'loghi/dipiutv.png',
                giorni:['sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi','biscotti'] },
-  tvmia:     { label:'TvMia',       tipo:'tv',      colore:'#0891B2', icona:'📺',
+  tvmia:     { label:'TvMia',       tipo:'tv',      colore:'#0891B2', icona:'📺', logo:'loghi/tvmia.png',
                giorni:['scontorni','sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi','streaming'] },
-  nuovo:     { label:'Nuovo',       tipo:'tv-unico', colore:'#059669', icona:'📺' },
-  dipiu:     { label:'Dipiu',       tipo:'rivista', colore:'#DB2777', icona:'📰' },
-  divadonna: { label:'Diva e Donna',tipo:'rivista', colore:'#E11D48', icona:'📰' },
+  nuovo:     { label:'Nuovo',       tipo:'tv-unico', colore:'#059669', icona:'📺', logo:'loghi/nuovo.png' },
+  dipiu:     { label:'Dipiu',       tipo:'rivista', colore:'#DB2777', icona:'📰', logo:'loghi/dipiu.png' },
+  divadonna: { label:'Diva e Donna',tipo:'rivista', colore:'#E11D48', icona:'📰', logo:'loghi/divadonna.png' },
 };
 
 const GIORNI_LABEL = {
@@ -3343,6 +3344,7 @@ async function openTimoneHome(timone) {
   // Badge header
   document.getElementById('currentBadge').classList.add('visible');
   document.getElementById('badgeText').textContent = meta.label;
+  updateBadgeLogo(timone);
   document.getElementById('btnSave').disabled   = true;
   document.getElementById('btnExport').disabled = true;
 
@@ -3667,6 +3669,20 @@ function updateAccentColor(color) {
   document.getElementById('badgeDot').style.background = color;
 }
 
+function updateBadgeLogo(timone) {
+  const meta = TIMONI_META[timone];
+  const img  = document.getElementById('badgeLogo');
+  const dot  = document.getElementById('badgeDot');
+  if (meta && meta.logo) {
+    img.src = '/static/' + meta.logo;
+    img.style.display = 'block';
+    dot.style.display = 'none';
+  } else {
+    img.style.display = 'none';
+    dot.style.display = 'block';
+  }
+}
+
 // ── Carica / Salva ────────────────────────────────────────────────────────────
 async function caricaTimone() {
   const myGen = ++_loadGen;
@@ -3711,6 +3727,7 @@ async function caricaTimone() {
   document.getElementById('timone-home').style.display    = 'none';
   document.getElementById('timone-section').style.display = 'block';
   document.getElementById('currentBadge').classList.add('visible');
+  updateBadgeLogo(currentTimone);
 
   applyClosedState(chiusa);
 

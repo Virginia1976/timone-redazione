@@ -209,6 +209,12 @@ body {
   background: var(--accent); color: #fff; border-color: var(--accent);
   box-shadow: 0 2px 8px rgba(255,107,53,.3);
 }
+.day-pill .day-date-label {
+  font-size: 10px; font-weight: 500; opacity: .65; margin-left: 2px;
+}
+.day-item .day-date-label {
+  font-size: 12px; font-weight: 400; opacity: .6; margin-left: 2px;
+}
 
 /* ── Welcome screen ────────────────────────────────────────────────────────── */
 #welcome {
@@ -337,6 +343,9 @@ body {
   border-color: var(--accent); color: var(--accent);
   background: var(--accent-light); transform: translateY(-3px);
   box-shadow: 0 8px 24px rgba(0,0,0,.10);
+}
+.th-day-btn .day-date-label {
+  display: block; font-size: 11px; font-weight: 400; opacity: .6; margin-top: 3px;
 }
 .th-work-btn {
   width: 100%; padding: 17px; border-radius: 14px;
@@ -2978,6 +2987,8 @@ function renderDaysGrid(timone) {
   const daysGrid = document.getElementById('thDaysGrid');
   if (!meta || !daysGrid) return;
   const isRedazione = _ruolo === 'redazione';
+  const offsets = { sabato:0, domenica:1, lunedi:2, martedi:3, mercoledi:4, giovedi:5, venerdi:6 };
+  const mesi = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
   daysGrid.innerHTML = (meta.giorni || []).map(g => {
     const gialli = savedCounts[`${timone}_${g}`]?.gialli || 0;
     const rossi  = savedCounts[`${timone}_${g}`]?.rossi  || 0;
@@ -2985,7 +2996,14 @@ function renderDaysGrid(timone) {
     const badge   = gialli > 0 ? ` <span class="th-day-gialli">${gialli}</span>` : '';
     const badgeR  = rossi  > 0 ? ` <span class="th-day-rossi">${rossi}</span>`   : '';
     const dlBadge = (isRedazione && dl > 0) ? ` <span class="th-day-spunta">${dl}</span>` : '';
-    return `<button class="th-day-btn" onclick="selectTimoneDay('${timone}','${g}')">${GIORNI_LABEL[g] || g}${badge}${badgeR}${dlBadge}</button>`;
+    let dateSpan = '';
+    const off = offsets[g];
+    if (off !== undefined && currentWeek?.dal) {
+      const d = new Date(currentWeek.dal + 'T12:00:00');
+      d.setDate(d.getDate() + off);
+      dateSpan = ` <span class="day-date-label">${d.getDate()} ${mesi[d.getMonth()]} ${d.getFullYear()}</span>`;
+    }
+    return `<button class="th-day-btn" onclick="selectTimoneDay('${timone}','${g}')">${GIORNI_LABEL[g] || g}${dateSpan}${badge}${badgeR}${dlBadge}</button>`;
   }).join('');
 }
 
@@ -3371,8 +3389,28 @@ function formatGiornoLabel(giorno) {
   return d.toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 }
 
+function updateDayLabels() {
+  const offsets = { sabato:0, domenica:1, lunedi:2, martedi:3, mercoledi:4, giovedi:5, venerdi:6 };
+  const mesi = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+  document.querySelectorAll('.day-pill[data-day], .day-item[data-giorno]').forEach(btn => {
+    const key = btn.dataset.day || btn.dataset.giorno;
+    const off = offsets[key];
+    btn.querySelectorAll('.day-date-label').forEach(s => s.remove());
+    if (off === undefined || !currentWeek?.dal) return;
+    const d = new Date(currentWeek.dal + 'T12:00:00');
+    d.setDate(d.getDate() + off);
+    const span = document.createElement('span');
+    span.className = 'day-date-label';
+    span.textContent = `${d.getDate()} ${mesi[d.getMonth()]} ${d.getFullYear()}`;
+    const firstBadge = btn.querySelector('.th-day-gialli, .th-day-rossi, .th-day-spunta');
+    if (firstBadge) btn.insertBefore(span, firstBadge);
+    else btn.appendChild(span);
+  });
+}
+
 function updateWeekUI(week) {
   currentWeek = week;
+  updateDayLabels();
   const isGlobalWeek = !_globalWeek?.week_id || week?.week_id === _globalWeek?.week_id;
   const actionsRow = document.getElementById('weekActionsRow');
   const chip       = document.getElementById('weekStatusChip');
@@ -3602,6 +3640,7 @@ function updateDayBar(timone, day) {
     if (g > 0) p.insertAdjacentHTML('beforeend', `<span class="th-day-gialli">${g}</span>`);
     if (r > 0) p.insertAdjacentHTML('beforeend', `<span class="th-day-rossi">${r}</span>`);
   });
+  updateDayLabels();
   // Rinfresca con dati freschi in background (risolve race condition all'avvio)
   fetch('/api/list' + weekParam()).then(r => r.json()).then(data => {
     savedCounts = data;
@@ -3673,6 +3712,7 @@ async function caricaTimone() {
   applyClosedState(chiusa);
 
   updateThumbnailSrcs();
+  updateDayLabels();
   if (currentRows.length && (getCartella() || isTuttiScontorni())) startMtimePolling();
   startRemotePolling(key);
 }

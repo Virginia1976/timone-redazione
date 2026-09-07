@@ -260,11 +260,14 @@ body {
 .timone-card[data-timone="divadonna"] { --card-accent: #E11D48; }
 
 .card-icon {
-  width: 54px; height: 54px; border-radius: 14px;
+  width: 90px; height: 54px; border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 26px; margin-bottom: 18px;
-  background: color-mix(in srgb, var(--card-accent) 13%, #fff);
+  margin-bottom: 18px; overflow: hidden;
+  background: color-mix(in srgb, var(--card-accent) 8%, #fff);
   box-shadow: 0 2px 8px color-mix(in srgb, var(--card-accent) 20%, transparent);
+}
+.card-icon img {
+  width: 100%; height: 100%; object-fit: contain; display: block;
 }
 .card-label {
   font-size: 21px; font-weight: 800; color: var(--text);
@@ -1583,37 +1586,37 @@ body.sola-lettura .btn-copy-col { display: none; }
   <p class="welcome-sub">Seleziona un timone dalla barra in alto per iniziare a lavorare.</p>
   <div class="timone-grid" id="welcomeGrid">
     <div class="timone-card" data-timone="nuovotv" onclick="openTimoneHome('nuovotv')" style="cursor:pointer">
-      <div class="card-icon">📺</div>
+      <div class="card-icon"><img src="{{ url_for('static', filename='loghi/nuovotv.png') }}" alt="NuovoTV"></div>
       <div class="card-label">NuovoTV</div>
       <div class="card-count"><strong id="cnt-nuovotv">—</strong> <span class="card-count-label">giallini</span></div>
       <div class="card-count" id="cnt-dl-row-nuovotv" style="display:none"><strong id="cnt-dl-nuovotv">—</strong> <span class="card-count-label">da lavorare</span></div>
     </div>
     <div class="timone-card" data-timone="dipiutv" onclick="openTimoneHome('dipiutv')" style="cursor:pointer">
-      <div class="card-icon">📺</div>
+      <div class="card-icon"><img src="{{ url_for('static', filename='loghi/dipiutv.png') }}" alt="DipiùTV"></div>
       <div class="card-label">DipiùTV</div>
       <div class="card-count"><strong id="cnt-dipiutv">—</strong> <span class="card-count-label">giallini</span></div>
       <div class="card-count" id="cnt-dl-row-dipiutv" style="display:none"><strong id="cnt-dl-dipiutv">—</strong> <span class="card-count-label">da lavorare</span></div>
     </div>
     <div class="timone-card" data-timone="tvmia" onclick="openTimoneHome('tvmia')" style="cursor:pointer">
-      <div class="card-icon">📺</div>
+      <div class="card-icon"><img src="{{ url_for('static', filename='loghi/tvmia.png') }}" alt="TvMia"></div>
       <div class="card-label">TvMia</div>
       <div class="card-count"><strong id="cnt-tvmia">—</strong> <span class="card-count-label">giallini</span></div>
       <div class="card-count" id="cnt-dl-row-tvmia" style="display:none"><strong id="cnt-dl-tvmia">—</strong> <span class="card-count-label">da lavorare</span></div>
     </div>
     <div class="timone-card" data-timone="nuovo" onclick="openTimoneHome('nuovo')" style="cursor:pointer">
-      <div class="card-icon">📺</div>
+      <div class="card-icon"><img src="{{ url_for('static', filename='loghi/nuovo.png') }}" alt="Nuovo"></div>
       <div class="card-label">Nuovo</div>
       <div class="card-count"><strong id="cnt-nuovo">—</strong> <span class="card-count-label">giallini</span></div>
       <div class="card-count" id="cnt-dl-row-nuovo" style="display:none"><strong id="cnt-dl-nuovo">—</strong> <span class="card-count-label">da lavorare</span></div>
     </div>
     <div class="timone-card" data-timone="dipiu" onclick="openTimoneHome('dipiu')" style="cursor:pointer">
-      <div class="card-icon">📰</div>
+      <div class="card-icon"><img src="{{ url_for('static', filename='loghi/dipiu.png') }}" alt="Dipiu"></div>
       <div class="card-label">Dipiu</div>
       <div class="card-count"><strong id="cnt-dipiu">—</strong> <span class="card-count-label">giallini</span></div>
       <div class="card-count" id="cnt-dl-row-dipiu" style="display:none"><strong id="cnt-dl-dipiu">—</strong> <span class="card-count-label">da lavorare</span></div>
     </div>
     <div class="timone-card" data-timone="divadonna" onclick="openTimoneHome('divadonna')" style="cursor:pointer">
-      <div class="card-icon">📰</div>
+      <div class="card-icon"><img src="{{ url_for('static', filename='loghi/divadonna.png') }}" alt="Diva e Donna"></div>
       <div class="card-label">Diva e Donna</div>
       <div class="card-count"><strong id="cnt-divadonna">—</strong> <span class="card-count-label">giallini</span></div>
       <div class="card-count" id="cnt-dl-row-divadonna" style="display:none"><strong id="cnt-dl-divadonna">—</strong> <span class="card-count-label">da lavorare</span></div>

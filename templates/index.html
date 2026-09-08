@@ -2871,6 +2871,190 @@ TEMPLATES['tvmia_venerdi'] = [
   { codice: '21_RAG_VEN_scont',   sezione: 'Ragazzi',  canale: 'RAI GULP'   },
 ];
 
+// ── TvMia: trame fisse per codice (stesse in tutte le settimane) ──────────────
+const TVMIA_TRAME_FISSE = {
+  // Venerdì
+  '01_soap_VEN_scont': 156,
+  '02_soap_VEN':       156,
+  '03_soap_VEN_scont': 156,
+  '04_soap_VEN':       156,
+  '05_soap_VEN_scont': 157,
+  'ven_soap0_nofoto':  157,
+  '06_soap_VEN':       157,
+  'ven_film0_nofoto':  158,
+  '07_film_VEN':       158,
+  '08_film_VEN':       158,
+  '09_film_VEN_scont': 158,
+  '10_film_VEN':       159,
+  'ven_film1_nofoto':  159,
+  'ven_film2_nofoto':  159,
+  '11_film_VEN_scont': 159,
+  '12_TF_VEN':         160,
+  'ven_tf0_nofoto':    160,
+  '13_TF_VEN':         160,
+  '14_TF_VEN_scont':   160,
+  '15_TF_VEN_scont':   160,
+  '16_TF_VEN':         161,
+  '17_TF_VEN':         161,
+  '18_RAG_VEN_scont':  162,
+  '19_RAG_VEN':        162,
+  '20_RAG_VEN_scont':  162,
+  '21_RAG_VEN_scont':  162,
+  // Giovedì
+  '01_soap_GIO':       138,
+  '02_soap_GIO':       138,
+  '03_soap_GIO':       138,
+  '04_soap_GIO_scont': 138,
+  '05_soap_GIO':       139,
+  'gio_soap0_nofoto':  139,
+  '06_soap_GIO_scont': 139,
+  'gio_film0_nofoto':  140,
+  '07_film_GIO_scont': 140,
+  '08_film_GIO':       140,
+  '09_film_GIO':       140,
+  '10_film_GIO':       141,
+  'gio_film1_nofoto':  141,
+  'gio_film2_nofoto':  141,
+  '11_film_GIO_scont': 141,
+  '12_TF_GIO':         142,
+  'gio_tf0_nofoto':    142,
+  '13_TF_GIO_scont':   142,
+  '14_TF_GIO':         142,
+  'gio_tf1_nofoto':    142,
+  '15_TF_GIO_scont':   143,
+  '16_TF_GIO':         143,
+  'gio_tf2_nofoto':    143,
+  '17_TF_GIO':         143,
+  '18_RAG_GIO':        144,
+  '19_RAG_GIO_scont':  144,
+  '20_RAG_GIO_scont':  144,
+  '21_RAG_GIO':        144,
+  // Mercoledì
+  '01_soap_MER_scont': 120,
+  '02_soap_MER_scont': 120,
+  '03_soap_MER':       120,
+  '04_soap_MER':       120,
+  '05_soap_MER':       121,
+  'mer_soap0_nofoto':  121,
+  '06_soap_MER':       121,
+  'mer_film0_nofoto':  122,
+  'mer_film1_nofoto':  122,
+  '07_film_MER':       122,
+  '08_film_MER_scont': 122,
+  '09_film_MER_scont': 123,
+  'mer_film2_nofoto':  123,
+  '10_film_MER':       123,
+  '11_film_MER':       123,
+  '12_TF_MER':         124,
+  'mer_tf0_nofoto':    124,
+  '13_TF_MER_scont':   124,
+  '14_TF_MER':         124,
+  '15_TF_MER':         124,
+  '16_TF_MER_scont':   124,
+  'mer_tf1_nofoto':    125,
+  '17_TF_MER_scont':   125,
+  '18_RAG_MER':        126,
+  '19_RAG_MER':        126,
+  '20_RAG_MER_scont':  126,
+  '21_RAG_MER_scont':  126,
+  // Martedì
+  '01_soap_MAR_scont': 64,
+  '02_soap_MAR':       64,
+  '03_soap_MAR':       64,
+  '04_soap_MAR_scont': 64,
+  '05_soap_MAR_scont': 65,
+  'mar_soap0_nofoto':  65,
+  '06_soap_MAR':       65,
+  'mar_film0_nofoto':  66,
+  '08_film_MAR_scont': 66,
+  '09_film_MAR':       66,
+  'mar_film1_nofoto':  66,
+  '10_film_MAR':       67,
+  'mar_film2_nofoto':  67,
+  '11_film_MAR_scont': 67,
+  '12_film_MAR':       67,
+  '13_TF_MAR':         68,
+  'mar_tf0_nofoto':    68,
+  '14_TF_MAR_scont':   68,
+  'mar_tf1_nofoto':    68,
+  '15_TF_MAR':         68,
+  '16_TF_MAR_scont':   69,
+  '17_TF_MAR':         69,
+  '18_TF_MAR_scont':   69,
+  'mar_tf2_nofoto':    69,
+  '19_RAG_MAR':        70,
+  '20_RAG_MAR':        70,
+  '21_RAG_MAR_scont':  70,
+  '22_RAG_MAR':        70,
+  // Lunedì
+  '01_soap_LUN_scont': 46,
+  '02_soap_LUN':       46,
+  '03_soap_LUN':       46,
+  '04_soap_LUN_scont': 46,
+  '05_soap_LUN_scont': 47,
+  'lun_soap0_nofoto':  47,
+  '06_soap_LUN':       47,
+  'lun_f0_nofoto':     48,
+  '07_film_LUN_scont': 48,
+  '08_film_LUN':       48,
+  'lun_f1_nofoto':     48,
+  'lun_f2_nofoto':     49,
+  '09_film_LUN':       49,
+  '10_film_LUN':       49,
+  '11_film_LUN_scont': 49,
+  '12_TF_LUN_scont':   50,
+  'lun_tf0_nofoto':    50,
+  '13_TF_LUN':         50,
+  '14_TF_LUN':         50,
+  '15_TF_LUN_scont':   50,
+  '16_TF_LUN_scont':   51,
+  'lun_tf1_nofoto':    51,
+  '17_TF_LUN':         51,
+  '18_RAG_LUN_scont':  52,
+  '19_RAG_LUN':        52,
+  '20_RAG_LUN':        52,
+  '21_RAG_LUN_scont':  52,
+  // Domenica
+  '01_film_DOM':       30,
+  '02_film_DOM_scont': 30,
+  'dom_f0_nofoto':     30,
+  '03_film_DOM':       30,
+  '04_film_DOM':       31,
+  '05_film_DOM_scont': 31,
+  '06_TF_DOM':         32,
+  '07_TF_DOM_scont':   32,
+  '08_TF_DOM_scont':   32,
+  'dom_tf0_nofoto':    32,
+  'dom_tf1_nofoto':    33,
+  '09_TF_DOM':         33,
+  '10_TF_DOM':         33,
+  '11_TF_DOM':         33,
+  'dom_tf2_nofoto':    33,
+  '12_RAG_DOM_scont':  34,
+  '13_RAG_DOM':        34,
+  '14_RAG_DOM_scont':  34,
+  '15_RAG_DOM':        34,
+  // Sabato
+  'sab_f0_nofoto':     14,
+  '01_film_SAB':       14,
+  '02_film_SAB_scont': 14,
+  '03_film_SAB':       14,
+  '04_film_SAB':       15,
+  '05_film_SAB_scont': 15,
+  '06_TF_SAB':         16,
+  '07_TF_SAB':         16,
+  'sab_tf0_nofoto':    16,
+  '08_TF_SAB_scont':   16,
+  '09_TF_SAB':         17,
+  '10_TF_SAB':         17,
+  'sab_tf1_nofoto':    17,
+  '11_TF_SAB_scont':   17,
+  '12_RAG_SAB':        18,
+  '13_RAG_SAB_scont':  18,
+  '14_RAG_SAB':        18,
+  '15_RAG_SAB':        18,
+};
+
 function applyTemplate(key, savedRows) {
   const template = TEMPLATES[key];
   if (!template) return savedRows;
@@ -4406,8 +4590,20 @@ function buildRow(row, i, tbody, colsOverride) {
   if (btnFotine) mainA.appendChild(btnFotine);
   if (btnSpunta) mainA.appendChild(btnSpunta);
   divA.appendChild(mainA);
-  if (btnArchivio) divA.appendChild(btnArchivio);
-  if (btnWatcher) divA.appendChild(btnWatcher);
+  if (btnArchivio || btnWatcher) {
+    const adminRow = document.createElement('div');
+    adminRow.style.cssText = 'display:flex;align-items:center;gap:4px';
+    if (btnArchivio) adminRow.appendChild(btnArchivio);
+    if (btnWatcher) adminRow.appendChild(btnWatcher);
+    divA.appendChild(adminRow);
+  }
+  const pagFissaAzioni = (currentTimone === 'tvmia') ? TVMIA_TRAME_FISSE[row.codice] : undefined;
+  if (pagFissaAzioni !== undefined) {
+    const tramaLabel = document.createElement('div');
+    tramaLabel.textContent = 'vedi trama p. ' + pagFissaAzioni;
+    tramaLabel.style.cssText = 'font-size:13px;font-weight:700;color:#dc2626;letter-spacing:.01em;white-space:nowrap';
+    divA.appendChild(tramaLabel);
+  }
   tdA.appendChild(divA);
   tr.appendChild(tdA);
   tbody.appendChild(tr);
@@ -5726,6 +5922,7 @@ async function initRuolo() {
 function canOpenTif() { return _ruolo === 'editor' || _ruolo === 'admin'; }
 
 function isTimoneAttivo(id) {
+  if (id === 'tvmia') return true;
   return _timoniAttivi.length === 0 || _timoniAttivi.includes(id);
 }
 

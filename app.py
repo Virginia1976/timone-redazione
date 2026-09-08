@@ -16,6 +16,7 @@ import shutil
 import subprocess
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+import time as _time
 from datetime import timedelta, date as date_
 
 import requests
@@ -577,6 +578,67 @@ def copia_titoli(key):
         return jsonify({'rows': copied, 'prev_week': prev_wid})
     except Exception:
         return jsonify({'rows': [], 'prev_week': prev_wid})
+
+
+@app.route('/api/copy-row', methods=['POST'])
+def copy_row():
+    if _sola_lettura(): return jsonify({'error': 'Accesso in sola lettura'}), 403
+    body          = request.get_json(force=True, silent=True) or {}
+    from_key      = body.get('from_key', '')
+    to_key        = body.get('to_key', '')
+    row_id        = body.get('row_id', '')
+    target_codice = body.get('target_codice')   # codice della riga dest. da riempire
+    week_id       = body.get('week_id', '').strip()
+
+    if not VALID_KEY.match(from_key) or not VALID_KEY.match(to_key):
+        return jsonify({'error': 'chiave non valida'}), 400
+
+    to_timone = timone_from_key(to_key)
+    if to_timone and _is_global_week_chiusa(to_timone):
+        return jsonify({'error': 'settimana chiusa', 'chiusa': True}), 403
+
+    if week_id and re.match(r'^\d{4}-\d{2}-\d{2}$', week_id):
+        d = DATA_DIR / week_id
+        d.mkdir(exist_ok=True)
+    else:
+        from_timone = timone_from_key(from_key)
+        d = week_data_dir(from_timone) if from_timone else DATA_DIR
+
+    from_path = d / f'{from_key}.json'
+    to_path   = d / f'{to_key}.json'
+
+    try:
+        from_data = json.loads(from_path.read_text('utf-8')) if from_path.exists() else {'rows': []}
+    except Exception:
+        from_data = {'rows': []}
+
+    row = next((r for r in from_data.get('rows', []) if r.get('id') == row_id), None)
+    if row is None:
+        return jsonify({'error': 'riga non trovata'}), 404
+
+    try:
+        to_data = json.loads(to_path.read_text('utf-8')) if to_path.exists() else {'rows': []}
+    except Exception:
+        to_data = {'rows': []}
+
+    _CONTENT_FIELDS = {'titolo', 'personaggio', 'tipo', 'anno', 'stagione', 'orario', 'trama', 'note'}
+
+    if not target_codice:
+        return jsonify({'error': 'riga di destinazione non specificata'}), 400
+
+    rows = to_data.get('rows', [])
+    target = next((r for r in rows if r.get('codice') == target_codice), None)
+    if target is None:
+        return jsonify({'error': 'riga di destinazione non trovata'}), 404
+
+    for f in _CONTENT_FIELDS:
+        target[f] = row.get(f, '')
+    target['colore'] = 'copiato'
+    target['spunta'] = False
+
+    to_data['rows'] = rows
+    _atomic_write(to_path, json.dumps(to_data, ensure_ascii=False, indent=2))
+    return jsonify({'ok': True})
 
 
 @app.route('/api/week/<timone>/riapri', methods=['POST'])

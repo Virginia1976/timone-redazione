@@ -393,6 +393,40 @@ body {
 .btn-spunta.spuntata { background: #22c55e; border-color: #16a34a; color: #fff; }
 .btn-spunta.spuntata:hover { background: #16a34a; }
 
+.btn-copia-row {
+  height: 28px; padding: 0 9px; border-radius: 7px; flex-shrink: 0;
+  border: 2px solid #cbd5e1; background: transparent;
+  color: #64748b; font-size: 12px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: border-color .13s, background .13s, color .13s;
+  margin-left: 6px; letter-spacing: .02em;
+}
+.btn-copia-row:hover { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
+
+.copia-row-menu {
+  min-width: 230px; padding: 10px; gap: 7px;
+  flex-direction: column;
+}
+.copia-row-menu.show { display: flex !important; }
+.crm-giorno-badge {
+  font-size: 11px; font-weight: 700; color: #64748b;
+  letter-spacing: .03em; padding-bottom: 2px;
+}
+.crm-select {
+  width: 100%; padding: 5px 8px;
+  border: 1px solid var(--border); border-radius: 6px;
+  font-size: 13px; background: var(--card); color: var(--text); cursor: pointer;
+}
+.crm-select:disabled { opacity: .4; cursor: default; }
+.crm-btn-copia {
+  padding: 6px 12px; border-radius: 6px; border: none;
+  background: #2563eb; color: #fff;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background .13s;
+}
+.crm-btn-copia:hover:not(:disabled) { background: #1d4ed8; }
+.crm-btn-copia:disabled { opacity: .4; cursor: default; }
+
 /* ── Nav tab split (name + arrow) ─────────────────────────────────────────────── */
 .nav-tab-name {
   display: flex; align-items: center; gap: 8px;
@@ -1829,6 +1863,18 @@ body.sola-lettura .btn-copy-col { display: none; }
   <button class="rfm-item" data-cat="serie">📺 Serie</button>
   <button class="rfm-item" data-cat="soap">💬 Soap</button>
   <button class="rfm-item" data-cat="sport">⚽ Sport</button>
+</div>
+
+<!-- ── Copia riga su altro timone (redazione/editor) ─────────────────────────── -->
+<div id="copiaRowMenu" class="ricerca-foto-menu copia-row-menu">
+  <div class="crm-giorno-badge" id="crm-giorno-badge"></div>
+  <select id="crm-testata" class="crm-select">
+    <option value="">Testata...</option>
+  </select>
+  <select id="crm-posizione" class="crm-select" disabled>
+    <option value="">Posizione...</option>
+  </select>
+  <button id="crm-btn-copia" class="crm-btn-copia" disabled>Copia</button>
 </div>
 
 <!-- ── Scontorni: menu categoria ─────────────────────────────────────────────── -->
@@ -4564,6 +4610,19 @@ function buildRow(row, i, tbody, colsOverride) {
     btnSpunta.addEventListener('click', (e) => { e.stopPropagation(); toggleSpunta(row, btnSpunta, tr); });
   }
 
+  const _TV_GIORNI_NORM = ['sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi'];
+  let btnCopia = null;
+  if ((_ruolo === 'redazione' || _ruolo === 'editor') && !isArchiveView
+      && ['nuovotv','dipiutv','tvmia'].includes(currentTimone)
+      && _TV_GIORNI_NORM.includes(currentDay)
+      && !row._separator) {
+    btnCopia = document.createElement('button');
+    btnCopia.className = 'btn-copia-row';
+    btnCopia.title = 'Copia su altro timone';
+    btnCopia.textContent = 'Copia';
+    btnCopia.addEventListener('click', (e) => { e.stopPropagation(); mostraCopiaMenu(row, btnCopia); });
+  }
+
   let btnArchivio = null;
   let btnWatcher = null;
   if (_ruolo === 'admin') {
@@ -4589,6 +4648,7 @@ function buildRow(row, i, tbody, colsOverride) {
   if (btnFotoTif) mainA.appendChild(btnFotoTif);
   if (btnFotine) mainA.appendChild(btnFotine);
   if (btnSpunta) mainA.appendChild(btnSpunta);
+  if (btnCopia) mainA.appendChild(btnCopia);
   divA.appendChild(mainA);
   if (btnArchivio || btnWatcher) {
     const adminRow = document.createElement('div');
@@ -4957,6 +5017,144 @@ document.querySelectorAll('#ricercaFotoTifMenu .rfm-item').forEach(el => {
     if (_currentTifRow && _currentTifRow.codice) revealTif(_currentTifRow.codice);
     document.getElementById('ricercaFotoTifMenu').classList.remove('show');
   });
+});
+
+// ── Copia riga su altro timone (redazione/editor) ────────────────────────────
+
+let _copiaMenuRow = null;
+
+function mostraCopiaMenu(row, triggerBtn) {
+  const menu       = document.getElementById('copiaRowMenu');
+  const testataEl  = document.getElementById('crm-testata');
+  const posEl      = document.getElementById('crm-posizione');
+  const btnEl      = document.getElementById('crm-btn-copia');
+  const badgeEl    = document.getElementById('crm-giorno-badge');
+
+  if (menu.classList.contains('show') && _copiaMenuRow === row) {
+    menu.classList.remove('show');
+    return;
+  }
+  _copiaMenuRow = row;
+
+  // Reset
+  posEl.innerHTML = '<option value="">Posizione...</option>';
+  posEl.disabled  = true;
+  btnEl.disabled  = true;
+  btnEl.textContent = 'Copia';
+
+  // Popola testata (TV, escludi quella corrente)
+  testataEl.innerHTML = '<option value="">Testata...</option>';
+  ['nuovotv', 'dipiutv', 'tvmia'].forEach(t => {
+    if (t === currentTimone) return;
+    const opt = document.createElement('option');
+    opt.value = t;
+    opt.textContent = TIMONI_META[t]?.label || t;
+    testataEl.appendChild(opt);
+  });
+  testataEl.value = '';
+
+  badgeEl.textContent = '→ ' + (GIORNI_LABEL[currentDay] || currentDay);
+
+  menu.classList.add('show');
+  _posizionaMenu(menu, triggerBtn);
+}
+
+document.getElementById('crm-testata').addEventListener('change', async function () {
+  const testata = this.value;
+  const posEl   = document.getElementById('crm-posizione');
+  const btnEl   = document.getElementById('crm-btn-copia');
+
+  posEl.innerHTML = '<option value="">Caricamento...</option>';
+  posEl.disabled  = true;
+  btnEl.disabled  = true;
+
+  if (!testata) {
+    posEl.innerHTML = '<option value="">Posizione...</option>';
+    return;
+  }
+
+  const toKey = `${testata}_${currentDay}`;
+  try {
+    const res  = await fetch(`/api/load/${toKey}`);
+    const data = await res.json();
+    const rows = (data.rows || []).filter(r => !r._separator && r.codice);
+
+    const isTvMia    = testata === 'tvmia';
+    const groupField = isTvMia ? 'sezione' : 'canale';
+
+    posEl.innerHTML = '';
+
+    // Raggruppa per box (sezione o canale)
+    const groupKeys = [];
+    const groupMap  = new Map();
+    rows.forEach(r => {
+      const k = r[groupField] || '—';
+      if (!groupMap.has(k)) { groupMap.set(k, []); groupKeys.push(k); }
+      groupMap.get(k).push(r);
+    });
+
+    groupKeys.forEach(gKey => {
+      const og = document.createElement('optgroup');
+      og.label = gKey;
+      groupMap.get(gKey).forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.codice;
+        opt.textContent = isTvMia
+          ? r.codice + (r.canale ? ' · ' + r.canale : '')
+          : r.codice + (r.titolo ? ' · ' + r.titolo.slice(0, 25) : '');
+        og.appendChild(opt);
+      });
+      posEl.appendChild(og);
+    });
+
+    posEl.disabled = false;
+  } catch (e) {
+    posEl.innerHTML = '<option value="">Errore caricamento</option>';
+  }
+});
+
+document.getElementById('crm-posizione').addEventListener('change', function () {
+  document.getElementById('crm-btn-copia').disabled = !this.value;
+});
+
+document.getElementById('crm-btn-copia').addEventListener('click', async function () {
+  if (!_copiaMenuRow) return;
+  const testata  = document.getElementById('crm-testata').value;
+  const posizione = document.getElementById('crm-posizione').value;
+  if (!testata || !posizione) return;
+
+  this.disabled     = true;
+  this.textContent  = '...';
+
+  const toKey        = `${testata}_${currentDay}`;
+  const targetCodice = posizione === '__fine__' ? null : posizione;
+  const fromKey      = `${currentTimone}_${currentDay}`;
+  const weekId       = (currentWeek?.week_id || _globalWeek?.week_id || '');
+
+  try {
+    const res = await fetch('/api/copy-row', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from_key: fromKey,
+        to_key: toKey,
+        row_id: _copiaMenuRow.id,
+        target_codice: targetCodice,
+        week_id: weekId
+      })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      this.textContent = '✓ Copiata!';
+      setTimeout(() => document.getElementById('copiaRowMenu').classList.remove('show'), 900);
+    } else {
+      this.textContent = data.error || 'Errore';
+      setTimeout(() => { this.disabled = false; this.textContent = 'Copia'; }, 1800);
+    }
+  } catch (e) {
+    this.textContent = 'Errore';
+    setTimeout(() => { this.disabled = false; this.textContent = 'Copia'; }, 1800);
+  }
 });
 
 // ── Archivio foto admin ───────────────────────────────────────────────────────
@@ -6046,6 +6244,9 @@ document.addEventListener('click', e => {
   if ((!e.target.closest('#fotineMenu') && !e.target.closest('.btn-fotine-trigger')) ||
       e.target.closest('.rfm-item')) {
     document.getElementById('fotineMenu').classList.remove('show');
+  }
+  if (!e.target.closest('#copiaRowMenu') && !e.target.closest('.btn-copia-row')) {
+    document.getElementById('copiaRowMenu').classList.remove('show');
   }
 });
 

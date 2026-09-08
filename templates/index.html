@@ -5139,8 +5139,10 @@ async function checkMtimes(cartella) {
                || document.querySelector(`img.codice-thumb[data-codice="${codice}_NEW"]`);
       const tr  = img?.closest('tr');
       if (currentTimone !== 'dipiu' && row && tr && (row.colore === '' || row.colore === 'giallo' || !row.colore)) {
-        setRowColor(tr, row, 'grigio');
-        markDirty();
+        if (modified || (appeared && isScont(row))) {
+          setRowColor(tr, row, 'grigio');
+          markDirty();
+        }
       }
       _initialMtimes[codice] = mtime;
       const thumbCodice = _newCodici.has(codice) ? codice + '_NEW' : codice;

@@ -294,7 +294,6 @@ body {
 .th-title {
   font-size: 32px; font-weight: 800; letter-spacing: -.04em; color: var(--text);
 }
-
 .week-picker-card {
   background: var(--card); border: 1.5px solid var(--border);
   border-radius: 18px; padding: 26px 26px 22px;
@@ -1498,6 +1497,8 @@ body.sola-lettura .btn-copy-col { display: none; }
       <span id="badgeDot" style="width:9px;height:9px;border-radius:50%;background:var(--accent);flex-shrink:0"></span>
       <span id="badgeText">—</span>
       <span class="unsaved-dot" id="unsavedDot"></span>
+      <span class="th-day-gialli" id="badgeGialli" style="display:none"></span>
+      <span class="th-day-spunta" id="badgeDL" style="display:none"></span>
     </div>
   </div>
 
@@ -3527,6 +3528,8 @@ async function openTimoneHome(timone) {
   // Intestazione
   document.getElementById('thDot').style.background = meta.colore;
   document.getElementById('thTitle').textContent    = meta.label;
+  document.getElementById('badgeGialli').style.display = 'none';
+  document.getElementById('badgeDL').style.display     = 'none';
 
   // Settimana — aggiorna la globale; rispetta la scelta locale SOLO se l'utente l'ha scelta esplicitamente
   await fetchWeek(timone);  // aggiorna _globalWeek
@@ -3555,6 +3558,7 @@ async function openTimoneHome(timone) {
     fetch('/api/list' + weekParam()).then(r => r.json()).then(data => {
       savedCounts = data;
       renderDaysGrid(timone);
+      aggiornaNavBadgeGialli(data);
     }).catch(() => {});
   } else {
     daysWrap.style.display    = 'none';
@@ -3569,7 +3573,7 @@ async function openTimoneHome(timone) {
       document.getElementById('thWorkBtn').innerHTML = `Vai al timone →${badge}${badgeR}`;
     };
     renderRivistaGialli(savedCounts);
-    fetch('/api/list' + weekParam()).then(r => r.json()).then(data => { savedCounts = data; renderRivistaGialli(data); }).catch(() => {});
+    fetch('/api/list' + weekParam()).then(r => r.json()).then(data => { savedCounts = data; renderRivistaGialli(data); aggiornaNavBadgeGialli(data); }).catch(() => {});
   }
 
   // Badge header
@@ -5997,6 +6001,32 @@ function aggiornaNavBadgeGialli(counts) {
     if (r  > 0) btn.insertAdjacentHTML('beforeend', `<span class="th-day-rossi">${r}</span>`);
     if (isRedazione && dl > 0) btn.insertAdjacentHTML('beforeend', `<span class="th-day-spunta">${dl}</span>`);
   });
+  // Badge totale nella pill header (usa savedCounts = dati per-settimana)
+  if (currentTimone) {
+    const hMeta = TIMONI_META[currentTimone];
+    const gEl   = document.getElementById('badgeGialli');
+    const dlEl  = document.getElementById('badgeDL');
+    if (gEl && dlEl && hMeta) {
+      const c = savedCounts;
+      let hTot = 0, hDl = 0;
+      if (hMeta.tipo === 'tv' && currentDay) {
+        hTot = c[`${currentTimone}_${currentDay}`]?.gialli || 0;
+        hDl  = c[`${currentTimone}_${currentDay}`]?.da_lavorare ?? 0;
+      } else if (hMeta.tipo === 'tv') {
+        Object.entries(c).filter(([k]) => k.startsWith(currentTimone + '_')).forEach(([,v]) => {
+          hTot += v.gialli || 0;
+          hDl  += v.da_lavorare ?? 0;
+        });
+      } else {
+        hTot = c[currentTimone]?.gialli || 0;
+        hDl  = c[currentTimone]?.da_lavorare ?? 0;
+      }
+      gEl.textContent    = hTot;
+      gEl.style.display  = hTot > 0 ? '' : 'none';
+      dlEl.textContent   = hDl;
+      dlEl.style.display = (isRedazione && hDl > 0) ? '' : 'none';
+    }
+  }
 }
 
 // ── Spunta redazione ──────────────────────────────────────────────────────────

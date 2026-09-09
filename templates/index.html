@@ -1980,7 +1980,8 @@ const CANALE_COLORS = {
 };
 function channelColor(c) { return CANALE_COLORS[c] || '#64748b'; }
 
-const THUMB_PH = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='50'%3E%3Crect width='72' height='50' rx='5' fill='%23f0f2f5'/%3E%3Ctext x='50%25' y='54%25' text-anchor='middle' dy='.3em' fill='%23c8d0db' font-size='22'%3E%F0%9F%96%BC%3C/text%3E%3C/svg%3E";
+const THUMB_PH     = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='50'%3E%3Crect width='72' height='50' rx='5' fill='%23f0f2f5'/%3E%3Ctext x='50%25' y='54%25' text-anchor='middle' dy='.3em' fill='%23c8d0db' font-size='22'%3E%F0%9F%96%BC%3C/text%3E%3C/svg%3E";
+const THUMB_NOFOTO = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='50'%3E%3Crect width='72' height='50' rx='5' fill='%23fff1f2'/%3E%3Ctext x='50%25' y='54%25' text-anchor='middle' dy='.3em' fill='%23ef4444' font-size='26' font-weight='bold'%3E%C3%97%3C/text%3E%3C/svg%3E";
 
 const GIORNO_COLORS = {
   'Sabato':    '#E91E63', 'Domenica':  '#9C27B0',
@@ -4316,10 +4317,11 @@ function buildRow(row, i, tbody, colsOverride) {
       td.className = 'td-codice';
       const wrap = document.createElement('div'); wrap.className = 'codice-wrap';
       const img = document.createElement('img');
-      img.className = 'codice-thumb'; img.alt = ''; img.src = THUMB_PH;
+      img.className = 'codice-thumb'; img.alt = '';
+      img.src = (row.codice || '').endsWith('_nofoto') ? THUMB_NOFOTO : THUMB_PH;
       img.dataset.codice  = row.codice || '';
       img.dataset.isScont = isScont(row) ? 'true' : 'false';
-      img.onerror = () => { img.src = THUMB_PH; };
+      img.onerror = () => { img.src = (row.codice || '').endsWith('_nofoto') ? THUMB_NOFOTO : THUMB_PH; };
       if (canOpenTif() && !isScont(row)) {
         img.title = 'Mostra nel Finder';
         img.addEventListener('click', (e) => { e.stopPropagation(); if (row.codice) revealTif(row.codice); });
@@ -5442,6 +5444,7 @@ function updateThumbnailSrcs() {
   document.querySelectorAll('img.codice-thumb').forEach(img => {
     const codice   = img.dataset.codice;
     const cartella = img.dataset.cartella || getCartella();
+    if (codice && codice.endsWith('_nofoto')) { img.src = THUMB_NOFOTO; return; }
     if (!codice || !cartella) { img.src = THUMB_PH; return; }
     img.src = thumbUrl(codice, cartella) || THUMB_PH;
   });
@@ -5452,6 +5455,7 @@ function updateSingleThumb(img, codice, cartella) {
   img.dataset.codice = codice || '';
   const c = cartella ?? getCartella();
   if (c) img.dataset.cartella = c;
+  if (codice && codice.endsWith('_nofoto')) { img.src = THUMB_NOFOTO; return; }
   if (!codice || !c) { img.src = THUMB_PH; return; }
   img.src = thumbUrl(codice, c) || THUMB_PH;
 }

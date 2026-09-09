@@ -4080,7 +4080,7 @@ function renderTable() {
   const isTVGiorni = ['nuovotv','dipiutv','tvmia'].includes(currentTimone);
   const dayLbl = currentDay ? GIORNI_LABEL[currentDay] || currentDay : '';
   document.getElementById('sectionDayLabel').textContent =
-    (isTVGiorni && currentDay && currentDay !== 'scontorni') ?
+    (isTVGiorni && currentDay && ['sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi'].includes(currentDay)) ?
       formatGiornoLabel(currentDay).replace(/^./, c => c.toUpperCase()) :
     dayLbl ? `Settimana · ${dayLbl}` :
     meta?.tipo === 'tv-unico' ? 'Settimana · Sab–Ven' : 'Segnalazioni';
@@ -4904,7 +4904,8 @@ function updateBadge() {
   const isTVGiorni = ['nuovotv','dipiutv','tvmia'].includes(currentTimone);
   let dayStr = '';
   if (currentDay) {
-    if (isTVGiorni && currentDay !== 'scontorni') {
+    const _isGiornoTV = ['sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi'].includes(currentDay);
+    if (isTVGiorni && _isGiornoTV) {
       const full = formatGiornoLabel(currentDay);
       dayStr = full ? ` · ${full.replace(/^./, c => c.toUpperCase())}` : ` · ${GIORNI_LABEL[currentDay] || currentDay}`;
     } else {

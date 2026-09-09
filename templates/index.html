@@ -471,6 +471,46 @@ body {
   display: none; max-width: 1400px; margin: 0 auto; padding: 24px;
 }
 
+/* ── Cover inline panel (Nuovo / Dipiu / Diva e Donna) ───────────────────────── */
+#coverInlinePanel {
+  margin-bottom: 20px; border: 1.5px solid var(--border);
+  border-radius: 12px; overflow: hidden; background: var(--card);
+}
+.cover-inline-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 16px; cursor: pointer; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em; color: var(--muted);
+  background: var(--bg); user-select: none;
+}
+.cover-inline-header:hover { color: var(--accent); }
+.cover-inline-table {
+  width: 100%; border-collapse: collapse; font-size: 14px;
+}
+.cover-inline-table th {
+  padding: 6px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--muted); border-bottom: 1px solid var(--border);
+  text-align: left; background: var(--bg);
+}
+.cover-inline-table td {
+  padding: 4px 10px; border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.cover-inline-table tr:last-child td { border-bottom: none; }
+.cover-inline-codice {
+  font-weight: 600; font-size: 13px; white-space: nowrap;
+}
+.cover-inline-input {
+  width: 100%; border: none; background: transparent; font-size: 14px;
+  color: var(--text); outline: none; padding: 3px 4px; border-radius: 4px;
+  font-family: inherit;
+}
+.cover-inline-input:focus { background: var(--accent-light); }
+.cover-inline-sep td {
+  background: var(--bg); font-size: 10px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--accent); padding: 5px 12px;
+  border-bottom: 1px solid var(--border) !important;
+}
+
 .section-header {
   display: flex; align-items: flex-start; justify-content: space-between;
   margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
@@ -1793,6 +1833,24 @@ body.sola-lettura .btn-copy-col { display: none; }
     <button id="adminWatcherToggle" class="btn-watcher-toggle" onclick="adminWatcherClick()">▶ Avvia</button>
     <span id="adminWatcherStatus" class="admin-watcher-status"></span>
   </div>
+  <!-- Cover inline panel (Nuovo / Dipiu / Diva e Donna) -->
+  <div id="coverInlinePanel" style="display:none">
+    <div class="cover-inline-header" onclick="toggleCoverPanel()">
+      <span>Cover</span>
+      <span id="coverInlineArrow">▲</span>
+    </div>
+    <div id="coverInlineBody">
+      <table class="cover-inline-table">
+        <thead><tr>
+          <th style="width:160px">Nome file</th>
+          <th>Titolo</th>
+          <th>Personaggio</th>
+        </tr></thead>
+        <tbody id="coverInlineTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
   <div class="channels-container" id="channelsContainer" style="display:none"></div>
   <div class="table-wrap">
     <div class="table-scroll">
@@ -3237,6 +3295,10 @@ let _lastSavedRows   = null;
 let _loadGen         = 0;   // incrementato ad ogni caricaTimone; previene race condition su navigazione rapida
 let savedCounts      = {};   // chiave → conteggio righe
 let expandedChannels   = new Set(); // canali espansi nella vista a card
+let _coverRows       = [];
+let _coverDirty      = false;
+let _coverSaveTimer  = null;
+let _coverOpen       = true;
 
 // ── Chiave storage ────────────────────────────────────────────────────────────
 function storageKey() {
@@ -4003,6 +4065,130 @@ function updateBadgeLogo(timone) {
   }
 }
 
+// ── Cover inline panel (Nuovo / Dipiu / Diva e Donna) ────────────────────────
+const COVER_PANEL_TEMPLATES = {
+  nuovo: [
+    { codice: 'APERTURA' },
+    { codice: 'STRILLO1' },
+    { codice: 'STRILLO2' },
+    { codice: 'STRILLO3' },
+  ],
+  dipiu: [
+    { _separator: true, label: 'SOAP' },
+    { codice: '_SOAP_1' },
+    { codice: 'NO FOTO 1' },
+    { codice: 'NO FOTO 2' },
+    { codice: '_SOAP_3' },
+    { codice: 'NO FOTO 3' },
+    { codice: 'NO FOTO 4' },
+    { codice: '_SOAP_4_scontorno' },
+    { _separator: true, label: 'NET' },
+    { codice: '_NET_1' },
+    { codice: '_NET_2' },
+    { codice: '_NET_3' },
+    { _separator: true, label: 'FILM' },
+    { codice: '_FILM_1_SCONTORNO' },
+    { codice: 'NO FOTO 5' },
+    { codice: '_FILM_2' },
+    { codice: 'NO FOTO 6' },
+  ],
+  divadonna: [
+    { codice: 'Apertura' },
+    { codice: 'strillo1' },
+    { codice: 'strillo2' },
+    { codice: 'strillo3' },
+  ],
+};
+
+function hasCoverPanel(timone) { return timone in COVER_PANEL_TEMPLATES; }
+
+function applyCoverTemplate(timone, savedRows) {
+  const template = COVER_PANEL_TEMPLATES[timone];
+  if (!template) return savedRows;
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
+  return template.map(tpl => {
+    if (tpl._separator) return { ...tpl };
+    const saved = savedRows.find(r => r.codice === tpl.codice);
+    return saved
+      ? { ...saved, codice: tpl.codice }
+      : { id: newId(), codice: tpl.codice, titolo: '', personaggio: '' };
+  });
+}
+
+async function loadCoverPanel() {
+  const panel = document.getElementById('coverInlinePanel');
+  if (!hasCoverPanel(currentTimone)) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  const key = `${currentTimone}_cover`;
+  try {
+    const res = await fetch(`/api/load/${key}${weekParam()}`);
+    const data = await res.json();
+    _coverRows = applyCoverTemplate(currentTimone, data.rows || []);
+  } catch {
+    _coverRows = applyCoverTemplate(currentTimone, []);
+  }
+  renderCoverPanel();
+}
+
+function renderCoverPanel() {
+  const tbody = document.getElementById('coverInlineTbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  const chiusa = currentWeek?.chiusa === true;
+  _coverRows.forEach(row => {
+    const tr = document.createElement('tr');
+    if (row._separator) {
+      tr.className = 'cover-inline-sep';
+      const td = document.createElement('td');
+      td.colSpan = 3; td.textContent = row.label || '';
+      tr.appendChild(td);
+    } else {
+      const tdC = document.createElement('td');
+      const sp = document.createElement('span');
+      sp.className = 'cover-inline-codice'; sp.textContent = row.codice;
+      tdC.appendChild(sp); tr.appendChild(tdC);
+      ['titolo','personaggio'].forEach((field, i) => {
+        const td = document.createElement('td');
+        const inp = document.createElement('input');
+        inp.type = 'text'; inp.className = 'cover-inline-input';
+        inp.value = row[field] || '';
+        inp.placeholder = i === 0 ? 'Titolo…' : 'Personaggio…';
+        inp.disabled = chiusa;
+        inp.addEventListener('input', () => { row[field] = inp.value; scheduleCoverSave(); });
+        td.appendChild(inp); tr.appendChild(td);
+      });
+    }
+    tbody.appendChild(tr);
+  });
+}
+
+async function saveCoverPanel(silent = false) {
+  if (!hasCoverPanel(currentTimone)) return;
+  const key = `${currentTimone}_cover`;
+  clearTimeout(_coverSaveTimer);
+  try {
+    const nonSep = _coverRows.filter(r => !r._separator);
+    await fetch(`/api/save/${key}${weekParam()}`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ rows: nonSep })
+    });
+    _coverDirty = false;
+    if (!silent) showStatus('Cover salvata ✓', 'success');
+  } catch { showStatus('Errore salvataggio cover', 'error'); }
+}
+
+function scheduleCoverSave() {
+  _coverDirty = true;
+  clearTimeout(_coverSaveTimer);
+  _coverSaveTimer = setTimeout(() => saveCoverPanel(true), 2000);
+}
+
+function toggleCoverPanel() {
+  _coverOpen = !_coverOpen;
+  document.getElementById('coverInlineBody').style.display = _coverOpen ? '' : 'none';
+  document.getElementById('coverInlineArrow').textContent  = _coverOpen ? '▲' : '▼';
+}
+
 // ── Carica / Salva ────────────────────────────────────────────────────────────
 async function caricaTimone() {
   const myGen = ++_loadGen;
@@ -4039,6 +4225,7 @@ async function caricaTimone() {
   renderTable();
   updateBadge();
   setDirty(false);
+  loadCoverPanel();
 
   const chiusa = currentWeek?.chiusa === true;
   document.getElementById('btnSave').disabled   = chiusa;
@@ -4087,6 +4274,7 @@ async function autoSave() {
   const key = storageKey();
   if (!key) return;
   clearTimeout(_saveTimer);
+  if (_coverDirty) saveCoverPanel(true);
   const nonSep = currentRows.filter(r => !r._separator);
   if (_lastSavedRows !== null && canUsePatch(nonSep)) {
     const patches = computePatches(_lastSavedRows, nonSep);

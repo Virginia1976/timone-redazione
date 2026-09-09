@@ -1612,6 +1612,7 @@ body.sola-lettura .btn-copy-col { display: none; }
   <button class="day-pill" data-day="giovedi"   onclick="changeDay('giovedi')">Giovedì</button>
   <button class="day-pill" data-day="venerdi"    onclick="changeDay('venerdi')">Venerdì</button>
   <button class="day-pill" data-day="compleanni" onclick="changeDay('compleanni')">🎂 Compleanni</button>
+  <button class="day-pill day-pill-streaming" data-day="streaming" style="display:none" onclick="changeDay('streaming')">🎬 Streaming</button>
 </div>
 
 <!-- ── Welcome screen ─────────────────────────────────────────────────────── -->
@@ -3859,13 +3860,15 @@ function updateDayBar(timone, day) {
   };
   const sp = SPECIAL[timone];
   if (sp) {
-    const btn = bar.querySelector('.day-pill:last-child');
-    if (btn) {
+    const btn = bar.querySelector('.day-pill.day-pill-streaming')?.previousElementSibling || bar.querySelector('.day-pill:nth-last-child(2)');
+    if (btn && !btn.classList.contains('day-pill-streaming')) {
       btn.dataset.day = sp.day;
       btn.textContent = sp.label;
       btn.onclick = () => changeDay(sp.day);
     }
   }
+  const streamingPill = bar.querySelector('.day-pill-streaming');
+  if (streamingPill) streamingPill.style.display = timone === 'tvmia' ? '' : 'none';
   bar.querySelectorAll('.day-pill').forEach(p => {
     p.classList.toggle('active', p.dataset.day === day);
     p.querySelectorAll('.th-day-gialli, .th-day-rossi').forEach(b => b.remove());

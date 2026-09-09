@@ -149,6 +149,8 @@ body {
 .nav-tab[data-timone="nuovo"]     .nav-dot { background: #059669; }
 .nav-tab[data-timone="dipiu"]     .nav-dot { background: #DB2777; }
 .nav-tab[data-timone="divadonna"] .nav-dot { background: #E11D48; }
+.nav-tab[data-timone="nuovotv_cover"] .nav-dot { background: #FF6B35; }
+.nav-tab[data-timone="dipiutv_cover"] .nav-dot { background: #7C3AED; }
 
 /* Dropdown giorni — position:fixed per non essere clippato dall'overflow della navbar */
 .days-dropdown {
@@ -174,6 +176,7 @@ body {
 .day-item .th-day-gialli { margin-left: auto; }
 .day-item .th-day-rossi  { margin-left: auto; }
 .day-item .th-day-gialli ~ .th-day-rossi { margin-left: 0; }
+.day-sep { border: none; border-top: 1px solid var(--border); margin: 4px 8px; }
 
 /* Separatore nav */
 .nav-sep {
@@ -357,6 +360,12 @@ body {
   box-shadow: 0 4px 16px rgba(0,0,0,.12);
 }
 .th-work-btn:hover { background: var(--accent-dark); transform: translateY(-2px); }
+.th-cover-btn {
+  padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600;
+  background: none; color: var(--accent); border: 1.5px solid var(--accent);
+  cursor: pointer; transition: all var(--transition);
+}
+.th-cover-btn:hover { background: var(--accent-light); }
 
 /* Badge giallini sui bottoni giorno */
 .th-day-gialli {
@@ -1538,6 +1547,8 @@ body.sola-lettura .btn-copy-col { display: none; }
       <button class="day-item" data-giorno="giovedi"    onclick="selectTimoneDay('nuovotv','giovedi')">Giovedì</button>
       <button class="day-item" data-giorno="venerdi"    onclick="selectTimoneDay('nuovotv','venerdi')">Venerdì</button>
       <button class="day-item" data-giorno="compleanni" onclick="selectTimoneDay('nuovotv','compleanni')">Compleanni</button>
+      <hr class="day-sep">
+      <button class="day-item" onclick="selectTimone('nuovotv_cover')">Cover</button>
     </div>
   </div>
 
@@ -1559,6 +1570,8 @@ body.sola-lettura .btn-copy-col { display: none; }
       <button class="day-item" data-giorno="giovedi"   onclick="selectTimoneDay('dipiutv','giovedi')">Giovedì</button>
       <button class="day-item" data-giorno="venerdi"   onclick="selectTimoneDay('dipiutv','venerdi')">Venerdì</button>
       <button class="day-item" data-giorno="biscotti"  onclick="selectTimoneDay('dipiutv','biscotti')">Biscotti</button>
+      <hr class="day-sep">
+      <button class="day-item" onclick="selectTimone('dipiutv_cover')">Cover</button>
     </div>
   </div>
 
@@ -1695,6 +1708,12 @@ body.sola-lettura .btn-copy-col { display: none; }
   <!-- Pulsante accesso diretto (solo riviste) -->
   <div id="thRivistaWrap" style="display:none">
     <button class="th-work-btn" id="thWorkBtn">Vai al timone →</button>
+  </div>
+
+  <!-- Pulsante Cover (NuovoTV / DipiùTV) -->
+  <div id="thCoverWrap" style="display:none">
+    <div class="th-section-lbl" style="margin-top:20px">Cover</div>
+    <button class="th-cover-btn" id="thCoverBtn">Cover →</button>
   </div>
 
   <!-- Box: Settimana in lavorazione -->
@@ -1936,7 +1955,9 @@ const TIMONI_META = {
                giorni:['scontorni','sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi','streaming'] },
   nuovo:     { label:'Nuovo',       tipo:'tv-unico', colore:'#059669', icona:'📺', logo:'loghi/nuovo.png' },
   dipiu:     { label:'Dipiu',       tipo:'rivista', colore:'#DB2777', icona:'📰', logo:'loghi/dipiu.png' },
-  divadonna: { label:'Diva e Donna',tipo:'rivista', colore:'#E11D48', icona:'📰', logo:'loghi/divadonna.png' },
+  divadonna:     { label:'Diva e Donna', tipo:'rivista', colore:'#E11D48', icona:'📰', logo:'loghi/divadonna.png' },
+  nuovotv_cover: { label:'NuovoTV Cover', tipo:'cover', colore:'#FF6B35', parent:'nuovotv' },
+  dipiutv_cover: { label:'DipiùTV Cover', tipo:'cover', colore:'#7C3AED', parent:'dipiutv' },
 };
 
 const GIORNI_LABEL = {
@@ -2077,6 +2098,13 @@ const COLS_BISCOTTI = [
   { key:'personaggio', label:'Personaggio',    w:'auto',  input:'text',  placeholder:'Protagonista…' },
   { key:'trama',       label:'Trama',          w:'72px',  input:'trama', placeholder:'Trama…' },
   { key:'note',        label:'Note Redaz.',    w:'108px', input:'trama', placeholder:'Note…' },
+];
+
+// Colonne per Cover (NuovoTV Cover / DipiùTV Cover)
+const COLS_COVER = [
+  { key:'codice',      label:'Nome file',    w:'160px', input:'codice' },
+  { key:'titolo',      label:'Titolo',       w:'auto',  input:'text',  placeholder:'Titolo…' },
+  { key:'personaggio', label:'Personaggio',  w:'auto',  input:'text',  placeholder:'Personaggio…' },
 ];
 
 // Colonne per Scontorni faccette (TvMia) — canale editabile sotto la miniatura
@@ -2920,6 +2948,34 @@ TEMPLATES['tvmia_venerdi'] = [
   { codice: '21_RAG_VEN_scont',   sezione: 'Ragazzi',  canale: ''   },
 ];
 
+TEMPLATES['nuovotv_cover'] = [
+  { codice: 'apertura' },
+  { codice: 'strillo_SAB' },
+  { codice: 'strillo_DOM' },
+  { codice: 'strillo_LUN' },
+  { codice: 'strillo_MAR' },
+  { codice: 'strillo_MER' },
+  { codice: 'strillo_GIO' },
+  { codice: 'strillo_VEN' },
+  { codice: 'APE' },
+  { codice: 'soap1' },
+  { codice: 'soap2' },
+  { codice: 'soap3' },
+  { codice: 'soap4' },
+];
+
+TEMPLATES['dipiutv_cover'] = [
+  { codice: 'soap1' },
+  { codice: 'soap2' },
+  { codice: 'soap3' },
+  { codice: 'soap4' },
+  { codice: 'soap5' },
+  { codice: 'soap6' },
+  { codice: 'soap7' },
+  { codice: 'soap8' },
+  { codice: 'soap9' },
+];
+
 // ── TvMia: trame fisse per codice (stesse in tutte le settimane) ──────────────
 const TVMIA_TRAME_FISSE = {
   // Venerdì
@@ -3188,6 +3244,7 @@ function storageKey() {
   const meta = TIMONI_META[currentTimone];
   if (meta.tipo === 'tv' && currentDay)              return `${currentTimone}_${currentDay}`;
   if (meta.tipo === 'rivista' || meta.tipo === 'tv-unico') return currentTimone;
+  if (meta.tipo === 'cover') return currentTimone;
   return null;
 }
 
@@ -3550,19 +3607,42 @@ async function openTimoneHome(timone) {
   const rivistaWrap = document.getElementById('thRivistaWrap');
   const daysGrid    = document.getElementById('thDaysGrid');
 
+  const coverWrap = document.getElementById('thCoverWrap');
   if (meta.tipo === 'tv') {
     daysWrap.style.display    = '';
     rivistaWrap.style.display = 'none';
     // Prima render subito (pulsanti senza badge), poi aggiorna con i conteggi freschi
     renderDaysGrid(timone);
-    fetch('/api/list' + weekParam()).then(r => r.json()).then(data => {
-      savedCounts = data;
-      renderDaysGrid(timone);
-      aggiornaNavBadgeGialli(data);
-    }).catch(() => {});
+    const coverTimone = `${timone}_cover`;
+    const hasCover = TIMONI_META[coverTimone] != null;
+    coverWrap.style.display = hasCover ? '' : 'none';
+    if (hasCover) {
+      const renderCoverBtn = (counts) => {
+        const g = counts[coverTimone]?.gialli || 0;
+        const r = counts[coverTimone]?.rossi  || 0;
+        const badge  = g > 0 ? ` <span class="th-day-gialli">${g}</span>` : '';
+        const badgeR = r > 0 ? ` <span class="th-day-rossi">${r}</span>`  : '';
+        document.getElementById('thCoverBtn').innerHTML = `Cover →${badge}${badgeR}`;
+      };
+      document.getElementById('thCoverBtn').onclick = () => selectTimone(coverTimone);
+      renderCoverBtn(savedCounts);
+      fetch('/api/list' + weekParam()).then(r => r.json()).then(data => {
+        savedCounts = data;
+        renderDaysGrid(timone);
+        renderCoverBtn(data);
+        aggiornaNavBadgeGialli(data);
+      }).catch(() => {});
+    } else {
+      fetch('/api/list' + weekParam()).then(r => r.json()).then(data => {
+        savedCounts = data;
+        renderDaysGrid(timone);
+        aggiornaNavBadgeGialli(data);
+      }).catch(() => {});
+    }
   } else {
     daysWrap.style.display    = 'none';
     rivistaWrap.style.display = '';
+    coverWrap.style.display   = 'none';
     const btn = document.getElementById('thWorkBtn');
     btn.onclick = () => selectTimone(timone);
     const renderRivistaGialli = (counts) => {
@@ -3598,7 +3678,8 @@ async function openTimoneHome(timone) {
 // ── Settimana (API-based) ─────────────────────────────────────────────────────
 async function fetchWeek(timone) {
   try {
-    const res = await fetch(`/api/week/${timone}`, { cache: 'no-store' });
+    const parent = TIMONI_META[timone]?.parent || timone;
+    const res = await fetch(`/api/week/${parent}`, { cache: 'no-store' });
     const data = await res.json();
     _globalWeek = data;
     return data;
@@ -3847,11 +3928,13 @@ function changeDay(day) {
 }
 
 function updateNavActive(timone) {
+  const meta = TIMONI_META[timone];
+  const parentTimone = meta?.parent || timone;
   document.querySelectorAll('.nav-tab').forEach(t =>
     t.classList.toggle('active', t.dataset.timone === timone));
-  // TV tabs usano nav-tab-wrap per l'active state
+  // TV tabs usano nav-tab-wrap per l'active state; cover usa il wrap del parent
   document.querySelectorAll('.nav-tab-wrap[id]').forEach(w => {
-    w.classList.toggle('active', w.id === `wrap-${timone}`);
+    w.classList.toggle('active', w.id === `wrap-${timone}` || (meta?.tipo === 'cover' && w.id === `wrap-${parentTimone}`));
   });
 }
 
@@ -4067,6 +4150,7 @@ function getCols() {
   if (currentTimone === 'divadonna')                               return COLS_TV;
   if (currentTimone === 'nuovo')                                   return COLS_NUOVO;
   if (currentTimone === 'dipiu')                                   return COLS_DIPIU;
+  if (TIMONI_META[currentTimone]?.tipo === 'cover')                return COLS_COVER;
   return TIMONI_META[currentTimone]?.tipo === 'tv' ? COLS_TV : COLS_RIVISTA;
 }
 
@@ -4083,6 +4167,7 @@ function renderTable() {
     (isTVGiorni && currentDay && ['sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi'].includes(currentDay)) ?
       formatGiornoLabel(currentDay).replace(/^./, c => c.toUpperCase()) :
     dayLbl ? `Settimana · ${dayLbl}` :
+    meta?.tipo === 'cover' ? 'Cover' :
     meta?.tipo === 'tv-unico' ? 'Settimana · Sab–Ven' : 'Segnalazioni';
   document.getElementById('sectionWeekLabel').textContent = formatWeekLabel();
 
@@ -4317,7 +4402,14 @@ function buildRow(row, i, tbody, colsOverride) {
   cols.forEach(col => {
     const td = document.createElement('td');
 
-    if (col.input === 'codice') {
+    if (col.input === 'codice' && TIMONI_META[currentTimone]?.tipo === 'cover') {
+      td.className = 'td-codice';
+      const cod = document.createElement('div');
+      cod.className = 'codice-editable'; cod.style.cssText = 'font-weight:600;padding:6px 2px;';
+      cod.textContent = row.codice || '';
+      td.appendChild(cod);
+
+    } else if (col.input === 'codice') {
       td.className = 'td-codice';
       const wrap = document.createElement('div'); wrap.className = 'codice-wrap';
       const img = document.createElement('img');
@@ -6159,6 +6251,8 @@ function canOpenTif() { return _ruolo === 'editor' || _ruolo === 'admin'; }
 
 function isTimoneAttivo(id) {
   if (id === 'tvmia') return true;
+  const meta = TIMONI_META[id];
+  if (meta?.tipo === 'cover') return isTimoneAttivo(meta.parent);
   return _timoniAttivi.length === 0 || _timoniAttivi.includes(id);
 }
 

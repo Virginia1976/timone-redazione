@@ -3807,7 +3807,7 @@ function selectTimoneDay(timone, day) {
 
   updateAccentColor(meta.colore);
   updateNavActive(timone);
-  if (day === 'biscotti' || day === 'scontorni') hideDayBar(); else updateDayBar(timone, day);
+  updateDayBar(timone, day);
   saveNavState('day', timone, day);
   caricaTimone();
 }

@@ -319,6 +319,15 @@ def _atomic_write(path: pathlib.Path, text: str) -> None:
     tmp = path.with_suffix('.tmp')
     try:
         tmp.write_text(text, encoding='utf-8')
+        if path.exists():
+            bak_dir = path.parent / '_backup'
+            bak_dir.mkdir(exist_ok=True)
+            ts = _time.strftime('%Y%m%d-%H%M%S')
+            shutil.copy2(path, bak_dir / f'{path.stem}_{ts}{path.suffix}')
+            # tieni solo le ultime 3 versioni per file
+            old = sorted(bak_dir.glob(f'{path.stem}_*{path.suffix}'))
+            for f in old[:-3]:
+                f.unlink(missing_ok=True)
         tmp.rename(path)
     except Exception:
         tmp.unlink(missing_ok=True)

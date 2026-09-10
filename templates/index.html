@@ -4244,12 +4244,12 @@ async function caricaTimone() {
   startRemotePolling(key);
 }
 
-async function salvaTimone(silent = false) {
-  const key = storageKey();
+async function salvaTimone(silent = false, _keyOverride = null, _rowsOverride = null) {
+  const key = _keyOverride || storageKey();
   if (!key) return;
   clearTimeout(_saveTimer);
   try {
-    const nonSep = currentRows.filter(r => !r._separator);
+    const nonSep = _rowsOverride ?? currentRows.filter(r => !r._separator);
     const res  = await fetch(`/api/save/${key}${weekParam()}`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ rows: nonSep })
@@ -4287,14 +4287,14 @@ async function autoSave() {
       const data = await res.json();
       if (data.error) { showStatus('Errore salvataggio', 'error'); return; }
       // Se il server non ha trovato righe (file vuoto/corrotto), ripiega su salvataggio completo
-      if ((data.applied ?? 1) === 0) { await salvaTimone(true); return; }
+      if ((data.applied ?? 1) === 0) { await salvaTimone(true, key, nonSep); return; }
       _lastSavedRows = JSON.parse(JSON.stringify(nonSep));
       setDirty(false);
       _ackedMtime = data.mtime;
       aggiornaConteggiWelcome();
     } catch { showStatus('Errore salvataggio', 'error'); }
   } else {
-    await salvaTimone(true);
+    await salvaTimone(true, key, nonSep);
   }
 }
 

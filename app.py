@@ -552,7 +552,9 @@ def copia_titoli(key):
     current_wid = (get_week_meta(timone).get('week_id') or '').strip()
 
     # Cerca la cartella-settimana più recente precedente a quella corrente
-    prev_wid = None
+    # che contenga effettivamente il file per questa chiave
+    prev_wid  = None
+    prev_path = None
     try:
         candidates = sorted(
             [
@@ -564,17 +566,17 @@ def copia_titoli(key):
             ],
             reverse=True,
         )
-        if candidates:
-            prev_wid = candidates[0]
+        for c in candidates:
+            p = DATA_DIR / c / f'{key}.json'
+            if p.exists():
+                prev_wid  = c
+                prev_path = p
+                break
     except Exception:
         pass
 
-    if not prev_wid:
+    if not prev_wid or not prev_path:
         return jsonify({'rows': [], 'prev_week': None})
-
-    prev_path = DATA_DIR / prev_wid / f'{key}.json'
-    if not prev_path.exists():
-        return jsonify({'rows': [], 'prev_week': prev_wid})
 
     try:
         data = json.loads(prev_path.read_text('utf-8'))

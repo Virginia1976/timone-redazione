@@ -2909,7 +2909,6 @@ TEMPLATES['tvmia_martedi'] = [
   { codice: '16_TF_MAR_scont',    sezione: 'Telefilm', canale: ''  },
   { codice: '17_TF_MAR',          sezione: 'Telefilm', canale: ''  },
   { codice: '18_TF_MAR_scont',    sezione: 'Telefilm', canale: ''       },
-  { codice: 'mar_tf2_nofoto',     sezione: 'Telefilm', canale: ''  },
   { codice: '19_RAG_MAR',         sezione: 'Ragazzi',  canale: ''   },
   { codice: '20_RAG_MAR',         sezione: 'Ragazzi',  canale: ''   },
   { codice: '21_RAG_MAR_scont',   sezione: 'Ragazzi',  canale: ''   },
@@ -3229,8 +3228,7 @@ function applyTemplate(key, savedRows) {
     if (saved) return { ...saved, id: saved.id || newId(), codice: tpl.codice, canale: (tpl.canale !== undefined && tpl.canale !== '') ? tpl.canale : (saved.canale ?? ''), ...(tpl.giorno   !== undefined ? { giorno:   tpl.giorno   } : {}), ...(tpl.sezione  !== undefined ? { sezione:  tpl.sezione  } : {}), sotto_canale: (tpl.sotto_canale !== undefined) ? (saved.sotto_canale !== undefined ? saved.sotto_canale : tpl.sotto_canale) : undefined, ...(tpl.asterisco ? { asterisco: true } : {}), ...(tpl.titolo ? { titolo: tpl.titolo, colore: saved.colore || 'copiato' } : {}), ...(!saved.orario && tpl.orario ? { orario: tpl.orario } : {}) };
     return { id: newId(), tipo: 'Programma TV', ...tpl };
   });
-  const extras = savedRows.filter(r => r.codice && !templateCodici.has(r.codice));
-  return [...merged, ...extras];
+  return merged;
 }
 
 // ── Copia celle / colonne ─────────────────────────────────────────────────────

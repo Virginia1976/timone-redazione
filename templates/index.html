@@ -4899,7 +4899,7 @@ function buildRow(row, i, tbody, colsOverride) {
   }
 
   let btnSpunta = null;
-  if (_ruolo === 'redazione' && !isArchiveView) {
+  if (_ruolo === 'redazione' && (!isArchiveView || !currentWeek?.chiusa)) {
     btnSpunta = document.createElement('button');
     btnSpunta.className = 'btn-spunta' + (row.spunta ? ' spuntata' : '');
     btnSpunta.title = row.spunta ? 'Lavorata — clic per rimuovere spunta' : 'Segna come lavorata';
@@ -6232,6 +6232,9 @@ async function aggiornaConteggiWelcome() {
       const localData = wp ? await fetch('/api/list' + wp).then(r => r.json()) : globalData;
       savedCounts = localData;
       renderDaysGrid(currentTimone);
+    } else if (isArchiveView) {
+      const wp = weekParam();
+      savedCounts = wp ? await fetch('/api/list' + wp).then(r => r.json()) : globalData;
     } else {
       savedCounts = globalData;
     }

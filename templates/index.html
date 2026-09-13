@@ -4920,7 +4920,7 @@ function buildRow(row, i, tbody, colsOverride) {
 
   const _TV_GIORNI_NORM = ['sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi'];
   let btnCopia = null;
-  if ((_ruolo === 'redazione' || _ruolo === 'editor') && !isArchiveView
+  if ((_ruolo === 'redazione' || _ruolo === 'editor') && (!isArchiveView || !currentWeek?.chiusa)
       && ['nuovotv','dipiutv','tvmia'].includes(currentTimone)
       && _TV_GIORNI_NORM.includes(currentDay)
       && !row._separator) {
@@ -5395,7 +5395,7 @@ document.getElementById('crm-testata').addEventListener('change', async function
 
   const toKey = `${testata}_${currentDay}`;
   try {
-    const res  = await fetch(`/api/load/${toKey}`);
+    const res  = await fetch(`/api/load/${toKey}${weekParam()}`);
     const data = await res.json();
     const rows = (data.rows || []).filter(r => !r._separator && r.codice);
 

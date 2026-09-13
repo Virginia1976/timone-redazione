@@ -3533,7 +3533,8 @@ async function openArchiveTimone(timone, weekId, dal, al, giorno, chiusa = true)
 
   updateAccentColor(meta.colore);
   updateNavActive(timone);
-  hideDayBar();
+  if (meta.tipo === 'tv' && giorno) updateDayBar(timone, giorno);
+  else hideDayBar();
 
   try {
     const res = await fetch(`/api/archive/load/${weekId}/${key}`, { cache: 'no-store' });
@@ -3556,6 +3557,7 @@ async function openArchiveTimone(timone, weekId, dal, al, giorno, chiusa = true)
   document.getElementById('archiveReopenBtn').style.display =
     (chiusa && (_ruolo === 'editor' || _ruolo === 'admin')) ? '' : 'none';
 
+  updateDayLabels();
   renderTable();
   applyClosedState(!!chiusa);
 }
@@ -3948,7 +3950,12 @@ function selectTimoneDay(timone, day) {
   if (!meta) return;
   if (!isTimoneAttivo(timone)) { showStatus('Non disponibile in questa versione', 'warn'); return; }
 
-  if (isDirty) { autoSave(); }  // auto-save prima di cambiare
+  if (isDirty) { autoSave(); }
+
+  if (isArchiveView && timone === currentTimone && _archiveWeek) {
+    openArchiveTimone(timone, _archiveWeek.week_id, _archiveWeek.dal, _archiveWeek.al, day, currentWeek?.chiusa);
+    return;
+  }
 
   currentTimone = timone;
   currentDay    = day;
@@ -3982,6 +3989,10 @@ function selectTimone(timone) {
 function changeDay(day) {
   if (!currentTimone) return;
   if (isDirty) { autoSave(); }
+  if (isArchiveView && _archiveWeek) {
+    openArchiveTimone(currentTimone, _archiveWeek.week_id, _archiveWeek.dal, _archiveWeek.al, day, currentWeek?.chiusa);
+    return;
+  }
   currentDay = day;
   expandedChannels.clear();
   updateDayBar(currentTimone, day);

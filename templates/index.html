@@ -5428,6 +5428,7 @@ document.getElementById('crm-testata').addEventListener('change', async function
     });
 
     posEl.disabled = false;
+    btnEl.disabled = !posEl.value;
   } catch (e) {
     posEl.innerHTML = '<option value="">Errore caricamento</option>';
   }

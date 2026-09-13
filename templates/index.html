@@ -4499,12 +4499,13 @@ function _makeCopiaBtn(partRows) {
   return btn;
 }
 
-async function copiaTitoliPrevSettimana(partRows) {
+async function copiaTitoliPrevSettimana(partRows, sectionLabel = null) {
   const key = storageKey();
   if (!key) return;
-  if (!confirm('Copiare i titoli dalla settimana precedente nelle righe ancora vuote?')) return;
+  const label = sectionLabel ? ` per "${sectionLabel}"` : '';
+  if (!confirm(`Copiare i titoli dalla settimana precedente${label} nelle righe ancora vuote?`)) return;
   try {
-    const res  = await fetch(`/api/copia-titoli/${key}`);
+    const res  = await fetch(`/api/copia-titoli/${key}${weekParam()}`);
     const data = await res.json();
     const prevRows = data.rows || [];
     if (!prevRows.length) {
@@ -4515,25 +4516,32 @@ async function copiaTitoliPrevSettimana(partRows) {
     prevRows.forEach(r => { if (r.codice) byCode[r.codice] = r; });
     const rowSet = partRows ? new Set(partRows) : null;
     let count = 0;
+    let emptyCount = 0;
     currentRows.forEach(row => {
       if (row._separator || row.nascosta) return;
       if (rowSet && !rowSet.has(row)) return;
-      const prev = byCode[row.codice];
-      if (!prev || !prev.titolo) return;
-      if (!row.titolo) {   // copia solo nelle righe ancora vuote
-        row.titolo = prev.titolo;
-        if (prev.tipo) row.tipo = prev.tipo;
-        row.colore = 'copiato';
-        count++;
+      if (!row.titolo) {
+        emptyCount++;
+        const prev = byCode[row.codice];
+        if (prev && prev.titolo) {   // copia solo nelle righe ancora vuote
+          row.titolo = prev.titolo;
+          if (prev.tipo) row.tipo = prev.tipo;
+          row.colore = 'copiato';
+          count++;
+        }
       }
     });
     if (count === 0) {
-      showStatus('Nessuna riga vuota da riempire (le righe hanno già dei titoli)', 'warn');
+      if (emptyCount === 0) {
+        showStatus(`Nessuna riga vuota da riempire${label} (le righe hanno già dei titoli)`, 'warn');
+      } else {
+        showStatus(`Nessun titolo trovato nella settimana precedente${label}`, 'warn');
+      }
       return;
     }
     renderTable();
     await salvaTimone(true);
-    showStatus(`${count} titoli copiati e salvati ✓`, 'success');
+    showStatus(`${count} titoli${label} copiati e salvati ✓`, 'success');
   } catch (e) {
     showStatus('Errore nel caricamento della settimana precedente', 'error');
   }
@@ -5081,6 +5089,17 @@ function buildChannelGroupView(container, groupField = 'canale') {
     const _dlCount = (_ruolo === 'redazione') ? group.rows.filter(r => !r.spunta).length : 0;
     const _dlBadge = (_dlCount > 0) ? `<span class="th-day-spunta">${_dlCount}</span>` : '';
     hdr.innerHTML = `<span>${emoji} ${groupLabel}</span><span class="ch-count">${group.rows.length}</span><span class="ch-chevron">▶</span>${_dlBadge}`;
+    if (isSezione && !currentWeek?.chiusa) {
+      const btnCopiaSezione = document.createElement('button');
+      btnCopiaSezione.className = 'btn-in-hdr';
+      btnCopiaSezione.textContent = '↩ Copia prec.';
+      btnCopiaSezione.title = `Copia titoli dalla settimana precedente per la sezione ${group.val}`;
+      btnCopiaSezione.addEventListener('click', e => {
+        e.stopPropagation();
+        copiaTitoliPrevSettimana(group.rows, group.val);
+      });
+      hdr.insertBefore(btnCopiaSezione, hdr.querySelector('.ch-chevron'));
+    }
     hdr.addEventListener('click', () => {
       if (expandedChannels.has(group.val)) expandedChannels.delete(group.val);
       else expandedChannels.add(group.val);

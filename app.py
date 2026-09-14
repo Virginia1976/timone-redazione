@@ -647,7 +647,7 @@ def copy_row():
 
     for f in _CONTENT_FIELDS:
         target[f] = row.get(f, '')
-    target['colore'] = 'copiato'
+    target['colore'] = ''
     target['spunta'] = False
 
     to_data['rows'] = rows

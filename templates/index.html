@@ -6349,6 +6349,10 @@ function toggleSpunta(row, btn, tr) {
   btn.classList.toggle('spuntata', row.spunta);
   btn.title = row.spunta ? 'Lavorata — clic per rimuovere spunta' : 'Segna come lavorata';
 
+  if (row.spunta && (row.colore === 'copiato' || row.colore === 'grigio')) {
+    setRowColor(tr, row, '');
+  }
+
   // Aggiorna badge nell'header del gruppo (in-place, senza re-render)
   const card = tr.closest('.channel-card');
   if (card) {

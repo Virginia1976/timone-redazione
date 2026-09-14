@@ -1437,6 +1437,39 @@ body.sola-lettura .btn-copy-col { display: none; }
 }
 .scont-cat-menu button:hover { background: rgba(124,58,237,.1); color: #7C3AED; }
 
+.scont-titolo-edit {
+  display: none; position: fixed; z-index: 9150;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-lg);
+  width: 380px; animation: fadeDown .12s ease;
+  flex-direction: column;
+}
+.scont-titolo-edit.show { display: flex; }
+.scont-titolo-edit-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px 8px; cursor: grab; user-select: none;
+  border-bottom: 1px solid var(--border);
+}
+.scont-titolo-edit-hdr:active { cursor: grabbing; }
+.scont-titolo-edit-cat { font-size: 13px; font-weight: 700; color: #7C3AED; }
+.scont-titolo-edit-close {
+  background: none; border: none; font-size: 18px; line-height: 1;
+  color: var(--text-muted, #999); cursor: pointer; padding: 0 2px;
+}
+.scont-titolo-edit-close:hover { color: var(--text); }
+.scont-titolo-edit-body { display: flex; gap: 8px; align-items: center; padding: 12px 14px; }
+.scont-titolo-edit-body input {
+  flex: 1; padding: 8px 12px; border: 1px solid var(--border);
+  border-radius: 8px; font-size: 14px; background: var(--bg); color: var(--text);
+}
+.scont-titolo-edit-body input:focus { outline: none; border-color: #7C3AED; }
+.scont-titolo-edit-body button {
+  padding: 8px 16px; border: none; border-radius: 8px;
+  background: #7C3AED; color: #fff; font-size: 14px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+}
+.scont-titolo-edit-body button:hover { background: #6D28D9; }
+
 .scont-modal-overlay {
   position: fixed; inset: 0; z-index: 9200;
   pointer-events: none;
@@ -1967,6 +2000,18 @@ body.sola-lettura .btn-copy-col { display: none; }
   <button data-cat="sport">⚽ Sport</button>
   <button data-cat="teatro">🎭 Teatro</button>
   <button data-cat="monumenti">🏛 Monumenti/Oggetti</button>
+</div>
+
+<!-- ── Scontorni: edit titolo ricerca ─────────────────────────────────────────── -->
+<div id="scontTitoloEdit" class="scont-titolo-edit">
+  <div class="scont-titolo-edit-hdr" id="scontTitoloEditHdr">
+    <span class="scont-titolo-edit-cat" id="scontTitoloEditCat"></span>
+    <button class="scont-titolo-edit-close" id="scontTitoloEditClose">×</button>
+  </div>
+  <div class="scont-titolo-edit-body">
+    <input type="text" id="scontTitoloEditInput" placeholder="Titolo da cercare…">
+    <button id="scontTitoloEditBtn">Cerca</button>
+  </div>
 </div>
 
 <!-- ── Trama/Note: modal editor ───────────────────────────────────────────────── -->
@@ -6573,18 +6618,68 @@ function mostraCatMenu(row, tr, btn) {
   }
 }
 
+let _scontCatSel = null;
+
 document.getElementById('scontCatMenu').addEventListener('click', e => {
   const b = e.target.closest('[data-cat]');
   if (!b || !_scontRow) return;
   document.getElementById('scontCatMenu').classList.remove('show');
-  cercaScontTitolo(_scontRow.titolo, b.dataset.cat, _scontRow, _scontTr);
+  _scontCatSel = b.dataset.cat;
+  const panel = document.getElementById('scontTitoloEdit');
+  panel.style.left = Math.round((window.innerWidth - 380) / 2) + 'px';
+  panel.style.top  = Math.round(window.innerHeight * 0.38) + 'px';
+  document.getElementById('scontTitoloEditCat').textContent = b.textContent;
+  const inp = document.getElementById('scontTitoloEditInput');
+  inp.value = _scontRow.titolo || '';
+  panel.classList.add('show');
+  inp.focus();
+  inp.select();
 });
+
+document.getElementById('scontTitoloEditBtn').addEventListener('click', () => {
+  const titolo = document.getElementById('scontTitoloEditInput').value.trim();
+  document.getElementById('scontTitoloEdit').classList.remove('show');
+  if (titolo && _scontCatSel && _scontRow) {
+    cercaScontTitolo(titolo, _scontCatSel, _scontRow, _scontTr);
+  }
+});
+
+document.getElementById('scontTitoloEditClose').addEventListener('click', () => {
+  document.getElementById('scontTitoloEdit').classList.remove('show');
+});
+
+document.getElementById('scontTitoloEditInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('scontTitoloEditBtn').click();
+  if (e.key === 'Escape') document.getElementById('scontTitoloEdit').classList.remove('show');
+});
+
+(function() {
+  const panel = document.getElementById('scontTitoloEdit');
+  const hdr   = document.getElementById('scontTitoloEditHdr');
+  let dragging = false, ox = 0, oy = 0;
+  hdr.addEventListener('mousedown', e => {
+    if (e.target.closest('#scontTitoloEditClose')) return;
+    dragging = true;
+    ox = e.clientX - panel.getBoundingClientRect().left;
+    oy = e.clientY - panel.getBoundingClientRect().top;
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    panel.style.left = (e.clientX - ox) + 'px';
+    panel.style.top  = (e.clientY - oy) + 'px';
+  });
+  document.addEventListener('mouseup', () => { dragging = false; });
+})();
 
 document.addEventListener('click', e => {
   if (!e.target.closest('#scontCatMenu') && !e.target.closest('#scontParoleMenu') && !e.target.closest('#scontTipoMenu') && !e.target.classList.contains('btn-scont')) {
     document.getElementById('scontCatMenu').classList.remove('show');
     document.getElementById('scontParoleMenu').classList.remove('show');
     document.getElementById('scontTipoMenu').classList.remove('show');
+  }
+  if (!e.target.closest('#scontTitoloEdit') && !e.target.closest('#scontCatMenu')) {
+    document.getElementById('scontTitoloEdit').classList.remove('show');
   }
   if ((!e.target.closest('#ricercaFotoMenu') && !e.target.closest('.btn-foto-trigger')) ||
       e.target.closest('.rfm-item')) {

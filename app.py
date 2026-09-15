@@ -386,7 +386,7 @@ def patch_rows(key):
     return jsonify({'ok': True, 'mtime': path.stat().st_mtime, 'applied': applied})
 
 
-_UPDATE_FIELDS = {'orario', 'titolo', 'tipo', 'personaggio', 'anno', 'stagione', 'note', 'trama'}
+_UPDATE_FIELDS = {'orario', 'titolo', 'tipo', 'personaggio', 'anno', 'stagione', 'note', 'trama', 'vedi_trama'}
 
 @app.route('/api/update/<key>', methods=['POST'])
 def update_rows(key):

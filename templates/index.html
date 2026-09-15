@@ -5010,10 +5010,17 @@ function buildRow(row, i, tbody, colsOverride) {
   }
   const pagFissaAzioni = (currentTimone === 'tvmia') ? TVMIA_TRAME_FISSE[row.codice] : undefined;
   if (pagFissaAzioni !== undefined) {
-    const tramaLabel = document.createElement('div');
-    tramaLabel.textContent = 'vedi trama p. ' + pagFissaAzioni;
-    tramaLabel.style.cssText = 'font-size:13px;font-weight:700;color:#dc2626;letter-spacing:.01em;white-space:nowrap';
-    divA.appendChild(tramaLabel);
+    const defaultVediTrama = 'vedi trama a pag. ' + pagFissaAzioni;
+    const tramaSpan = document.createElement('span');
+    tramaSpan.contentEditable = 'true';
+    tramaSpan.textContent = row.vedi_trama !== undefined ? row.vedi_trama : defaultVediTrama;
+    tramaSpan.style.cssText = 'font-size:13px;font-weight:700;color:#dc2626;letter-spacing:.01em;white-space:nowrap;outline:none;border-bottom:1px dashed #dc2626;cursor:text;display:block';
+    tramaSpan.addEventListener('input', () => {
+      const r = currentRows.find(x => x.id === row.id);
+      if (r) { r.vedi_trama = tramaSpan.textContent; markDirty(); }
+    });
+    tramaSpan.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); tramaSpan.blur(); } });
+    divA.appendChild(tramaSpan);
   }
   tdA.appendChild(divA);
   tr.appendChild(tdA);

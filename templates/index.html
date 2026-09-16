@@ -6031,12 +6031,21 @@ function esc(str) {
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function _positionAcDropdown(td) {
+  const rect       = td.getBoundingClientRect();
+  const ddH        = _acDd.offsetHeight;
+  const spaceBelow = window.innerHeight - rect.bottom;
+  _acDd.style.left = rect.left + 'px';
+  if (spaceBelow >= ddH + 8 || spaceBelow >= rect.top) {
+    _acDd.style.top = (rect.bottom + 4) + 'px';
+  } else {
+    _acDd.style.top = Math.max(4, rect.top - ddH - 4) + 'px';
+  }
+}
+
 function renderAcDropdown(items, td) {
   _acItems = items; _acIdx = -1;
-  const rect = td.getBoundingClientRect();
-  _acDd.style.left  = rect.left + 'px';
-  _acDd.style.top   = (rect.bottom + 4) + 'px';
-  _acDd.style.width = Math.max(320, rect.width) + 'px';
+  _acDd.style.width = Math.max(320, td.getBoundingClientRect().width) + 'px';
   _acDd.innerHTML   = '';
   items.forEach((item, i) => {
     const div = document.createElement('div');
@@ -6050,6 +6059,7 @@ function renderAcDropdown(items, td) {
     _acDd.appendChild(div);
   });
   _acDd.style.display = 'block';
+  _positionAcDropdown(td);
 }
 
 function moveAc(dir) {
@@ -6108,10 +6118,7 @@ function applyAc(item) {
 
 function renderPersonaggioDropdown(items, td) {
   _acItems = items; _acIdx = -1;
-  const rect = td.getBoundingClientRect();
-  _acDd.style.left  = rect.left + 'px';
-  _acDd.style.top   = (rect.bottom + 4) + 'px';
-  _acDd.style.width = Math.max(260, rect.width) + 'px';
+  _acDd.style.width = Math.max(260, td.getBoundingClientRect().width) + 'px';
   _acDd.innerHTML   = '';
   items.forEach((item, i) => {
     const div = document.createElement('div');
@@ -6123,6 +6130,7 @@ function renderPersonaggioDropdown(items, td) {
     _acDd.appendChild(div);
   });
   _acDd.style.display = 'block';
+  _positionAcDropdown(td);
 }
 
 function applyPersonaggioAc(item) {

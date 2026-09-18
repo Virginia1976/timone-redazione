@@ -3335,6 +3335,7 @@ let isDirty          = false;
 let isArchiveView    = false;
 let _archiveWeek     = null;   // {week_id,dal,al} della settimana archivio aperta
 let _saveTimer       = null;
+let _isSaving        = false;
 let _lastSavedRows   = null;
 let _loadGen         = 0;   // incrementato ad ogni caricaTimone; previene race condition su navigazione rapida
 let savedCounts      = {};   // chiave → conteggio righe
@@ -4326,30 +4327,36 @@ function scheduleSave() {
 }
 
 async function autoSave() {
+  if (_isSaving) { scheduleSave(); return; }
   const key = storageKey();
   if (!key) return;
   clearTimeout(_saveTimer);
   if (_coverDirty) saveCoverPanel(true);
   const nonSep = currentRows.filter(r => !r._separator);
-  if (_lastSavedRows !== null && canUsePatch(nonSep)) {
-    const patches = computePatches(_lastSavedRows, nonSep);
-    if (Object.keys(patches).length === 0) { setDirty(false); return; }
-    try {
-      const res  = await fetch(`/api/patch/${key}${weekParam()}`, {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ patches })
-      });
-      const data = await res.json();
-      if (data.error) { showStatus('Errore salvataggio', 'error'); return; }
-      // Se il server non ha trovato righe (file vuoto/corrotto), ripiega su salvataggio completo
-      if ((data.applied ?? 1) === 0) { await salvaTimone(true, key, nonSep); return; }
-      _lastSavedRows = JSON.parse(JSON.stringify(nonSep));
-      setDirty(false);
-      _ackedMtime = data.mtime;
-      aggiornaConteggiWelcome();
-    } catch { showStatus('Errore salvataggio', 'error'); }
-  } else {
-    await salvaTimone(true, key, nonSep);
+  _isSaving = true;
+  try {
+    if (_lastSavedRows !== null && canUsePatch(nonSep)) {
+      const patches = computePatches(_lastSavedRows, nonSep);
+      if (Object.keys(patches).length === 0) { setDirty(false); return; }
+      try {
+        const res  = await fetch(`/api/patch/${key}${weekParam()}`, {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ patches })
+        });
+        const data = await res.json();
+        if (data.error) { showStatus('Errore salvataggio', 'error'); return; }
+        // Se il server non ha trovato righe (file vuoto/corrotto), ripiega su salvataggio completo
+        if ((data.applied ?? 1) === 0) { await salvaTimone(true, key, nonSep); return; }
+        _lastSavedRows = JSON.parse(JSON.stringify(nonSep));
+        setDirty(false);
+        _ackedMtime = data.mtime;
+        aggiornaConteggiWelcome();
+      } catch { showStatus('Errore salvataggio', 'error'); }
+    } else {
+      await salvaTimone(true, key, nonSep);
+    }
+  } finally {
+    _isSaving = false;
   }
 }
 

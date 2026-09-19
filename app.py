@@ -567,24 +567,14 @@ def copia_titoli(key):
     else:
         current_wid = (get_week_meta(timone).get('week_id') or '').strip()
 
-    # Cerca la cartella-settimana immediatamente precedente a quella corrente.
-    # Non si salta la settimana se il file non esiste: settimana senza file = 0 titoli.
+    # La settimana precedente è sempre esattamente 7 giorni prima.
     prev_wid = None
-    try:
-        candidates = sorted(
-            [
-                d.name for d in DATA_DIR.iterdir()
-                if d.is_dir()
-                and d.name != '_weeks'
-                and re.match(r'^\d{4}-\d{2}-\d{2}$', d.name)
-                and (not current_wid or d.name < current_wid)
-            ],
-            reverse=True,
-        )
-        if candidates:
-            prev_wid = candidates[0]
-    except Exception:
-        pass
+    if current_wid:
+        try:
+            prev_date = date_.fromisoformat(current_wid) - timedelta(days=7)
+            prev_wid = prev_date.isoformat()
+        except Exception:
+            pass
 
     if not prev_wid:
         return jsonify({'rows': [], 'prev_week': None})

@@ -895,12 +895,14 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 .canvas-confirm-overlay {
   position: fixed; inset: 0; z-index: 10000; display: none;
   align-items: center; justify-content: center; background: rgba(0,0,0,.45);
+  pointer-events: none;
 }
 .canvas-confirm-overlay.show { display: flex; }
 .canvas-confirm-box {
   background: var(--card); color: var(--text); border-radius: 10px; padding: 18px 20px;
   width: min(420px, 92vw); box-shadow: 0 10px 40px rgba(0,0,0,.35);
   display: flex; flex-direction: column; gap: 10px;
+  pointer-events: auto;
 }
 .canvas-confirm-title { font-size: 15px; font-weight: 600; cursor: move; user-select: none; }
 .canvas-confirm-img {
@@ -5756,7 +5758,6 @@ function chiediConfermaCanvas(codice, p) {
 
     const chiudi = (esito) => {
       overlay.classList.remove('show');
-      overlay.removeEventListener('click', onOverlay);
       document.removeEventListener('keydown', onKey, true);
       btnSi.removeEventListener('click', onSi);
       btnNo.removeEventListener('click', onNo);
@@ -5768,7 +5769,6 @@ function chiediConfermaCanvas(codice, p) {
     };
     const onSi = () => chiudi(true);
     const onNo = () => chiudi(false);
-    const onOverlay = (e) => { if (e.target === overlay) chiudi(false); };
     const onKey = (e) => {
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); chiudi(false); }
       else if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); chiudi(true); }
@@ -5776,7 +5776,6 @@ function chiediConfermaCanvas(codice, p) {
 
     btnSi.addEventListener('click', onSi);
     btnNo.addEventListener('click', onNo);
-    overlay.addEventListener('click', onOverlay);
     document.addEventListener('keydown', onKey, true);
     const box = overlay.querySelector('.canvas-confirm-box');
     box.style.transform = '';

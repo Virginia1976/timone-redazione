@@ -892,6 +892,29 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 .btn-canvas-trigger .btn-foto-chevron { font-size: 9px; opacity: .6; }
 .canvas-menu .rfm-item { font-size: 13px; font-weight: 500; color: var(--text); background: none; border: none; width: 100%; text-align: left; cursor: pointer; }
 .canvas-menu .rfm-item:hover { background: #ecfdf5; }
+.canvas-confirm-overlay {
+  position: fixed; inset: 0; z-index: 10000; display: none;
+  align-items: center; justify-content: center; background: rgba(0,0,0,.45);
+}
+.canvas-confirm-overlay.show { display: flex; }
+.canvas-confirm-box {
+  background: var(--card); color: var(--text); border-radius: 10px; padding: 18px 20px;
+  width: min(420px, 92vw); box-shadow: 0 10px 40px rgba(0,0,0,.35);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.canvas-confirm-title { font-size: 15px; font-weight: 600; }
+.canvas-confirm-img {
+  display: block; max-width: 100%; max-height: 55vh; margin: 0 auto;
+  object-fit: contain; border: 1px solid #d1d5db; border-radius: 6px; background: #f3f4f6;
+}
+.canvas-confirm-nome { font-size: 13px; font-weight: 600; word-break: break-word; }
+.canvas-confirm-dim { font-size: 12px; opacity: .7; }
+.canvas-confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.canvas-confirm-actions button {
+  padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;
+  border: 2px solid #10b981; background: var(--card); color: var(--text);
+}
+.canvas-confirm-actions .canvas-confirm-si { background: #10b981; color: #fff; }
 .btn-watcher-row {
   display: flex; align-items: center; gap: 3px;
   padding: 4px 8px; border-radius: 6px; border: 2px solid #c4b5fd;
@@ -1980,6 +2003,19 @@ body.sola-lettura .btn-copy-col { display: none; }
   <button class="rfm-item arm-nome">Nome</button>
   <button class="rfm-item arm-titolo">Titolo</button>
   <button class="rfm-item arm-avanzata">Avanzata</button>
+</div>
+<!-- ── Salva su canvas: popup di conferma con anteprima (admin only) ─────────── -->
+<div id="canvasConfirmOverlay" class="canvas-confirm-overlay">
+  <div class="canvas-confirm-box" role="dialog" aria-modal="true">
+    <div class="canvas-confirm-title">Sovrascrivere la canvas <span id="canvasConfirmCodice"></span>?</div>
+    <img id="canvasConfirmImg" class="canvas-confirm-img" alt="Anteprima foto">
+    <div class="canvas-confirm-nome" id="canvasConfirmNome"></div>
+    <div class="canvas-confirm-dim" id="canvasConfirmDim"></div>
+    <div class="canvas-confirm-actions">
+      <button type="button" id="canvasConfirmNo">Annulla</button>
+      <button type="button" id="canvasConfirmSi" class="canvas-confirm-si">Sovrascrivi</button>
+    </div>
+  </div>
 </div>
 <!-- ── Salva su canvas dropdown (admin only) ─────────────────────────────────── -->
 <div id="canvasMenu" class="ricerca-foto-menu canvas-menu">
@@ -5704,6 +5740,46 @@ document.querySelectorAll('#canvasMenu .rfm-item').forEach(btn => {
   });
 });
 
+// Popup di conferma con anteprima. Ritorna una Promise<boolean>. Esc/clic fuori = annulla, Invio = conferma.
+function chiediConfermaCanvas(codice, p) {
+  return new Promise(resolve => {
+    const overlay = document.getElementById('canvasConfirmOverlay');
+    const img = document.getElementById('canvasConfirmImg');
+    const btnSi = document.getElementById('canvasConfirmSi');
+    const btnNo = document.getElementById('canvasConfirmNo');
+
+    document.getElementById('canvasConfirmCodice').textContent = `"${codice}"`;
+    document.getElementById('canvasConfirmNome').textContent = p.nomeFile;
+    document.getElementById('canvasConfirmDim').textContent = `${p.larghezza}×${p.altezza} px`;
+    if (p.anteprima) { img.src = p.anteprima; img.style.display = ''; }
+    else { img.removeAttribute('src'); img.style.display = 'none'; }
+
+    const chiudi = (esito) => {
+      overlay.classList.remove('show');
+      overlay.removeEventListener('click', onOverlay);
+      document.removeEventListener('keydown', onKey, true);
+      btnSi.removeEventListener('click', onSi);
+      btnNo.removeEventListener('click', onNo);
+      img.removeAttribute('src');
+      resolve(esito);
+    };
+    const onSi = () => chiudi(true);
+    const onNo = () => chiudi(false);
+    const onOverlay = (e) => { if (e.target === overlay) chiudi(false); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); chiudi(false); }
+      else if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); chiudi(true); }
+    };
+
+    btnSi.addEventListener('click', onSi);
+    btnNo.addEventListener('click', onNo);
+    overlay.addEventListener('click', onOverlay);
+    document.addEventListener('keydown', onKey, true);
+    overlay.classList.add('show');
+    btnSi.focus();
+  });
+}
+
 async function salvaSuCanvas(row, tipo) {
   const cartella = getCartellaArchivio();
   if (!cartella) { showStatus('Seleziona la cartella archivio', 'warn'); return; }
@@ -5732,7 +5808,7 @@ async function salvaSuCanvas(row, tipo) {
     if (!prop.ok) { showStatus(`Non salvata: ${prop.motivo}`, 'warn'); return; }
 
     const p = prop.proposta;
-    if (!confirm(`Sovrascrivere la canvas "${row.codice}" con:\n\n${p.nomeFile}\n(${p.larghezza}×${p.altezza})?`)) {
+    if (!(await chiediConfermaCanvas(row.codice, p))) {
       showStatus('Salvataggio annullato', 'info');
       return;
     }

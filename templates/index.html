@@ -902,7 +902,7 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
   width: min(420px, 92vw); box-shadow: 0 10px 40px rgba(0,0,0,.35);
   display: flex; flex-direction: column; gap: 10px;
 }
-.canvas-confirm-title { font-size: 15px; font-weight: 600; }
+.canvas-confirm-title { font-size: 15px; font-weight: 600; cursor: move; user-select: none; }
 .canvas-confirm-img {
   display: block; max-width: 100%; max-height: 55vh; margin: 0 auto;
   object-fit: contain; border: 1px solid #d1d5db; border-radius: 6px; background: #f3f4f6;
@@ -5760,6 +5760,9 @@ function chiediConfermaCanvas(codice, p) {
       document.removeEventListener('keydown', onKey, true);
       btnSi.removeEventListener('click', onSi);
       btnNo.removeEventListener('click', onNo);
+      title.removeEventListener('mousedown', onDragStart);
+      document.removeEventListener('mousemove', onDragMove);
+      document.removeEventListener('mouseup', onDragEnd);
       img.removeAttribute('src');
       resolve(esito);
     };
@@ -5775,6 +5778,27 @@ function chiediConfermaCanvas(codice, p) {
     btnNo.addEventListener('click', onNo);
     overlay.addEventListener('click', onOverlay);
     document.addEventListener('keydown', onKey, true);
+    const box = overlay.querySelector('.canvas-confirm-box');
+    box.style.transform = '';
+    let _dragActive = false, _dragX = 0, _dragY = 0, _dragStartX, _dragStartY;
+    const title = overlay.querySelector('.canvas-confirm-title');
+    const onDragStart = (e) => {
+      _dragActive = true;
+      _dragStartX = e.clientX - _dragX;
+      _dragStartY = e.clientY - _dragY;
+      e.preventDefault();
+    };
+    const onDragMove = (e) => {
+      if (!_dragActive) return;
+      _dragX = e.clientX - _dragStartX;
+      _dragY = e.clientY - _dragStartY;
+      box.style.transform = `translate(${_dragX}px,${_dragY}px)`;
+    };
+    const onDragEnd = () => { _dragActive = false; };
+    title.addEventListener('mousedown', onDragStart);
+    document.addEventListener('mousemove', onDragMove);
+    document.addEventListener('mouseup', onDragEnd);
+
     overlay.classList.add('show');
     btnSi.focus();
   });

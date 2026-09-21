@@ -881,6 +881,17 @@ tr.row-copiato  .color-dot { background: #e2e8f0; border-color: #cbd5e1; }
 .archivio-menu .rfm-item { font-size: 13px; font-weight: 500; color: var(--text); background: none; border: none; width: 100%; text-align: left; cursor: pointer; }
 .archivio-menu .rfm-item:hover { background: #f5f3ff; }
 .archivio-menu .rfm-item.arm-attivo { color: #7c3aed; font-weight: 700; }
+.btn-canvas-trigger {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 9px; border-radius: 6px; border: 2px solid #10b981;
+  background: var(--card); font-size: 12px; font-weight: 600;
+  color: var(--text); cursor: pointer; white-space: nowrap;
+  transition: background .12s, border-color .12s;
+}
+.btn-canvas-trigger:hover { background: #ecfdf5; border-color: #059669; }
+.btn-canvas-trigger .btn-foto-chevron { font-size: 9px; opacity: .6; }
+.canvas-menu .rfm-item { font-size: 13px; font-weight: 500; color: var(--text); background: none; border: none; width: 100%; text-align: left; cursor: pointer; }
+.canvas-menu .rfm-item:hover { background: #ecfdf5; }
 .btn-watcher-row {
   display: flex; align-items: center; gap: 3px;
   padding: 4px 8px; border-radius: 6px; border: 2px solid #c4b5fd;
@@ -1969,6 +1980,12 @@ body.sola-lettura .btn-copy-col { display: none; }
   <button class="rfm-item arm-nome">Nome</button>
   <button class="rfm-item arm-titolo">Titolo</button>
   <button class="rfm-item arm-avanzata">Avanzata</button>
+</div>
+<!-- ── Salva su canvas dropdown (admin only) ─────────────────────────────────── -->
+<div id="canvasMenu" class="ricerca-foto-menu canvas-menu">
+  <button class="rfm-item" data-tipo="nome">Nome</button>
+  <button class="rfm-item" data-tipo="titolo">Titolo</button>
+  <button class="rfm-item" data-tipo="avanzata">Avanzata</button>
 </div>
 <div id="fotineMenu" class="ricerca-foto-menu fotine-menu">
   <button class="rfm-item" data-cat="personaggi">👤 Personaggi</button>
@@ -4983,6 +5000,7 @@ function buildRow(row, i, tbody, colsOverride) {
   }
 
   let btnArchivio = null;
+  let btnCanvas = null;
   let btnWatcher = null;
   if (_ruolo === 'admin') {
     btnArchivio = document.createElement('button');
@@ -4992,6 +5010,14 @@ function buildRow(row, i, tbody, colsOverride) {
     btnArchivio.addEventListener('click', (e) => {
       e.stopPropagation();
       mostraArchivioMenu(row, btnArchivio);
+    });
+    btnCanvas = document.createElement('button');
+    btnCanvas.className = 'btn-canvas-trigger';
+    btnCanvas.title = 'Salva la foto d\'archivio sulla canvas (nome esatto)';
+    btnCanvas.innerHTML = '🖼 Canvas <span class="btn-foto-chevron">▾</span>';
+    btnCanvas.addEventListener('click', (e) => {
+      e.stopPropagation();
+      mostraCanvasMenu(row, btnCanvas);
     });
     btnWatcher = document.createElement('button');
     btnWatcher.className = 'btn-watcher-row' + (_watcherAttivo ? ' watcher-on' : '');
@@ -5011,8 +5037,9 @@ function buildRow(row, i, tbody, colsOverride) {
   divA.appendChild(mainA);
   if (btnArchivio || btnWatcher) {
     const adminRow = document.createElement('div');
-    adminRow.style.cssText = 'display:flex;align-items:center;gap:4px';
+    adminRow.style.cssText = 'display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px';
     if (btnArchivio) adminRow.appendChild(btnArchivio);
+    if (btnCanvas) adminRow.appendChild(btnCanvas);
     if (btnWatcher) adminRow.appendChild(btnWatcher);
     divA.appendChild(adminRow);
   }
@@ -5649,6 +5676,72 @@ async function cercaFotinaDipiu(categoria, row, tr) {
   } catch {
     showStatus('Errore ricerca fotine', 'error');
     closeScontModal();
+  }
+}
+
+// ── Salva su canvas (funzione separata da "Arch": non usa /apri né /cerca) ─────
+let _canvasMenuRow = null;
+
+function mostraCanvasMenu(row, triggerBtn) {
+  _canvasMenuRow = row;
+  const menu = document.getElementById('canvasMenu');
+
+  const cartella = getCartellaArchivio();
+  menu.querySelectorAll('.rfm-item').forEach(btn => {
+    btn.disabled = !cartella;
+    btn.title = cartella ? '' : 'Seleziona prima la cartella archivio';
+  });
+
+  menu.classList.add('show');
+  _posizionaMenu(menu, triggerBtn);
+}
+
+document.querySelectorAll('#canvasMenu .rfm-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('canvasMenu').classList.remove('show');
+    if (!_canvasMenuRow) return;
+    salvaSuCanvas(_canvasMenuRow, btn.dataset.tipo);
+  });
+});
+
+async function salvaSuCanvas(row, tipo) {
+  const cartella = getCartellaArchivio();
+  if (!cartella) { showStatus('Seleziona la cartella archivio', 'warn'); return; }
+  if (!row.codice) { showStatus('Riga senza codice canvas', 'warn'); return; }
+
+  const payload = {
+    cartellaArchivio: cartella,
+    cartellaNumero:   getCartella() || '',
+    codice:           row.codice      || '',
+    titolo:           row.titolo      || '',
+    personaggio:      row.personaggio || '',
+    stagione:         row.stagione    || '',
+    anno:             row.anno        || '',
+    tipoProgramma:    row.tipo        || '',
+    tipo,
+  };
+  const post = (path) => fetch(`${ARCHIVIO_ADMIN_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).then(r => r.json());
+
+  showStatus('Cerco in archivio…', 'info');
+  try {
+    const prop = await post('/proposta_canvas');
+    if (!prop.ok) { showStatus(`Non salvata: ${prop.motivo}`, 'warn'); return; }
+
+    const p = prop.proposta;
+    if (!confirm(`Sovrascrivere la canvas "${row.codice}" con:\n\n${p.nomeFile}\n(${p.larghezza}×${p.altezza})?`)) {
+      showStatus('Salvataggio annullato', 'info');
+      return;
+    }
+
+    const r = await post('/salva_su_canvas');
+    if (r.ok) showStatus(`Canvas ${row.codice} salvata: ${r.nomeFile}`, 'ok');
+    else showStatus(`Non salvata: ${r.motivo}`, 'warn');
+  } catch {
+    showStatus('Server archivio non raggiungibile', 'warn');
   }
 }
 
@@ -6715,6 +6808,10 @@ document.addEventListener('click', e => {
   if ((!e.target.closest('#archivioMenu') && !e.target.closest('.btn-archivio-trigger')) ||
       e.target.closest('.rfm-item')) {
     document.getElementById('archivioMenu').classList.remove('show');
+  }
+  if ((!e.target.closest('#canvasMenu') && !e.target.closest('.btn-canvas-trigger')) ||
+      e.target.closest('.rfm-item')) {
+    document.getElementById('canvasMenu').classList.remove('show');
   }
   if ((!e.target.closest('#fotineMenu') && !e.target.closest('.btn-fotine-trigger')) ||
       e.target.closest('.rfm-item')) {

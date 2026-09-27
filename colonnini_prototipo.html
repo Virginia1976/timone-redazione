@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Colonnini</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --accent:       #FF6B35;
+  --accent-light: rgba(255,107,53,.10);
+  --accent-dark:  #e85d28;
+  --bg:           #f5f6fa;
+  --card:         #ffffff;
+  --border:       #e2e8f0;
+  --muted:        #94a3b8;
+  --text:         #1e293b;
+  --text-soft:    #475569;
+  --radius:       14px;
+  --shadow-lg:    0 12px 48px rgba(0,0,0,.13), 0 4px 16px rgba(0,0,0,.07);
+  --shadow-card:  0 4px 24px rgba(0,0,0,.07), 0 1px 6px rgba(0,0,0,.04);
+  --transition:   .22s cubic-bezier(.4,0,.2,1);
+  --header-h:     84px;
+  --nav-h:        74px;
+  --sub-h:        42px;
+  --bar-h:        52px;
+  --tool-h:       50px;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px; line-height: 1.5; overflow: hidden; height: 100vh;
+}
+
+/* ── HEADER ── */
+.app-header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  height: var(--header-h); background: var(--card);
+  border-bottom: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  display: flex; align-items: center; padding: 0 24px; gap: 16px;
+}
+.logo-wrap { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+.logo-svg { width: 56px; height: 56px; color: var(--accent); flex-shrink: 0; transition: transform .7s cubic-bezier(.34,1.56,.64,1); }
+.logo-wrap:hover .logo-svg { transform: rotate(45deg); }
+.logo-text { display: flex; flex-direction: column; line-height: 1.1; }
+.logo-title { font-size: 22px; font-weight: 800; letter-spacing: -.03em; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.header-center { flex: 1; display: flex; justify-content: center; }
+.current-badge { display: flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; background: var(--accent-light); color: var(--accent); border: 1px solid rgba(255,107,53,.25); }
+.current-badge img { height: 28px; width: auto; object-fit: contain; border-radius: 4px; }
+.header-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.btn-header { display: flex; align-items: center; gap: 6px; padding: 9px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all var(--transition); white-space: nowrap; }
+.btn-ghost { background: none; border: 1.5px solid var(--border); color: var(--text-soft); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.btn-orange { background: var(--accent); color: #fff; }
+.btn-orange:hover { background: var(--accent-dark); }
+
+/* ── NAV ── */
+.main-nav {
+  position: fixed; top: var(--header-h); left: 0; right: 0; z-index: 190;
+  background: var(--card); border-bottom: 1px solid var(--border);
+  height: var(--nav-h); display: flex; align-items: stretch;
+  padding: 0 24px; overflow-x: auto; overflow-y: hidden;
+}
+.main-nav::-webkit-scrollbar { height: 3px; }
+.nav-tab-wrap { position: relative; display: flex; align-items: stretch; }
+.nav-tab-name { display: flex; align-items: center; gap: 8px; padding: 0 18px 0 28px; border: none; background: none; font-size: 16px; font-weight: 700; color: var(--text-soft); cursor: pointer; border-bottom: 3px solid transparent; transition: all var(--transition); white-space: nowrap; flex-shrink: 0; letter-spacing: -.01em; }
+.nav-tab-name:hover { color: var(--accent); background: var(--accent-light); }
+.nav-tab-arrow { display: flex; align-items: center; padding: 0 10px 0 4px; border: none; background: none; font-size: 10px; opacity: .6; cursor: pointer; border-bottom: 3px solid transparent; transition: all var(--transition); color: var(--text-soft); flex-shrink: 0; }
+.nav-tab-arrow:hover { color: var(--accent); background: var(--accent-light); opacity: 1; }
+.nav-tab-wrap.active .nav-tab-name, .nav-tab-wrap.active .nav-tab-arrow { color: var(--accent); border-bottom-color: var(--accent); }
+.nav-tab-wrap.active .nav-tab-arrow { opacity: 1; }
+.nav-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.nav-tab-name[data-timone="nuovotv"] .nav-dot { background: #FF6B35; }
+.nav-tab-name[data-timone="dipiutv"] .nav-dot { background: #7C3AED; }
+.nav-tab-name[data-timone="tvmia"]   .nav-dot { background: #0891B2; }
+.nav-tab { display: flex; align-items: center; gap: 8px; padding: 0 28px; border: none; background: none; font-size: 16px; font-weight: 700; color: var(--text-soft); cursor: pointer; border-bottom: 3px solid transparent; transition: all var(--transition); white-space: nowrap; flex-shrink: 0; letter-spacing: -.01em; }
+.nav-tab:hover { color: var(--accent); background: var(--accent-light); }
+.nav-tab[data-timone="nuovo"]     .nav-dot { background: #059669; }
+.nav-tab[data-timone="dipiu"]     .nav-dot { background: #DB2777; }
+.nav-tab[data-timone="divadonna"] .nav-dot { background: #E11D48; }
+.nav-sep { width: 1px; background: var(--border); margin: 12px 4px; flex-shrink: 0; }
+.days-dropdown { display: none; position: fixed; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg); min-width: 180px; z-index: 9000; overflow: hidden; animation: fadeDown .15s ease; }
+.days-dropdown.show { display: block; }
+.day-item { display: flex; align-items: center; padding: 13px 20px; cursor: pointer; font-size: 15px; font-weight: 700; color: var(--text); transition: all .12s; border: none; background: none; width: 100%; text-align: left; }
+.day-item:hover { background: var(--accent-light); color: var(--accent); }
+.day-sep { border: none; border-top: 1px solid var(--border); margin: 4px 8px; }
+@keyframes fadeDown { from { opacity:0; transform: translateY(-6px); } to { opacity:1; transform: translateY(0); } }
+
+/* ── CANALI BAR ── */
+.canali-bar { position: fixed; top: calc(var(--header-h) + var(--nav-h)); left: 0; right: 0; z-index: 180; background: var(--card); border-bottom: 2px solid var(--accent); height: var(--sub-h); display: flex; align-items: center; padding: 0 24px; gap: 4px; overflow-x: auto; }
+.c-pill { padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; border: 1.5px solid transparent; cursor: pointer; background: none; color: var(--text-soft); transition: all var(--transition); white-space: nowrap; }
+.c-pill:hover { border-color: var(--accent); color: var(--accent); background: #fff; }
+.c-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 2px 8px rgba(255,107,53,.3); }
+.c-sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; flex-shrink: 0; }
+
+/* ── TOOLBAR ── */
+.col-toolbar {
+  position: fixed;
+  top: calc(var(--header-h) + var(--nav-h) + var(--sub-h));
+  left: 0; right: 0; z-index: 170;
+  background: var(--card); border-bottom: 1px solid var(--border);
+  padding: 8px 24px; height: var(--tool-h);
+  display: flex; align-items: center; gap: 8px;
+}
+.tool-btn { display: flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; border: 1.5px solid var(--border); background: var(--card); color: var(--text-soft); cursor: pointer; transition: all var(--transition); white-space: nowrap; }
+.tool-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.tool-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent-dark); }
+.tool-btn.primary:hover { background: var(--accent-dark); }
+.tool-btn.danger:hover { border-color: #dc2626; color: #dc2626; background: #fef2f2; }
+
+/* ── RIGHE COUNTER ── */
+.righe-wrap { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.righe-display {
+  display: flex; align-items: baseline; gap: 3px;
+  font-variant-numeric: tabular-nums;
+}
+.righe-n { font-size: 24px; font-weight: 800; transition: color .3s; }
+.righe-n.ok   { color: #16a34a; }
+.righe-n.warn { color: #d97706; }
+.righe-n.over { color: #dc2626; }
+.righe-sep { font-size: 16px; color: var(--muted); font-weight: 600; }
+.righe-tot { font-size: 14px; color: var(--muted); font-weight: 600; }
+.righe-label { font-size: 10px; color: var(--muted); line-height: 1.2; max-width: 70px; }
+.righe-bar-bg { width: 100px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.righe-bar-fill { height: 100%; border-radius: 3px; transition: width .35s, background .35s; }
+
+/* ── MAIN SCROLL AREA ── */
+.col-scroll {
+  position: fixed;
+  top: calc(var(--header-h) + var(--nav-h) + var(--sub-h) + var(--tool-h));
+  left: 0; right: 0;
+  bottom: var(--bar-h);
+  overflow-y: auto;
+  background: var(--bg);
+  padding: 16px 20px;
+}
+.col-scroll::-webkit-scrollbar { width: 6px; }
+.col-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── COLONNINO CONTAINER ── */
+.colonnino {
+  max-width: none;
+  margin: 0;
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  position: relative;
+}
+.col-channel-hd {
+  padding: 10px 16px;
+  background: #f8f8f8;
+  border-bottom: 1px solid var(--border);
+  font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* ── VOCI PALINSESTO (stile InDesign) ── */
+.pal-entry {
+  display: flex; align-items: flex-start; gap: 0;
+  padding: 4px 12px 4px 10px;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: background .12s, border-color .12s, transform .15s;
+  position: relative;
+}
+.pal-entry:hover { background: #f8f8f8; transform: scale(1.18); transform-origin: left center; z-index: 10; position: relative; }
+.pal-entry.segnalato { border-left-color: var(--accent); background: rgba(255,107,53,.03); }
+.pal-entry.segnalato:hover { background: rgba(255,107,53,.07); }
+.pal-entry.tagliato { opacity: .38; }
+.pal-entry.overflow-item { background: rgba(220,38,38,.05); border-left-color: #dc2626 !important; }
+
+/* Testo stile InDesign */
+.pe-text {
+  flex: 0 0 auto;
+  width: min(360px, 38vw);
+  font-family: 'Barlow Condensed', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 17px; line-height: 23px;
+  padding-left: 43px; text-indent: -43px;
+  word-break: break-word;
+  letter-spacing: .015em; color: #111;
+  padding-top: 3px; padding-bottom: 3px;
+}
+.pe-text.tagliato-text { text-decoration: line-through; color: #bbb; }
+.pe-ora { font-weight: 800; color: #cc2200; font-size: 16.5px; }
+.pe-tit { font-weight: 700; color: #1a3a8f; }
+.pe-det { color: #333; font-weight: 400; cursor: text; }
+.pe-det.nascosto { display: none; }
+.pe-det:focus { outline: 1px solid rgba(255,107,53,.5); border-radius: 2px; background: rgba(255,107,53,.06); }
+.seg-bullet { color: var(--accent); font-size: 8px; vertical-align: middle; margin-left: 2px; }
+
+.pe-tools {
+  display: flex; align-items: center; gap: 3px;
+  opacity: 0; transition: opacity .15s;
+  flex-shrink: 0; padding-top: 1px;
+}
+.pal-entry:hover .pe-tools { opacity: 1; }
+.pe-btn {
+  padding: 1px 7px; border-radius: 4px; font-size: 9px; font-weight: 700;
+  border: 1px solid var(--border); background: #fff; color: var(--muted);
+  cursor: pointer; transition: all .12s; white-space: nowrap; line-height: 17px;
+}
+.pe-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.pe-btn.t-off { border-color: #fca5a5; background: #fef2f2; color: #dc2626; }
+.pe-btn.t-off:hover { background: #fee2e2; }
+
+/* Linea fine colonnino */
+.fine-colonnino {
+  margin: 0 16px;
+  border: none;
+  border-top: 1.5px dashed #dc2626;
+  position: relative;
+}
+.fine-colonnino::after {
+  content: 'FINE COLONNINO (52 righe)';
+  position: absolute;
+  right: 0; top: 2px;
+  font-size: 7.5px; font-weight: 700; color: #dc2626;
+  letter-spacing: .05em; background: #fff; padding-left: 6px;
+  font-family: 'Barlow Condensed', sans-serif;
+}
+
+/* ── SEGNALAZIONE BLOCK (inline nel colonnino) ── */
+.seg-block {
+  margin: 0; padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+  background: rgba(255,107,53,.04);
+  border-bottom: 1px solid rgba(255,107,53,.15);
+  border-top: 1px solid rgba(255,107,53,.15);
+  transition: transform .15s;
+  position: relative;
+}
+.seg-block:hover { transform: scale(1.18); transform-origin: left center; z-index: 10; }
+.seg-block-inner { display: grid; grid-template-columns: 80px 1fr; gap: 10px; max-width: min(460px, 50vw); }
+.seg-foto-box {
+  width: 80px; height: 80px; border-radius: 6px; overflow: hidden;
+  background: var(--bg); flex-shrink: 0; position: relative;
+}
+.seg-foto-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.seg-info-col { display: flex; flex-direction: column; gap: 2px; }
+.seg-slot { font-size: 9px; font-weight: 800; color: var(--accent); font-family: 'Barlow Condensed', sans-serif; }
+.seg-genere-lbl { font-size: 9px; color: var(--muted); font-style: italic; font-family: 'Barlow Condensed', sans-serif; }
+.seg-titolo-lbl { font-size: 12px; font-weight: 900; color: var(--text); text-transform: uppercase; line-height: 1.15; letter-spacing: .01em; font-family: 'Barlow Condensed', sans-serif; }
+.seg-testo-area {
+  margin-top: 3px; width: 100%;
+  border: 1.5px solid var(--border); border-radius: 6px;
+  padding: 4px 7px; font-size: 10.5px; font-family: 'Barlow Condensed', sans-serif;
+  resize: vertical; min-height: 42px; line-height: 1.35;
+  background: #fffdf7; color: var(--text);
+  transition: border-color var(--transition); outline: none;
+}
+.seg-testo-area:focus { border-color: var(--accent); background: #fff; }
+.seg-testo-area::placeholder { color: var(--muted); font-style: italic; }
+
+/* Overflow zone */
+.overflow-zone {
+  background: rgba(220,38,38,.06);
+  border-top: none;
+}
+.overflow-label {
+  padding: 6px 16px;
+  font-size: 10px; font-weight: 700; color: #dc2626; letter-spacing: .05em;
+  background: rgba(220,38,38,.08); border-bottom: 1px solid rgba(220,38,38,.15);
+  display: flex; align-items: center; gap: 6px;
+}
+.overflow-label svg { flex-shrink: 0; }
+
+/* ── EXPORT BAR ── */
+.export-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+  background: var(--card); border-top: 1px solid var(--border);
+  padding: 8px 24px; height: var(--bar-h);
+  display: flex; align-items: center; gap: 12px;
+  box-shadow: 0 -4px 24px rgba(0,0,0,.07);
+}
+.export-info { flex: 1; font-size: 12px; color: var(--text-soft); }
+.export-info strong { color: var(--text); }
+.btn-export-indd { display: flex; align-items: center; gap: 8px; padding: 9px 22px; border-radius: 12px; font-size: 14px; font-weight: 700; background: var(--accent); color: #fff; border: none; cursor: pointer; transition: all var(--transition); box-shadow: 0 4px 14px rgba(255,107,53,.35); }
+.btn-export-indd:hover { background: var(--accent-dark); transform: translateY(-1px); }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header class="app-header">
+  <a href="#" class="logo-wrap">
+    <svg class="logo-svg" viewBox="0 0 100 100" fill="currentColor">
+      <circle cx="50" cy="50" r="37" fill="none" stroke="currentColor" stroke-width="7"/>
+      <line x1="50" y1="17" x2="50" y2="39" stroke="currentColor" stroke-width="5.5" stroke-linecap="round"/>
+      <line x1="76.2" y1="23.8" x2="57.3" y2="42.7" stroke="currentColor" stroke-width="5.5" stroke-linecap="round"/>
+      <line x1="83" y1="50" x2="61" y2="50" stroke="currentColor" stroke-width="5.5" stroke-linecap="round"/>
+      <line x1="76.2" y1="76.2" x2="57.3" y2="57.3" stroke="currentColor" stroke-width="5.5" stroke-linecap="round"/>
+      <line x1="50" y1="83" x2="50" y2="61" stroke="currentColor" stroke-width="5.5" stroke-linecap="round"/>
+      <line x1="23.8" y1="76.2" x2="42.7" y2="57.3" stroke="currentColor" stroke-width="5.5" stroke-linecap="round"/>
+      <line x1="17" y1="50" x2="39" y2="50" stroke="currentColor" stroke-width="5.5" stroke-linecap="round"/>
+      <line x1="23.8" y1="23.8" x2="42.7" y2="42.7" stroke="currentColor" stroke-width="5.5" stroke-linecap="round"/>
+      <circle cx="50" cy="6" r="6"/><circle cx="81" cy="19" r="6"/>
+      <circle cx="94" cy="50" r="6"/><circle cx="81" cy="81" r="6"/>
+      <circle cx="50" cy="94" r="6"/><circle cx="19" cy="81" r="6"/>
+      <circle cx="6" cy="50" r="6"/><circle cx="19" cy="19" r="6"/>
+      <circle cx="50" cy="50" r="11"/>
+      <circle cx="50" cy="50" r="5" fill="white"/>
+    </svg>
+    <div class="logo-text"><span class="logo-title">Colonnini</span></div>
+  </a>
+  <div class="header-center">
+    <div class="current-badge">
+      <img src="static/loghi/nuovotv.png" alt="NuovoTV">
+      <span>NuovoTV — n. 39 — 3-9 ottobre 2026</span>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn-header btn-ghost">💾 Salva</button>
+  </div>
+</header>
+
+<!-- ── NAV ── -->
+<nav class="main-nav">
+  <div class="nav-tab-wrap active">
+    <button class="nav-tab-name" data-timone="nuovotv"><span class="nav-dot"></span>NuovoTV</button>
+    <button class="nav-tab-arrow" onclick="toggleDd('nuovotv',event)"><span>▾</span></button>
+    <div class="days-dropdown" id="dd-nuovotv">
+      <button class="day-item">Sabato</button><button class="day-item">Domenica</button>
+      <button class="day-item" style="color:var(--accent)">Lunedì</button>
+      <button class="day-item">Martedì</button><button class="day-item">Mercoledì</button>
+      <button class="day-item">Giovedì</button><button class="day-item">Venerdì</button>
+      <button class="day-item">Compleanni</button><hr class="day-sep"><button class="day-item">Cover</button>
+    </div>
+  </div>
+  <div class="nav-tab-wrap">
+    <button class="nav-tab-name" data-timone="dipiutv"><span class="nav-dot"></span>DipiùTV</button>
+    <button class="nav-tab-arrow" onclick="toggleDd('dipiutv',event)"><span>▾</span></button>
+    <div class="days-dropdown" id="dd-dipiutv">
+      <button class="day-item">Sabato</button><button class="day-item">Domenica</button>
+      <button class="day-item">Lunedì</button><button class="day-item">Martedì</button>
+      <button class="day-item">Mercoledì</button><button class="day-item">Giovedì</button>
+      <button class="day-item">Venerdì</button><button class="day-item">Biscotti</button>
+      <hr class="day-sep"><button class="day-item">Cover</button>
+    </div>
+  </div>
+  <div class="nav-tab-wrap">
+    <button class="nav-tab-name" data-timone="tvmia"><span class="nav-dot"></span>TvMia</button>
+    <button class="nav-tab-arrow" onclick="toggleDd('tvmia',event)"><span>▾</span></button>
+    <div class="days-dropdown" id="dd-tvmia">
+      <button class="day-item">Sabato</button><button class="day-item">Domenica</button>
+      <button class="day-item">Lunedì</button><button class="day-item">Martedì</button>
+      <button class="day-item">Mercoledì</button><button class="day-item">Giovedì</button>
+      <button class="day-item">Venerdì</button><button class="day-item">🎬 Streaming</button>
+    </div>
+  </div>
+  <div class="nav-sep"></div>
+  <button class="nav-tab" data-timone="nuovo"><span class="nav-dot"></span>Nuovo</button>
+  <button class="nav-tab" data-timone="dipiu"><span class="nav-dot"></span>Dipiu</button>
+  <button class="nav-tab" data-timone="divadonna"><span class="nav-dot"></span>Diva e Donna</button>
+</nav>
+
+<!-- ── CANALI BAR ── -->
+<div class="canali-bar">
+  <button class="c-pill active">RAI 1</button>
+  <button class="c-pill">RAI 2</button>
+  <button class="c-pill">RAI 3</button>
+  <button class="c-pill">LA7</button>
+  <div class="c-sep"></div>
+  <button class="c-pill">CANALE 5</button>
+  <button class="c-pill">ITALIA 1</button>
+  <button class="c-pill">RETE 4</button>
+  <div class="c-sep"></div>
+  <button class="c-pill">LA5</button><button class="c-pill">TV8</button><button class="c-pill">NOVE</button>
+  <div class="c-sep"></div>
+  <button class="c-pill">SKY TG24</button><button class="c-pill">SKY UNO</button><button class="c-pill">SKY CINEMA 1</button>
+</div>
+
+<!-- ── TOOLBAR ── -->
+<div class="col-toolbar">
+  <button class="tool-btn primary">⬇ Importa da InfoTV</button>
+  <button class="tool-btn" id="btnMattino">✂ Taglia mattino</button>
+  <button class="tool-btn" id="btnNotte">✂ Taglia notte</button>
+<button class="tool-btn danger" id="btnRipristina">↺ Ripristina</button>
+
+  <div class="righe-wrap">
+    <div>
+      <div class="righe-display">
+        <span class="righe-n ok" id="righeN">19</span>
+        <span class="righe-sep">/</span>
+        <span class="righe-tot">52</span>
+      </div>
+      <div class="righe-label" id="righeLabel">righe usate su 52</div>
+    </div>
+    <div>
+      <div class="righe-bar-bg">
+        <div class="righe-bar-fill" id="rightBarFill" style="width:37%;background:#16a34a"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN SCROLL ── -->
+<div class="col-scroll">
+  <div class="colonnino" id="colonnino">
+
+    <div class="col-channel-hd">
+      <span style="font-size:9px;">prg del 05.10.26</span>
+      <span style="font-size:13px;font-weight:900;color:var(--text);letter-spacing:-.02em;">RAI 1</span>
+      <span style="margin-left:auto;font-size:11px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0;">lunedì 5 ottobre</span>
+    </div>
+
+    <!-- PALINSESTO ENTRIES -->
+    <!-- data-lf = righe full; data-ls = righe solo titolo -->
+
+    <div class="pal-entry tagliato" data-lf="3" data-ls="1" onclick="toggleEntry(this)">
+      <div class="pe-text tagliato-text"><span class="pe-ora">6.00</span> <span class="pe-tit">1Mattina News</span> <span class="pe-det"> Attualità. Conducono Maria Soave, Tiberio Timperi</span></div>
+      <div class="pe-tools"><button class="pe-btn" onclick="toggleT(this,event)">T</button><button class="pe-btn" onclick="event.stopPropagation()">✕</button></div>
+    </div>
+
+    <div class="pal-entry tagliato" data-lf="1" data-ls="1" onclick="toggleEntry(this)">
+      <div class="pe-text tagliato-text"><span class="pe-ora">6.25</span> <span class="pe-tit">Previsioni sulla viabilità</span> <span class="pe-det"> Cciss Viaggiare informati</span></div>
+      <div class="pe-tools"><button class="pe-btn" onclick="toggleT(this,event)">T</button><button class="pe-btn" onclick="event.stopPropagation()">✕</button></div>
+    </div>
+
+    <div class="pal-entry tagliato" data-lf="1" data-ls="1" onclick="toggleEntry(this)">
+      <div class="pe-text tagliato-text"><span class="pe-ora">6.30</span> <span class="pe-tit">Tg1 – Telegiornale</span></div>
+      <div class="pe-tools"><button class="pe-btn" onclick="event.stopPropagation()">✕</button></div>
+    </div>
+
+    <div class="pal-entry tagliato" data-lf="3" data-ls="1" onclick="toggleEntry(this)">
+      <div class="pe-text tagliato-text"><span class="pe-ora">8.35</span> <span class="pe-tit">UnoMattina</span> <span class="pe-det"> Attualità. Conducono Massimiliano Ossini, Daniela Ferolla</span></div>
+      <div class="pe-tools"><button class="pe-btn" onclick="toggleT(this,event)">T</button><button class="pe-btn" onclick="event.stopPropagation()">✕</button></div>
+    </div>
+
+    <div class="pal-entry tagliato" data-lf="2" data-ls="1" onclick="toggleEntry(this)">
+      <div class="pe-text tagliato-text"><span class="pe-ora">9.50</span> <span class="pe-tit">Storie italiane</span> <span class="pe-det"> Attualità. Conduce Eleonora Daniele</span></div>
+      <div class="pe-tools"><button class="pe-btn" onclick="toggleT(this,event)">T</button><button class="pe-btn" onclick="event.stopPropagation()">✕</button></div>
+    </div>
+
+    <div class="pal-entry tagliato" data-lf="2" data-ls="1" onclick="toggleEntry(this)">
+      <div class="pe-text tagliato-text"><span class="pe-ora">11.55</span> <span class="pe-tit">È sempre mezzogiorno!</span> <span class="pe-det"> Cooking Show. Conduce Antonella Clerici</span></div>
+      <div class="pe-tools"><button class="pe-btn" onclick="toggleT(this,event)">T</button><button class="pe-btn" onclick="event.stopPropagation()">✕</button></div>
+    </div>
+
+    <div class="pal-entry" data-lf="1" data-ls="1" onclick="toggleEntry(this)">
+      <div class="pe-text"><span class="pe-ora">13.30</span> <span class="pe-tit">Tg1 – Telegiornale</span></div>
+      <div class="pe-tools"><button class="pe-btn" onclick="event.stopPropagation()">✕</button></div>
+    </div>
+
+    <div class="pal-entry" data-lf="2" data-ls="1" onclick="toggleEntry(this)">
+      <div class="pe-text"><span class="pe-ora">14.05</span> <span class="pe-tit">La volta buona</span> <span class="pe-det"> Varietà. Conduce Caterina Balivo</span></div>
+      <div class="pe-tools"><button class="pe-btn" onclick="toggleT(this,event)">T</button><button class="pe-btn" onclick="event.stopPropagation()">✕</button></div>
+    </div>
+
+    <!-- SEGNALAZIONE: Il paradiso delle signore -->
+    <div class="seg-block">
+      <div class="seg-block-inner">
+        <div class="seg-foto-box"><img src="lun1a.jpg" alt="Il paradiso delle signore" onerror="this.parentNode.style.background='#f5c07a'"></div>
+        <div class="seg-info-col">
+          <span class="seg-slot">16.00</span>
+          <span class="seg-genere-lbl">Soap opera</span>
+          <span class="seg-titolo-lbl">Il paradiso delle signore</span>
+          <textarea class="seg-testo-area" rows="3">Ciro (Massimo Cagnina, 53 anni) vorrebbe organizzare qualcosa di speciale per l'anniversario di matrimonio, ma Concetta, oberata di lavoro, spegne il suo entusiasmo.</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="pal-entry segnalato" data-lf="3" data-ls="1" onclick="toggleEntry(this)">
+      <div class="pe-text"><span class="pe-ora">16.00</span> <span class="pe-tit">Il paradiso delle signore</span><span class="seg-bullet">●</span> <span class="pe-det"> Soap Opera. Con Roberto Farnesi, Vanessa Gravina, Agnese Lorenzini</span></div>
+      <div class="pe-tools"><button class="pe-btn" onclick="toggleT(this,event)">T</button><button class="pe-btn" onclick="event.stopPropagation()">✕</button></div>
+    </div>
+
+    <div class="pal-entry" data-lf="2" data-ls="1" onclick="toggleEntry(this)">
+      <div class="pe-text"><span class="pe-ora">16.55</span> <span class="pe-tit">Vita in diretta</span> <span class="pe-det"> Attualità. Conduce Alberto Matano</span></div>
+      <div class="pe-tools"><button class="pe-btn" onclick="toggleT(this,event)">T</button><button class="pe-btn" onclick="event.stopPropagation()">✕</button></div>
+    </div>
+
+    <div class="pal-entry" data-lf="2" data-ls="1" onclick="toggleEntry(this)">
+      <div class="pe-text"><span class="pe-ora">18.40</span> <span class="pe-tit">Reazione a catena</span> <span class="pe-det"> Game Show. Conduce Pino Insegno</span></div>
+      <div class="pe-tools"><button class="pe-btn" onclick="toggleT(this,event)">T</button><button class="pe-btn" onclick="event.stopPropagation()">✕</button></div>
+    </div>
+
+    <div class="pal-entry" data-lf="1" data-ls="1" onclick="toggleEntry(this)">
+      <div class="pe-text"><span class="pe-ora">20.00</span> <span class="pe-tit">Tg1 – Telegiornale</span></div>
+      <div class="pe-tools"><button class="pe-btn" onclick="event.stopPropagation()">✕</button></div>
+    </div>
+
+    <!-- SEGNALAZIONE: Italia-Turchia -->
+    <div class="seg-block">
+      <div class="seg-block-inner">
+        <div class="seg-foto-box"><img src="lun2a.jpg" alt="Italia-Turchia" onerror="this.parentNode.style.background='#3a6fa8'"></div>
+        <div class="seg-info-col">
+          <span class="seg-slot">20.30</span>
+          <span class="seg-genere-lbl">Calcio</span>
+          <span class="seg-titolo-lbl">Italia-Turchia</span>
+          <textarea class="seg-testo-area" rows="3">Dopo l'andata disputata lunedì scorso a Bursa, gli azzurri guidati da Roberto Mancini (61 anni) tornano in campo allo Stadio Renato Dall'Ara di Bologna contro la nazionale di Vincenzo Montella.</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="pal-entry segnalato" data-lf="2" data-ls="2" onclick="toggleEntry(this)">
+      <div class="pe-text"><span class="pe-ora">20.30</span> <span class="pe-tit">CALCIO: Italia-Turchia</span><span class="seg-bullet">●</span> <span class="pe-det"> UEFA Nations League (diretta)</span></div>
+      <div class="pe-tools"><button class="pe-btn" onclick="toggleT(this,event)">T</button><button class="pe-btn" onclick="event.stopPropagation()">✕</button></div>
+    </div>
+
+    <!-- SEGNALAZIONE: Cose nostre -->
+    <div class="seg-block">
+      <div class="seg-block-inner">
+        <div class="seg-foto-box"><img src="lun3a.jpg" alt="Cose nostre" onerror="this.parentNode.style.background='#4b5563'"></div>
+        <div class="seg-info-col">
+          <span class="seg-slot">23.30</span>
+          <span class="seg-genere-lbl">Attualità</span>
+          <span class="seg-titolo-lbl">Cose nostre</span>
+          <textarea class="seg-testo-area" rows="3" placeholder="Scrivi il testo descrittivo…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="pal-entry segnalato" data-lf="2" data-ls="1" onclick="toggleEntry(this)">
+      <div class="pe-text"><span class="pe-ora">23.30</span> <span class="pe-tit">Cose nostre</span><span class="seg-bullet">●</span> <span class="pe-det"> Attualità. Conduce Emilia Brandi</span></div>
+      <div class="pe-tools"><button class="pe-btn" onclick="toggleT(this,event)">T</button><button class="pe-btn" onclick="event.stopPropagation()">✕</button></div>
+    </div>
+
+    <div class="pal-entry tagliato" data-lf="1" data-ls="1" onclick="toggleEntry(this)">
+      <div class="pe-text tagliato-text"><span class="pe-ora">0.40</span> <span class="pe-tit">Che tempo fa</span> <span class="pe-det"> Previsioni</span></div>
+      <div class="pe-tools"><button class="pe-btn" onclick="event.stopPropagation()">✕</button></div>
+    </div>
+
+    <div class="pal-entry tagliato" data-lf="3" data-ls="1" onclick="toggleEntry(this)">
+      <div class="pe-text tagliato-text"><span class="pe-ora">2.00</span> <span class="pe-tit">Provaci ancora Prof! 6</span> <span class="pe-det"> Miniserie. Con Veronica Pivetti, Enzo Decaro, Paolo Conticini</span></div>
+      <div class="pe-tools"><button class="pe-btn" onclick="toggleT(this,event)">T</button><button class="pe-btn" onclick="event.stopPropagation()">✕</button></div>
+    </div>
+
+    <div class="pal-entry tagliato" data-lf="2" data-ls="1" onclick="toggleEntry(this)">
+      <div class="pe-text tagliato-text"><span class="pe-ora">3.40</span> <span class="pe-tit">Doc Martin</span> <span class="pe-det"> Serie. Con Martin Clunes, Caroline Catz</span></div>
+      <div class="pe-tools"><button class="pe-btn" onclick="toggleT(this,event)">T</button><button class="pe-btn" onclick="event.stopPropagation()">✕</button></div>
+    </div>
+
+    <div class="pal-entry tagliato" data-lf="1" data-ls="1" onclick="toggleEntry(this)">
+      <div class="pe-text tagliato-text"><span class="pe-ora">4.25</span> <span class="pe-tit">RaiNews24</span></div>
+      <div class="pe-tools"><button class="pe-btn" onclick="event.stopPropagation()">✕</button></div>
+    </div>
+
+    <!-- Linea fine colonnino + overflow -->
+    <hr class="fine-colonnino" id="fineLine">
+    <div class="overflow-zone" id="overflowZone" style="display:none">
+      <div class="overflow-label">
+        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 1v8M1 5h8" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round"/></svg>
+        TESTO FUORI CAMPO — queste voci non entrano nel colonnino
+      </div>
+      <div id="overflowList"></div>
+    </div>
+
+  </div><!-- /colonnino -->
+
+  <div style="height:20px"></div>
+</div>
+
+<!-- ── EXPORT BAR ── -->
+<div class="export-bar">
+  <div class="export-info">
+    <strong>NuovoTV — RAI 1 — Lunedì 5 ottobre</strong>
+    &nbsp;·&nbsp; <span id="infoText">3 segnalazioni · 9 voci nel palinsesto</span>
+  </div>
+  <button class="btn-header btn-ghost" style="font-size:13px;padding:7px 16px;">👁 Anteprima PDF</button>
+  <button class="btn-export-indd">📄 Esporta per InDesign</button>
+</div>
+
+<script>
+const MAX = 52;
+
+function allEntries() {
+  return [...document.querySelectorAll('.pal-entry')];
+}
+
+function calcRighe() {
+  const lineH = 23;
+  const padV = 6; // padding-top + padding-bottom di .pe-text
+  return allEntries().filter(e => !e.classList.contains('tagliato')).reduce((s, e) => {
+    const txt = e.querySelector('.pe-text');
+    if (!txt) return s;
+    const h = txt.getBoundingClientRect().height - padV;
+    return s + Math.max(1, Math.round(h / lineH));
+  }, 0);
+}
+
+function updateUI() {
+  const used = calcRighe();
+  const pct = Math.min(Math.round(used / MAX * 100), 100);
+  const cls = used > MAX ? 'over' : used > MAX * .82 ? 'warn' : 'ok';
+  const colors = { ok: '#16a34a', warn: '#d97706', over: '#dc2626' };
+
+  document.getElementById('righeN').textContent = used;
+  document.getElementById('righeN').className = 'righe-n ' + cls;
+  document.getElementById('righeLabel').textContent = used <= MAX
+    ? `${MAX - used} righe libere`
+    : `${used - MAX} righe in eccesso`;
+  document.getElementById('rightBarFill').style.width = pct + '%';
+  document.getElementById('rightBarFill').style.background = colors[cls];
+
+  // Overflow: if entries push beyond MAX, mark them
+  let cumul = 0;
+  let overflowStarted = false;
+  const overList = document.getElementById('overflowList');
+  overList.innerHTML = '';
+
+  allEntries().forEach(e => {
+    if (e.classList.contains('tagliato')) return;
+    const det = e.querySelector('.pe-det');
+    const tOff = e.querySelector('.pe-btn.t-off');
+    const lines = (tOff || (det && det.classList.contains('nascosto')))
+      ? parseInt(e.dataset.ls) : parseInt(e.dataset.lf);
+    cumul += lines;
+
+    if (cumul > MAX) {
+      if (!overflowStarted) {
+        overflowStarted = true;
+      }
+      e.classList.add('overflow-item');
+    } else {
+      e.classList.remove('overflow-item');
+    }
+  });
+
+  document.getElementById('overflowZone').style.display = overflowStarted ? 'block' : 'none';
+
+  // Footer count
+  const active = allEntries().filter(e => !e.classList.contains('tagliato')).length;
+  document.getElementById('infoText').textContent = `3 segnalazioni · ${active} voci nel palinsesto`;
+}
+
+function toggleEntry(el) {
+  if (event.target.tagName === 'BUTTON') return;
+  if (event.target.isContentEditable) return;
+  el.classList.toggle('tagliato');
+  const txt = el.querySelector('.pe-text');
+  if (txt) txt.classList.toggle('tagliato-text', el.classList.contains('tagliato'));
+  updateUI();
+}
+
+function toggleT(btn, e) {
+  e.stopPropagation();
+  const entry = btn.closest('.pal-entry');
+  if (entry.classList.contains('tagliato')) return;
+  btn.classList.toggle('t-off');
+  const det = entry.querySelector('.pe-det');
+  if (det) det.classList.toggle('nascosto', btn.classList.contains('t-off'));
+  updateUI();
+}
+
+// Tool buttons
+document.getElementById('btnMattino').onclick = () => {
+  allEntries().forEach(e => {
+    const ora = parseFloat(e.querySelector('.pe-ora').textContent);
+    if (ora >= 6 && ora < 13) {
+      e.classList.add('tagliato');
+      const txt = e.querySelector('.pe-text'); if(txt) txt.classList.add('tagliato-text');
+    }
+  });
+  updateUI();
+};
+document.getElementById('btnNotte').onclick = () => {
+  allEntries().forEach(e => {
+    const ora = parseFloat(e.querySelector('.pe-ora').textContent);
+    if (ora < 6) {
+      e.classList.add('tagliato');
+      const txt = e.querySelector('.pe-text'); if(txt) txt.classList.add('tagliato-text');
+    }
+  });
+  updateUI();
+};
+document.getElementById('btnRipristina').onclick = () => {
+  allEntries().forEach(e => {
+    e.classList.remove('tagliato', 'overflow-item');
+    const txt = e.querySelector('.pe-text'); if(txt) txt.classList.remove('tagliato-text');
+    const btn = e.querySelector('.pe-btn.t-off'); if(btn) btn.classList.remove('t-off');
+    const det = e.querySelector('.pe-det');
+    if (det) { det.classList.remove('nascosto'); if (det.dataset.orig) det.textContent = det.dataset.orig; }
+  });
+  updateUI();
+};
+
+// Rendi pe-det editabili e salva testo originale per Ripristina
+document.querySelectorAll('.pe-det').forEach(d => {
+  d.contentEditable = 'true';
+  d.dataset.orig = d.textContent;
+  d.addEventListener('input', updateUI);
+  d.addEventListener('click', e => e.stopPropagation());
+});
+
+// Nav dropdowns
+document.addEventListener('click', () => document.querySelectorAll('.days-dropdown.show').forEach(d => d.classList.remove('show')));
+function toggleDd(id, e) {
+  e.stopPropagation();
+  const dd = document.getElementById('dd-' + id);
+  const rect = e.currentTarget.getBoundingClientRect();
+  dd.style.top = rect.bottom + 4 + 'px';
+  dd.style.left = rect.left + 'px';
+  dd.classList.toggle('show');
+}
+
+// Canali
+document.querySelectorAll('.c-pill').forEach(p => p.addEventListener('click', () => {
+  document.querySelectorAll('.c-pill').forEach(x => x.classList.remove('active'));
+  p.classList.add('active');
+}));
+
+updateUI();
+</script>
+</body>
+</html>

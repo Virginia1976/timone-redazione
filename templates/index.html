@@ -5584,13 +5584,13 @@ document.getElementById('crm-testata').addEventListener('change', async function
     const data = await res.json();
     if (!res.ok) {
       if (data.no_file) {
-        posEl.innerHTML = `<option value="">— File destinazione non esiste —</option>`;
+        posEl.innerHTML = `<option value="">— ${label} senza dati per questa settimana —</option>`;
         if (warnEl) {
-          warnEl.textContent = `⚠️ File destinazione non esiste su ${label}: apri e salva la settimana prima di copiare.`;
+          warnEl.textContent = `⚠️ Il timone ${label} non ha ancora dati in questa settimana. Aprilo e salva prima di copiare qui.`;
           warnEl.style.display = 'block';
         }
       } else if (data.no_template) {
-        posEl.innerHTML = `<option value="">— Nessun template disponibile —</option>`;
+        posEl.innerHTML = `<option value="">— Nessun dato disponibile per ${label} —</option>`;
       } else {
         posEl.innerHTML = `<option value="">${data.error || 'Errore caricamento'}</option>`;
       }
@@ -5626,9 +5626,9 @@ document.getElementById('crm-testata').addEventListener('change', async function
     posEl.disabled = false;
 
     if (data.template && isRivista) {
-      // Dropdown popolato dal template più recente: settimana destinazione non aperta
+      // Dropdown popolato dal template più recente: nessun dato salvato in questa settimana
       if (warnEl) {
-        warnEl.textContent = `⚠️ Settimana non ancora aperta su ${label}: apri e salva la settimana prima di copiare.`;
+        warnEl.textContent = `⚠️ Il timone ${label} non ha ancora dati in questa settimana. Aprilo e salva prima di copiare qui.`;
         warnEl.style.display = 'block';
       }
       btnEl.disabled = true;

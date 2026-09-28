@@ -649,7 +649,7 @@ def copy_target_list(testata):
             return jsonify({'error': 'giorno mancante'}), 400
         path = DATA_DIR / week_id / f'{testata}_{giorno}.json'
         if not path.exists():
-            return jsonify({'error': 'file di destinazione non esiste', 'no_file': True}), 404
+            return jsonify({'error': 'timone destinazione senza dati per questa settimana', 'no_file': True}), 404
 
     try:
         content = json.loads(path.read_text('utf-8'))
@@ -695,7 +695,7 @@ def copy_row():
     to_path   = d / f'{to_key}.json'
 
     if not to_path.exists():
-        return jsonify({'error': 'file di destinazione non esiste', 'no_file': True}), 404
+        return jsonify({'error': 'timone destinazione senza dati per questa settimana', 'no_file': True}), 404
 
     try:
         from_data = json.loads(from_path.read_text('utf-8')) if from_path.exists() else {'rows': []}

@@ -2041,6 +2041,7 @@ body.sola-lettura .btn-copy-col { display: none; }
   <select id="crm-posizione" class="crm-select" disabled>
     <option value="">Posizione...</option>
   </select>
+  <div id="crm-warn" style="display:none; background:#fff3cd; color:#664d03; border:1px solid #ffe69c; border-radius:6px; padding:6px 8px; font-size:12px; margin:4px 0;"></div>
   <button id="crm-btn-copia" class="crm-btn-copia" disabled>Copia</button>
 </div>
 
@@ -5535,10 +5536,12 @@ function mostraCopiaMenu(row, triggerBtn) {
   posEl.disabled  = true;
   btnEl.disabled  = true;
   btnEl.textContent = 'Copia';
+  const warnEl = document.getElementById('crm-warn');
+  if (warnEl) { warnEl.style.display = 'none'; warnEl.textContent = ''; }
 
-  // Popola testata (TV, escludi quella corrente)
+  // Popola testata (tutte le 6, escludi quella corrente)
   testataEl.innerHTML = '<option value="">Testata...</option>';
-  ['nuovotv', 'dipiutv', 'tvmia'].forEach(t => {
+  ['nuovotv', 'dipiutv', 'tvmia', 'nuovo', 'dipiu', 'divadonna'].forEach(t => {
     if (t === currentTimone) return;
     const opt = document.createElement('option');
     opt.value = t;
@@ -5557,25 +5560,44 @@ document.getElementById('crm-testata').addEventListener('change', async function
   const testata = this.value;
   const posEl   = document.getElementById('crm-posizione');
   const btnEl   = document.getElementById('crm-btn-copia');
+  const warnEl  = document.getElementById('crm-warn');
 
   posEl.innerHTML = '<option value="">Caricamento...</option>';
   posEl.disabled  = true;
   btnEl.disabled  = true;
+  if (warnEl) { warnEl.style.display = 'none'; warnEl.textContent = ''; }
 
   if (!testata) {
     posEl.innerHTML = '<option value="">Posizione...</option>';
     return;
   }
 
-  const toKey = `${testata}_${currentDay}`;
+  const weekId  = (currentWeek?.week_id || _globalWeek?.week_id || '');
+  const url     = `/api/copy-target-list/${testata}?week_id=${encodeURIComponent(weekId)}&giorno=${encodeURIComponent(currentDay || '')}`;
+  const isTvMia = testata === 'tvmia';
+  const isRivista = ['nuovo','dipiu','divadonna'].includes(testata);
+  const groupField = isTvMia ? 'sezione' : 'canale';
+  const label   = TIMONI_META[testata]?.label || testata;
+
   try {
-    const res  = await fetch(`/api/load/${toKey}${weekParam()}`);
+    const res  = await fetch(url);
     const data = await res.json();
+    if (!res.ok) {
+      if (data.no_file) {
+        posEl.innerHTML = `<option value="">— File destinazione non esiste —</option>`;
+        if (warnEl) {
+          warnEl.textContent = `⚠️ File destinazione non esiste su ${label}: apri e salva la settimana prima di copiare.`;
+          warnEl.style.display = 'block';
+        }
+      } else if (data.no_template) {
+        posEl.innerHTML = `<option value="">— Nessun template disponibile —</option>`;
+      } else {
+        posEl.innerHTML = `<option value="">${data.error || 'Errore caricamento'}</option>`;
+      }
+      return;
+    }
+
     const rows = (data.rows || []).filter(r => !r._separator && r.codice);
-
-    const isTvMia    = testata === 'tvmia';
-    const groupField = isTvMia ? 'sezione' : 'canale';
-
     posEl.innerHTML = '';
 
     // Raggruppa per box (sezione o canale)
@@ -5602,7 +5624,17 @@ document.getElementById('crm-testata').addEventListener('change', async function
     });
 
     posEl.disabled = false;
-    btnEl.disabled = !posEl.value;
+
+    if (data.template && isRivista) {
+      // Dropdown popolato dal template più recente: settimana destinazione non aperta
+      if (warnEl) {
+        warnEl.textContent = `⚠️ Settimana non ancora aperta su ${label}: apri e salva la settimana prima di copiare.`;
+        warnEl.style.display = 'block';
+      }
+      btnEl.disabled = true;
+    } else {
+      btnEl.disabled = !posEl.value;
+    }
   } catch (e) {
     posEl.innerHTML = '<option value="">Errore caricamento</option>';
   }
@@ -5621,7 +5653,8 @@ document.getElementById('crm-btn-copia').addEventListener('click', async functio
   this.disabled     = true;
   this.textContent  = '...';
 
-  const toKey        = `${testata}_${currentDay}`;
+  const isRivista    = TIMONI_META[testata]?.tipo === 'rivista';
+  const toKey        = isRivista ? testata : `${testata}_${currentDay}`;
   const targetCodice = posizione === '__fine__' ? null : posizione;
   const fromKey      = `${currentTimone}_${currentDay}`;
   const weekId       = (currentWeek?.week_id || _globalWeek?.week_id || '');
@@ -5640,8 +5673,18 @@ document.getElementById('crm-btn-copia').addEventListener('click', async functio
     });
     const data = await res.json();
     if (data.ok) {
-      this.textContent = '✓ Copiata!';
-      setTimeout(() => document.getElementById('copiaRowMenu').classList.remove('show'), 900);
+      const nCop  = (data.copied  || []).length;
+      const nSkip = (data.skipped || []).length;
+      if (nCop === 0) {
+        this.textContent = 'Già completa';
+        setTimeout(() => { this.disabled = false; this.textContent = 'Copia'; }, 1800);
+      } else if (nSkip > 0) {
+        this.textContent = `✓ ${nCop} copiati, ${nSkip} già presenti`;
+        setTimeout(() => document.getElementById('copiaRowMenu').classList.remove('show'), 1500);
+      } else {
+        this.textContent = '✓ Copiata!';
+        setTimeout(() => document.getElementById('copiaRowMenu').classList.remove('show'), 900);
+      }
     } else {
       this.textContent = data.error || 'Errore';
       setTimeout(() => { this.disabled = false; this.textContent = 'Copia'; }, 1800);

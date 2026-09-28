@@ -158,6 +158,13 @@ TIMONI_META = {
     'divadonna': {'label': 'Diva e Donna','percorso': 'DIVADONNA', 'tipo': 'rivista'},
 }
 
+_RIVISTE = {t for t, m in TIMONI_META.items() if m['tipo'] == 'rivista'}
+_GIORNO_LABEL = {
+    'sabato': 'Sabato', 'domenica': 'Domenica', 'lunedi': 'Lunedì',
+    'martedi': 'Martedì', 'mercoledi': 'Mercoledì', 'giovedi': 'Giovedì',
+    'venerdi': 'Venerdì',
+}
+
 # ── Sessione et50 (autocomplete titoli) ───────────────────────────────────────
 BASE_URL  = 'https://www.infotv.it'
 ET50_BASE = 'https://www.infotv.it/et50-server/api'
@@ -603,6 +610,63 @@ def copia_titoli(key):
         return jsonify({'rows': [], 'prev_week': prev_wid})
 
 
+@app.route('/api/copy-target-list/<testata>')
+def copy_target_list(testata):
+    """Elenca le righe di destinazione candidate per la copia riga.
+    - Per timoni TV: legge data/{week_id}/{testata}_{giorno}.json (404 se non esiste).
+    - Per riviste: prova data/{week_id}/{testata}.json; se non esiste ripiega sul
+      file più recente della stessa rivista (template read-only) e filtra per giorno.
+      Se nessun file rivista esiste in alcuna settimana → 404.
+    Sola lettura: non scrive mai.
+    """
+    if testata not in KNOWN_TIMONI:
+        return jsonify({'error': 'testata non valida'}), 400
+    week_id = request.args.get('week_id', '').strip()
+    giorno  = request.args.get('giorno', '').strip().lower()
+    if not re.match(r'^\d{4}-\d{2}-\d{2}$', week_id):
+        return jsonify({'error': 'week_id non valido'}), 400
+
+    is_rivista = testata in _RIVISTE
+    is_template = False
+
+    if is_rivista:
+        path = DATA_DIR / week_id / f'{testata}.json'
+        if not path.exists():
+            # ripiega sul file rivista più recente in un'altra settimana
+            candidates = [
+                p for p in DATA_DIR.glob(f'*/{testata}.json')
+                if p.parent.name != week_id
+                and re.match(r'^\d{4}-\d{2}-\d{2}$', p.parent.name)
+                and '_backup' not in str(p)
+            ]
+            candidates.sort(key=lambda p: p.parent.name, reverse=True)
+            if not candidates:
+                return jsonify({'error': 'nessun template disponibile', 'no_template': True}), 404
+            path = candidates[0]
+            is_template = True
+    else:
+        if not giorno:
+            return jsonify({'error': 'giorno mancante'}), 400
+        path = DATA_DIR / week_id / f'{testata}_{giorno}.json'
+        if not path.exists():
+            return jsonify({'error': 'file di destinazione non esiste', 'no_file': True}), 404
+
+    try:
+        content = json.loads(path.read_text('utf-8'))
+    except Exception:
+        return jsonify({'error': 'errore lettura file'}), 500
+
+    rows = content.get('rows', [])
+
+    if is_rivista:
+        gLabel = _GIORNO_LABEL.get(giorno)
+        rows_with_giorno = [r for r in rows if r.get('giorno')]
+        if gLabel and rows_with_giorno:
+            rows = [r for r in rows if r.get('giorno') == gLabel]
+
+    return jsonify({'ok': True, 'rows': rows, 'template': is_template})
+
+
 @app.route('/api/copy-row', methods=['POST'])
 def copy_row():
     if _sola_lettura(): return jsonify({'error': 'Accesso in sola lettura'}), 403
@@ -630,6 +694,9 @@ def copy_row():
     from_path = d / f'{from_key}.json'
     to_path   = d / f'{to_key}.json'
 
+    if not to_path.exists():
+        return jsonify({'error': 'file di destinazione non esiste', 'no_file': True}), 404
+
     try:
         from_data = json.loads(from_path.read_text('utf-8')) if from_path.exists() else {'rows': []}
     except Exception:
@@ -640,11 +707,11 @@ def copy_row():
         return jsonify({'error': 'riga non trovata'}), 404
 
     try:
-        to_data = json.loads(to_path.read_text('utf-8')) if to_path.exists() else {'rows': []}
+        to_data = json.loads(to_path.read_text('utf-8'))
     except Exception:
-        to_data = {'rows': []}
+        return jsonify({'error': 'errore lettura file destinazione'}), 500
 
-    _CONTENT_FIELDS = {'titolo', 'personaggio', 'tipo', 'anno', 'stagione', 'orario', 'trama', 'note'}
+    _COPY_FIELDS = ('titolo', 'personaggio', 'orario', 'canale', 'tipo', 'anno', 'stagione', 'trama', 'note')
 
     if not target_codice:
         return jsonify({'error': 'riga di destinazione non specificata'}), 400
@@ -654,14 +721,25 @@ def copy_row():
     if target is None:
         return jsonify({'error': 'riga di destinazione non trovata'}), 404
 
-    for f in _CONTENT_FIELDS:
-        target[f] = row.get(f, '')
-    target['colore'] = ''
-    target['spunta'] = False
+    # Merge campo-per-campo: scrivi solo se target è vuoto (mai sovrascrivere)
+    copied  = []
+    skipped = []
+    for f in _COPY_FIELDS:
+        src_val = row.get(f, '')
+        if not src_val:
+            continue
+        if target.get(f, ''):
+            skipped.append(f)
+        else:
+            target[f] = src_val
+            copied.append(f)
+
+    if not copied:
+        return jsonify({'ok': True, 'copied': [], 'skipped': skipped, 'no_changes': True})
 
     to_data['rows'] = rows
     _atomic_write(to_path, json.dumps(to_data, ensure_ascii=False, indent=2))
-    return jsonify({'ok': True})
+    return jsonify({'ok': True, 'copied': copied, 'skipped': skipped})
 
 
 @app.route('/api/week/<timone>/riapri', methods=['POST'])

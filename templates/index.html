@@ -4610,8 +4610,8 @@ function getGroupedParts() {
 function _makeCopiaBtn(partRows) {
   const btn = document.createElement('button');
   btn.className = 'btn-copia-prev';
-  btn.title = 'Importa i titoli dalla settimana precedente (senza personaggi)';
-  btn.textContent = '↩ Copia titoli settimana prec.';
+  btn.title = 'Importa titoli, orari e canali dalla settimana precedente (senza personaggi)';
+  btn.textContent = '↩ Copia dalla settimana prec.';
   btn.addEventListener('click', () => copiaTitoliPrevSettimana(partRows));
   return btn;
 }
@@ -4620,7 +4620,7 @@ async function copiaTitoliPrevSettimana(partRows, sectionLabel = null) {
   const key = storageKey();
   if (!key) return;
   const label = sectionLabel ? ` per "${sectionLabel}"` : '';
-  if (!confirm(`Copiare i titoli dalla settimana precedente${label} nelle righe ancora vuote?`)) return;
+  if (!confirm(`Copiare titoli, orari e canali dalla settimana precedente${label} nelle righe ancora vuote?`)) return;
   try {
     const res  = await fetch(`/api/copia-titoli/${key}${weekParam()}`);
     const data = await res.json();
@@ -4642,7 +4642,9 @@ async function copiaTitoliPrevSettimana(partRows, sectionLabel = null) {
         const prev = byCode[row.codice];
         if (prev && prev.titolo) {   // copia solo nelle righe ancora vuote
           row.titolo = prev.titolo;
-          if (prev.tipo) row.tipo = prev.tipo;
+          if (prev.tipo)   row.tipo   = prev.tipo;
+          if (prev.orario) row.orario = prev.orario;
+          if (prev.canale) row.canale = prev.canale;
           row.colore = 'copiato';
           count++;
         }
@@ -4658,7 +4660,7 @@ async function copiaTitoliPrevSettimana(partRows, sectionLabel = null) {
     }
     renderTable();
     await salvaTimone(true);
-    showStatus(`${count} titoli${label} copiati e salvati ✓`, 'success');
+    showStatus(`${count} righe${label} copiate e salvate ✓`, 'success');
   } catch (e) {
     showStatus('Errore nel caricamento della settimana precedente', 'error');
   }
@@ -5227,7 +5229,7 @@ function buildChannelGroupView(container, groupField = 'canale') {
       const btnCopiaSezione = document.createElement('button');
       btnCopiaSezione.className = 'btn-in-hdr';
       btnCopiaSezione.textContent = '↩ Copia prec.';
-      btnCopiaSezione.title = `Copia titoli dalla settimana precedente per la sezione ${group.val}`;
+      btnCopiaSezione.title = `Copia titoli, orari e canali dalla settimana precedente per la sezione ${group.val}`;
       btnCopiaSezione.addEventListener('click', e => {
         e.stopPropagation();
         copiaTitoliPrevSettimana(group.rows, group.val);

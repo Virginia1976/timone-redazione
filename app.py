@@ -587,7 +587,13 @@ def copia_titoli(key):
         data = json.loads(prev_path.read_text('utf-8'))
         rows = data.get('rows', [])
         copied = [
-            {'codice': r.get('codice', ''), 'titolo': r.get('titolo', ''), 'tipo': r.get('tipo', '')}
+            {
+                'codice': r.get('codice', ''),
+                'titolo': r.get('titolo', ''),
+                'tipo':   r.get('tipo', ''),
+                'orario': r.get('orario', ''),
+                'canale': r.get('canale', ''),
+            }
             for r in rows
             if not r.get('_separator') and r.get('titolo')
         ]

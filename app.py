@@ -588,14 +588,15 @@ def copia_titoli(key):
         rows = data.get('rows', [])
         copied = [
             {
-                'codice': r.get('codice', ''),
-                'titolo': r.get('titolo', ''),
-                'tipo':   r.get('tipo', ''),
-                'orario': r.get('orario', ''),
-                'canale': r.get('canale', ''),
+                'codice':      r.get('codice', ''),
+                'titolo':      r.get('titolo', ''),
+                'tipo':        r.get('tipo', ''),
+                'orario':      r.get('orario', ''),
+                'canale':      r.get('canale', ''),
+                'personaggio': r.get('personaggio', ''),
             }
             for r in rows
-            if not r.get('_separator') and r.get('titolo')
+            if not r.get('_separator') and (r.get('titolo') or r.get('personaggio'))
         ]
         return jsonify({'rows': copied, 'prev_week': prev_wid})
     except Exception:

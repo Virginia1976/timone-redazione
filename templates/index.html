@@ -4616,6 +4616,54 @@ function _makeCopiaBtn(partRows) {
   return btn;
 }
 
+function _makeCopiaPersonaggiBtn(partRows) {
+  const btn = document.createElement('button');
+  btn.className = 'btn-copia-prev';
+  btn.title = 'Importa i personaggi dalla settimana precedente nelle righe ancora senza';
+  btn.textContent = '↩ Copia personaggi prec.';
+  btn.addEventListener('click', () => copiaPersonaggiPrevSettimana(partRows));
+  return btn;
+}
+
+async function copiaPersonaggiPrevSettimana(partRows) {
+  const key = storageKey();
+  if (!key) return;
+  if (!confirm('Copiare i personaggi dalla settimana precedente nelle righe ancora senza personaggio?')) return;
+  try {
+    const res  = await fetch(`/api/copia-titoli/${key}${weekParam()}`);
+    const data = await res.json();
+    const prevRows = data.rows || [];
+    if (!prevRows.length) {
+      showStatus('Nessun personaggio trovato nella settimana precedente', 'warn');
+      return;
+    }
+    const byCode = {};
+    prevRows.forEach(r => { if (r.codice) byCode[r.codice] = r; });
+    const rowSet = partRows ? new Set(partRows) : null;
+    let count = 0;
+    currentRows.forEach(row => {
+      if (row._separator || row.nascosta) return;
+      if (rowSet && !rowSet.has(row)) return;
+      if (!row.personaggio) {
+        const prev = byCode[row.codice];
+        if (prev?.personaggio) {
+          row.personaggio = prev.personaggio;
+          count++;
+        }
+      }
+    });
+    if (count === 0) {
+      showStatus('Nessun personaggio da copiare dalla settimana precedente', 'warn');
+      return;
+    }
+    renderTable();
+    await salvaTimone(true);
+    showStatus(`${count} personaggi copiati e salvati ✓`, 'success');
+  } catch (e) {
+    showStatus('Errore nel caricamento della settimana precedente', 'error');
+  }
+}
+
 async function copiaTitoliPrevSettimana(partRows, sectionLabel = null) {
   const key = storageKey();
   if (!key) return;
@@ -5175,6 +5223,7 @@ function buildChannelGroupView(container, groupField = 'canale') {
         });
         sepActions.appendChild(btnAll2);
         if (!currentWeek?.chiusa) sepActions.appendChild(_makeCopiaBtn(part2Rows));
+        if (!currentWeek?.chiusa && currentTimone === 'dipiutv') sepActions.appendChild(_makeCopiaPersonaggiBtn(part2Rows));
         sep.appendChild(sepActions);
       }
       container.appendChild(sep);

@@ -712,6 +712,7 @@ def copy_row():
         return jsonify({'error': 'errore lettura file destinazione'}), 500
 
     _COPY_FIELDS = ('titolo', 'personaggio', 'orario', 'canale', 'tipo', 'anno', 'stagione', 'trama', 'note')
+    _WORKED_FIELDS = ('titolo', 'personaggio', 'trama')
     _TIPO_PLACEHOLDER = 'Programma TV'  # default che applyTemplate imposta a ogni riga nuova
 
     if not target_codice:
@@ -721,6 +722,12 @@ def copy_row():
     target = next((r for r in rows if r.get('codice') == target_codice), None)
     if target is None:
         return jsonify({'error': 'riga di destinazione non trovata'}), 404
+
+    # Protezione a livello di riga: se il target ha già uno dei tre campi cardine
+    # (titolo/personaggio/trama) è "lavorato" e non va toccato affatto — nemmeno
+    # tipo, nemmeno campi vuoti. Rispetta feedback_copia_no_sovrascrittura.
+    if any(target.get(f, '') for f in _WORKED_FIELDS):
+        return jsonify({'error': 'riga già lavorata', 'worked': True}), 409
 
     # Merge campo-per-campo: scrivi solo se target è vuoto (mai sovrascrivere)
     copied  = []

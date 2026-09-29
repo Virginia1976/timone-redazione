@@ -5664,7 +5664,7 @@ document.getElementById('crm-btn-copia').addEventListener('click', async functio
   this.disabled     = true;
   this.textContent  = '...';
 
-  const isRivista    = TIMONI_META[testata]?.tipo === 'rivista';
+  const isRivista    = TIMONI_META[testata]?.tipo === 'rivista' || TIMONI_META[testata]?.tipo === 'tv-unico';
   const toKey        = isRivista ? testata : `${testata}_${currentDay}`;
   const targetCodice = posizione === '__fine__' ? null : posizione;
   const fromKey      = `${currentTimone}_${currentDay}`;

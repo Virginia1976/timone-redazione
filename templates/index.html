@@ -3738,6 +3738,17 @@ async function openTimoneHome(timone) {
 
   if (isDirty) { autoSave(); }
 
+  // openTimoneHome non passa da caricaTimone: deve fare da sé la pulizia dello
+  // stato del timone precedente, altrimenti polling e autosave possono scattare
+  // sul nuovo timone con dati del vecchio → scrittura in file sbagliato.
+  clearTimeout(_saveTimer);
+  stopMtimePolling();
+  stopRemotePolling();
+  hideDiffPanel();
+  currentRows    = [];
+  _lastSavedRows = null;
+  _ackedMtime    = null;
+
   const prevTimone = currentTimone;
   currentTimone = timone;
   currentDay    = null;

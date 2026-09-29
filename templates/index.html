@@ -5684,16 +5684,12 @@ document.getElementById('crm-btn-copia').addEventListener('click', async functio
     });
     const data = await res.json();
     if (data.ok) {
-      const nCop  = (data.copied  || []).length;
-      const nSkip = (data.skipped || []).length;
+      const nCop = (data.copied || []).length;
       if (nCop === 0) {
         this.textContent = 'Già completa';
         setTimeout(() => { this.disabled = false; this.textContent = 'Copia'; }, 1800);
-      } else if (nSkip > 0) {
-        this.textContent = `✓ ${nCop} copiati, ${nSkip} già presenti`;
-        setTimeout(() => document.getElementById('copiaRowMenu').classList.remove('show'), 1500);
       } else {
-        this.textContent = '✓ Copiata!';
+        this.textContent = '✓ Riga copiata';
         setTimeout(() => document.getElementById('copiaRowMenu').classList.remove('show'), 900);
       }
     } else {

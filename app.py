@@ -712,6 +712,7 @@ def copy_row():
         return jsonify({'error': 'errore lettura file destinazione'}), 500
 
     _COPY_FIELDS = ('titolo', 'personaggio', 'orario', 'canale', 'tipo', 'anno', 'stagione', 'trama', 'note')
+    _TIPO_PLACEHOLDER = 'Programma TV'  # default che applyTemplate imposta a ogni riga nuova
 
     if not target_codice:
         return jsonify({'error': 'riga di destinazione non specificata'}), 400
@@ -728,7 +729,13 @@ def copy_row():
         src_val = row.get(f, '')
         if not src_val:
             continue
-        if target.get(f, ''):
+        tgt_val = target.get(f, '')
+        # 'Programma TV' su tipo del target è il default di applyTemplate, non un
+        # dato utente: va trattato come vuoto per permettere alla sorgente di
+        # sovrascriverlo (es. source è Film, target è al default → deve diventare Film).
+        if f == 'tipo' and tgt_val == _TIPO_PLACEHOLDER:
+            tgt_val = ''
+        if tgt_val:
             skipped.append(f)
         else:
             target[f] = src_val

@@ -3610,9 +3610,14 @@ function openArchiveDaySelector(timone, weekId, dal, al, btn, chiusa) {
   if (!meta || meta.tipo !== 'tv') return;
   const wrap = document.createElement('div');
   wrap.className = 'archive-day-selector';
-  wrap.innerHTML = (meta.giorni || []).map(g =>
+  const dayBtns = (meta.giorni || []).map(g =>
     `<button class="th-day-btn" onclick="openArchiveTimone('${timone}','${weekId}','${dal}','${al}','${g}',${!!chiusa})">${GIORNI_LABEL[g] || g}</button>`
   ).join('');
+  const coverTimone = `${timone}_cover`;
+  const coverBtn = TIMONI_META[coverTimone]
+    ? `<button class="th-day-btn" onclick="openArchiveTimone('${coverTimone}','${weekId}','${dal}','${al}',null,${!!chiusa})">Cover</button>`
+    : '';
+  wrap.innerHTML = dayBtns + coverBtn;
   btn.closest('.archive-week-item').appendChild(wrap);
 }
 
@@ -3651,7 +3656,8 @@ async function openArchiveTimone(timone, weekId, dal, al, giorno, chiusa = true)
   document.getElementById('timone-section').style.display = 'block';
 
   const fmtD   = d => new Date(d + 'T00:00:00').toLocaleDateString('it-IT', { day:'numeric', month:'long', year:'numeric' });
-  const dayLbl = giorno ? ` · ${GIORNI_LABEL[giorno] || giorno}` : '';
+  const dayLbl = giorno ? ` · ${GIORNI_LABEL[giorno] || giorno}`
+               : (meta.tipo === 'cover' ? ' · Cover' : '');
   document.getElementById('archiveBannerLabel').textContent = `${fmtD(dal)} – ${fmtD(al)}${dayLbl}`;
   document.getElementById('archiveBanner').style.display   = '';
   document.getElementById('weekClosedBanner').classList.remove('show');
@@ -3668,11 +3674,13 @@ function tornaAlTimone() {
   _archiveWeek  = null;
   document.getElementById('archiveBanner').style.display = 'none';
   document.querySelectorAll('.archive-day-selector').forEach(el => el.remove());
-  openTimoneHome(currentTimone);
+  const parent = TIMONI_META[currentTimone]?.parent || currentTimone;
+  openTimoneHome(parent);
 }
 
 async function riapreDaArchivio(timone, weekId, dal, al) {
-  const t   = timone || currentTimone;
+  const tRaw = timone || currentTimone;
+  const t   = TIMONI_META[tRaw]?.parent || tRaw;
   const wid = weekId || _archiveWeek?.week_id;
   const d   = dal    || _archiveWeek?.dal;
   const a   = al     || _archiveWeek?.al;

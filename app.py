@@ -343,10 +343,18 @@ def _atomic_write(path: pathlib.Path, text: str) -> None:
                 bak_dir.mkdir(exist_ok=True)
                 ts = _time.strftime('%Y%m%d-%H%M%S')
                 shutil.copy2(path, bak_dir / f'{path.stem}_{ts}{path.suffix}')
-                # tieni solo le ultime 3 versioni per file
+                # tieni solo le ultime 5 versioni per file (rotanti)
                 old = sorted(bak_dir.glob(f'{path.stem}_*{path.suffix}'))
-                for f in old[:-3]:
+                for f in old[:-5]:
                     f.unlink(missing_ok=True)
+                # snapshot giornaliero separato: solo se non esiste già uno per oggi
+                # (non viene toccato dalla rotazione dei 5 rotanti)
+                daily_dir = bak_dir / '_daily'
+                daily_dir.mkdir(exist_ok=True)
+                day = _time.strftime('%Y-%m-%d')
+                daily_file = daily_dir / f'{path.stem}_{day}{path.suffix}'
+                if not daily_file.exists():
+                    shutil.copy2(path, daily_file)
             tmp.rename(path)
         except Exception:
             tmp.unlink(missing_ok=True)
@@ -676,6 +684,7 @@ def copy_row():
     row_id        = body.get('row_id', '')
     target_codice = body.get('target_codice')   # codice della riga dest. da riempire
     week_id       = body.get('week_id', '').strip()
+    force         = bool(body.get('force', False))
 
     if not VALID_KEY.match(from_key) or not VALID_KEY.match(to_key):
         return jsonify({'error': 'chiave non valida'}), 400
@@ -724,29 +733,38 @@ def copy_row():
         return jsonify({'error': 'riga di destinazione non trovata'}), 404
 
     # Protezione a livello di riga: se il target ha già uno dei tre campi cardine
-    # (titolo/personaggio/trama) è "lavorato" e non va toccato affatto — nemmeno
-    # tipo, nemmeno campi vuoti. Rispetta feedback_copia_no_sovrascrittura.
-    if any(target.get(f, '') for f in _WORKED_FIELDS):
-        return jsonify({'error': 'riga già lavorata', 'worked': True}), 409
+    # (titolo/personaggio/trama) è "lavorato". Senza force, blocca del tutto.
+    # Con force (utente ha confermato nel popup), sovrascrive.
+    if not force and any(target.get(f, '') for f in _WORKED_FIELDS):
+        current = {f: target.get(f, '') for f in _WORKED_FIELDS if target.get(f, '')}
+        return jsonify({'error': 'riga già lavorata', 'worked': True, 'current': current}), 409
 
-    # Merge campo-per-campo: scrivi solo se target è vuoto (mai sovrascrivere)
     copied  = []
     skipped = []
-    for f in _COPY_FIELDS:
-        src_val = row.get(f, '')
-        if not src_val:
-            continue
-        tgt_val = target.get(f, '')
-        # 'Programma TV' su tipo del target è il default di applyTemplate, non un
-        # dato utente: va trattato come vuoto per permettere alla sorgente di
-        # sovrascriverlo (es. source è Film, target è al default → deve diventare Film).
-        if f == 'tipo' and tgt_val == _TIPO_PLACEHOLDER:
-            tgt_val = ''
-        if tgt_val:
-            skipped.append(f)
-        else:
-            target[f] = src_val
-            copied.append(f)
+    if force:
+        # Sovrascrittura completa: tutti i campi sorgente non vuoti sovrascrivono il target
+        for f in _COPY_FIELDS:
+            src_val = row.get(f, '')
+            if src_val:
+                target[f] = src_val
+                copied.append(f)
+    else:
+        # Merge campo-per-campo: scrivi solo se target è vuoto (mai sovrascrivere)
+        for f in _COPY_FIELDS:
+            src_val = row.get(f, '')
+            if not src_val:
+                continue
+            tgt_val = target.get(f, '')
+            # 'Programma TV' su tipo del target è il default di applyTemplate, non un
+            # dato utente: va trattato come vuoto per permettere alla sorgente di
+            # sovrascriverlo (es. source è Film, target è al default → deve diventare Film).
+            if f == 'tipo' and tgt_val == _TIPO_PLACEHOLDER:
+                tgt_val = ''
+            if tgt_val:
+                skipped.append(f)
+            else:
+                target[f] = src_val
+                copied.append(f)
 
     if not copied:
         return jsonify({'ok': True, 'copied': [], 'skipped': skipped, 'no_changes': True})

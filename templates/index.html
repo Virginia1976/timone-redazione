@@ -5685,35 +5685,50 @@ document.getElementById('crm-btn-copia').addEventListener('click', async functio
   const fromKey      = `${currentTimone}_${currentDay}`;
   const weekId       = (currentWeek?.week_id || _globalWeek?.week_id || '');
 
+  const doFetch = (force) => fetch('/api/copy-row', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from_key: fromKey, to_key: toKey,
+      row_id: _copiaMenuRow.id, target_codice: targetCodice,
+      week_id: weekId, ...(force ? { force: true } : {})
+    })
+  });
+
+  const reset = () => { this.disabled = false; this.textContent = 'Copia'; };
+
   try {
-    const res = await fetch('/api/copy-row', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from_key: fromKey,
-        to_key: toKey,
-        row_id: _copiaMenuRow.id,
-        target_codice: targetCodice,
-        week_id: weekId
-      })
-    });
-    const data = await res.json();
+    let res  = await doFetch(false);
+    let data = await res.json();
+
+    if (res.status === 409 && data.worked) {
+      const cur = data.current || {};
+      const parts = [];
+      if (cur.titolo)      parts.push(`titolo: "${cur.titolo}"`);
+      if (cur.personaggio) parts.push(`personaggio: "${cur.personaggio}"`);
+      if (cur.trama)       parts.push(`trama già presente`);
+      const msg = `Questa riga ha già dati (${parts.join(', ')}).\nSovrascrivere con i dati di ${currentTimone}?`;
+      if (!confirm(msg)) { reset(); return; }
+      res  = await doFetch(true);
+      data = await res.json();
+    }
+
     if (data.ok) {
       const nCop = (data.copied || []).length;
       if (nCop === 0) {
         this.textContent = 'Già completa';
-        setTimeout(() => { this.disabled = false; this.textContent = 'Copia'; }, 1800);
+        setTimeout(reset, 1800);
       } else {
         this.textContent = '✓ Riga copiata';
         setTimeout(() => document.getElementById('copiaRowMenu').classList.remove('show'), 900);
       }
     } else {
       this.textContent = data.error || 'Errore';
-      setTimeout(() => { this.disabled = false; this.textContent = 'Copia'; }, 1800);
+      setTimeout(reset, 1800);
     }
   } catch (e) {
     this.textContent = 'Errore';
-    setTimeout(() => { this.disabled = false; this.textContent = 'Copia'; }, 1800);
+    setTimeout(reset, 1800);
   }
 });
 

@@ -3394,6 +3394,7 @@ let _saveTimer       = null;
 let _isSaving        = false;
 let _lastSavedRows   = null;
 let _loadGen         = 0;   // incrementato ad ogni caricaTimone; previene race condition su navigazione rapida
+let _navGen          = 0;   // incrementato ad ogni cambio timone/giorno; guard per callback async orfani
 let savedCounts      = {};   // chiave → conteggio righe
 let expandedChannels   = new Set(); // canali espansi nella vista a card
 let _coverRows       = [];
@@ -3749,6 +3750,7 @@ async function openTimoneHome(timone) {
   // openTimoneHome non passa da caricaTimone: deve fare da sé la pulizia dello
   // stato del timone precedente, altrimenti polling e autosave possono scattare
   // sul nuovo timone con dati del vecchio → scrittura in file sbagliato.
+  _navGen++;
   clearTimeout(_saveTimer);
   stopMtimePolling();
   stopRemotePolling();
@@ -4077,6 +4079,7 @@ function selectTimoneDay(timone, day) {
     return;
   }
 
+  _navGen++;
   currentTimone = timone;
   currentDay    = day;
   expandedChannels.clear();
@@ -4095,6 +4098,7 @@ function selectTimone(timone) {
 
   if (isDirty) { autoSave(); }
 
+  _navGen++;
   currentTimone = timone;
   currentDay    = null;
   expandedChannels.clear();
@@ -4113,6 +4117,7 @@ function changeDay(day) {
     openArchiveTimone(currentTimone, _archiveWeek.week_id, _archiveWeek.dal, _archiveWeek.al, day, currentWeek?.chiusa);
     return;
   }
+  _navGen++;
   currentDay = day;
   expandedChannels.clear();
   updateDayBar(currentTimone, day);
@@ -4403,11 +4408,13 @@ function scheduleSave() {
 
 async function autoSave() {
   if (_isSaving) { scheduleSave(); return; }
+  const myNavGen = _navGen;
   const key = storageKey();
   if (!key) return;
   clearTimeout(_saveTimer);
   if (_coverDirty) saveCoverPanel(true);
   const nonSep = currentRows.filter(r => !r._separator);
+  if (myNavGen !== _navGen) return;  // nav cambiata prima di salvare, abort
   _isSaving = true;
   try {
     if (_lastSavedRows !== null && canUsePatch(nonSep)) {
@@ -6167,6 +6174,7 @@ function stopMtimePolling() {
 }
 
 async function fetchInitialMtimes(cartella) {
+  const myNavGen = _navGen;
   const files = currentRows.filter(r => r.codice).map(r => ({ cartella: getCartellaForRow(r) || cartella, codice: r.codice }));
   if (!files.length) return;
   try {
@@ -6174,7 +6182,9 @@ async function fetchInitialMtimes(cartella) {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ files, scontorni: isTuttiScontorni() })
     });
+    if (myNavGen !== _navGen) return;  // nav cambiata durante fetch, abort
     const data = await res.json();
+    if (myNavGen !== _navGen) return;
     _newCodici = new Set(data._new || []);
     const { _new: _, ...mtimes } = data;
     _initialMtimes = mtimes;
@@ -6183,6 +6193,7 @@ async function fetchInitialMtimes(cartella) {
 }
 
 async function checkMtimes(cartella) {
+  const myNavGen = _navGen;
   const files = currentRows.filter(r => r.codice).map(r => ({ cartella: getCartellaForRow(r) || cartella, codice: r.codice }));
   if (!files.length) return;
   try {
@@ -6190,7 +6201,9 @@ async function checkMtimes(cartella) {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ files, scontorni: isTuttiScontorni() })
     });
+    if (myNavGen !== _navGen) return;  // nav cambiata durante fetch, abort
     const data = await res.json();
+    if (myNavGen !== _navGen) return;
     const newSet = new Set(data._new || []);
 
     // Aggiorna badge _NEW
@@ -6488,13 +6501,17 @@ async function fetchMtime(key) {
 function startRemotePolling(key) {
   stopRemotePolling();
   _remoteTimer = setInterval(async () => {
+    const myNavGen = _navGen;
     const mtime = await fetchMtime(key);
     if (!mtime) return;                                          // file ancora inesistente
     if (_ackedMtime !== null && mtime <= _ackedMtime + 0.5) return; // nessuna modifica nuova
+    if (myNavGen !== _navGen) return;  // nav cambiata durante fetch, abort
     // Qualcuno ha salvato — scarica e confronta
     try {
       const res     = await fetch(`/api/load/${key}${weekParam()}`);
+      if (myNavGen !== _navGen) return;
       const data    = await res.json();
+      if (myNavGen !== _navGen) return;
       const newRows = applyTemplate(key, data.rows || []);
       const diff    = computeDiff(currentRows, newRows);
       if (diff.length) {

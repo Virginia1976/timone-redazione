@@ -4344,15 +4344,24 @@ async function caricaTimone() {
     _localWeekOverride = false;
   }
 
+  let data;
   try {
-    const res  = await fetch(`/api/load/${key}${weekParam()}`);
-    const data = await res.json();
-    if (myGen !== _loadGen) return;  // navigazione più recente già avviata
-    currentRows = applyTemplate(key, data.rows || []);
+    const res = await fetch(`/api/load/${key}${weekParam()}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    data = await res.json();
   } catch (e) {
     if (myGen !== _loadGen) return;
-    currentRows = applyTemplate(key, []);
+    showStatus('Caricamento fallito — ricarica la pagina (Cmd+R)', 'error');
+    return;
   }
+  if (myGen !== _loadGen) return;
+  if (!Array.isArray(data?.rows)) {
+    // Risposta malformata: NON toccare currentRows/_lastSavedRows per non scatenare
+    // un autoSave distruttivo che sovrascrive il file con righe placeholder.
+    showStatus('Caricamento fallito — ricarica la pagina (Cmd+R)', 'error');
+    return;
+  }
+  currentRows = applyTemplate(key, data.rows);
   _lastSavedRows = JSON.parse(JSON.stringify(currentRows.filter(r => !r._separator)));
 
   _ackedMtime = await fetchMtime(key);

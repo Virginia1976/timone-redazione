@@ -14,6 +14,7 @@ import re
 import unicodedata
 import shutil
 import subprocess
+import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 import threading
@@ -77,6 +78,26 @@ CATEGORIE_TLP: dict[str, str] = {
     'teatro':      '__TEATRO',
     'monumenti':   '__MONUMENTI - OGGETTI',
 }
+
+def _psd_preview(path: str, size: int, out_dir: str) -> None:
+    """Scrive in out_dir/<nome>.png l'anteprima del PSD.
+    macOS: qlmanage. Linux (NAS/Docker): psd-tools, perché Pillow legge male i PSD CMYK."""
+    if sys.platform == 'darwin':
+        subprocess.run(
+            ['qlmanage', '-t', '-s', str(size), '-o', out_dir, path],
+            capture_output=True, timeout=15,
+        )
+        return
+    from psd_tools import PSDImage
+    img = PSDImage.open(path).topil()
+    if img is None:
+        return
+    img.thumbnail((size, size))
+    if 'A' in img.mode:
+        rgba = img.convert('RGBA')
+        img = Image.new('RGB', rgba.size, 'white')
+        img.paste(rgba, mask=rgba.split()[-1])
+    img.save(os.path.join(out_dir, os.path.basename(path) + '.png'))
 
 def strip_parens(name: str) -> str:
     return re.sub(r'\s*\([^)]*\)', '', name).strip()
@@ -1054,10 +1075,7 @@ def tif_thumb():
             tmp_dir = tempfile.mkdtemp(prefix='scont_ql_')
             try:
                 basename = os.path.basename(actual)
-                subprocess.run(
-                    ['qlmanage', '-t', '-s', '192', '-o', tmp_dir, actual],
-                    capture_output=True, timeout=15,
-                )
+                _psd_preview(actual, 192, tmp_dir)
                 thumb_png = os.path.join(tmp_dir, basename + '.png')
                 if os.path.isfile(thumb_png):
                     with Image.open(thumb_png) as img:
@@ -1207,10 +1225,7 @@ def tlp_thumb():
         tmp_dir = tempfile.mkdtemp(prefix='tlp_ql_')
         try:
             basename = os.path.basename(path)
-            subprocess.run(
-                ['qlmanage', '-t', '-s', '100', '-o', tmp_dir, path],
-                capture_output=True, timeout=15,
-            )
+            _psd_preview(path, 100, tmp_dir)
             thumb = os.path.join(tmp_dir, basename + '.png')
             if os.path.isfile(thumb):
                 with Image.open(thumb) as img:

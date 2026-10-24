@@ -1,0 +1,15 @@
+services:
+  timone:
+    build: .
+    container_name: timone
+    restart: unless-stopped
+    ports:
+      - "5010:5010"
+    environment:
+      - TZ=Europe/Rome
+    volumes:
+      # codice + data/ + .env (tutto da /volume1/timoni)
+      - /volume1/timoni:/app
+      # dischi foto: stessi percorsi dei Mac, così app.py non va cambiato; sola lettura
+      - /volume1/EDITORIALE:/Volumes/EDITORIALE:ro
+      - /volume1/TLPserver:/Volumes/TLPserver:ro

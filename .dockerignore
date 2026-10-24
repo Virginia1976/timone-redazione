@@ -1,0 +1,9 @@
+data/
+.env
+.git
+.venv/
+__pycache__/
+timone_opener/
+_memoria_claude/
+*.txt
+!requirements.txt

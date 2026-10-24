@@ -97,6 +97,8 @@ def _psd_preview(path: str, size: int, out_dir: str) -> None:
         rgba = img.convert('RGBA')
         img = Image.new('RGB', rgba.size, 'white')
         img.paste(rgba, mask=rgba.split()[-1])
+    else:
+        img = img.convert('RGB')   # es. faccette TvMia: CMYK senza trasparenza
     img.save(os.path.join(out_dir, os.path.basename(path) + '.png'))
 
 def strip_parens(name: str) -> str:

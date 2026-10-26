@@ -155,6 +155,27 @@ body.admin-on .btn-versioni { display: flex; }
 }
 .ver-foot-note { flex: 1; font-size: 12px; color: var(--text-soft); }
 
+/* ── Ricerca in archivio ───────────────────────────────────────────────────── */
+.btn-cerca {
+  background: none; border: 1.5px solid var(--border); color: var(--text-soft);
+}
+.btn-cerca:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.cerca-box { width: 820px; }
+.cerca-input {
+  flex: 1; font: inherit; font-size: 15px; padding: 8px 12px;
+  border: 1.5px solid var(--border); border-radius: 10px; outline: none;
+}
+.cerca-input:focus { border-color: var(--accent); }
+.cerca-list { overflow-y: auto; flex: 1; min-height: 120px; }
+.cerca-item {
+  padding: 9px 22px; border-bottom: 1px solid var(--border); cursor: pointer;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.cerca-item:hover { background: var(--accent-light); }
+.cerca-item-main { font-size: 14px; }
+.cerca-item-main b { font-weight: 600; }
+.cerca-item-pos { font-size: 12px; color: var(--text-soft); }
+
 /* ── Main nav ──────────────────────────────────────────────────────────────── */
 .main-nav {
   position: sticky;
@@ -1668,6 +1689,10 @@ body.sola-lettura .btn-copy-col { display: none; }
   </div>
 
   <div class="header-actions">
+    <button class="btn-header btn-cerca" id="btnCerca" onclick="apriRicerca()"
+            title="Cerca titolo o personaggio nelle settimane passate">
+      🔍 Cerca
+    </button>
     <button class="btn-header btn-export" id="btnExport" disabled onclick="esportaTimone()">
       📋 Esporta
     </button>
@@ -2136,6 +2161,18 @@ body.sola-lettura .btn-copy-col { display: none; }
       <span class="trama-edit-chars" id="tramaEditChars"></span>
       <button class="trama-edit-close-btn" id="tramaEditCloseBtn">Chiudi</button>
     </div>
+  </div>
+</div>
+
+<!-- ── Ricerca in archivio ──────────────────────────────────────────────────── -->
+<div id="cercaModal" class="ver-overlay" onclick="if (event.target === this) chiudiRicerca()">
+  <div class="ver-box cerca-box">
+    <div class="ver-hdr">
+      <input type="search" class="cerca-input" id="cercaInput" autocomplete="off"
+             placeholder="Cerca titolo o personaggio nelle settimane passate…">
+      <button class="scont-modal-close" onclick="chiudiRicerca()">×</button>
+    </div>
+    <div class="cerca-list" id="cercaList"></div>
   </div>
 </div>
 
@@ -6589,6 +6626,107 @@ function _verQuando(mtime) {
   if (d >= oggi) return `Oggi ${ora}`;
   if (d >= ieri) return `Ieri ${ora}`;
   return d.toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' }) + ` ${ora}`;
+}
+
+// ── Ricerca in archivio ──────────────────────────────────────────────────────
+let _cercaTimer = null;
+let _cercaSeq   = 0;
+let _cercaRis   = [];
+
+function apriRicerca() {
+  document.getElementById('cercaModal').classList.add('show');
+  const inp = document.getElementById('cercaInput');
+  inp.focus();
+  inp.select();
+  if (!inp.value.trim()) document.getElementById('cercaList').innerHTML =
+    '<div class="ver-empty">Scrivi almeno 2 lettere. Si cerca in tutte le settimane passate; 🔒 = settimana chiusa.</div>';
+}
+
+function chiudiRicerca() {
+  document.getElementById('cercaModal').classList.remove('show');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('cercaInput').addEventListener('input', () => {
+    clearTimeout(_cercaTimer);
+    _cercaTimer = setTimeout(_eseguiRicerca, 350);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.getElementById('cercaModal').classList.contains('show')) chiudiRicerca();
+  });
+});
+
+function _cercaAl(wid) {
+  const x = new Date(wid + 'T00:00:00'); x.setDate(x.getDate() + 6);
+  return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+}
+
+const _CERCA_ORDINE_GIORNI = ['scontorni','sabato','domenica','lunedi','martedi','mercoledi','giovedi','venerdi','streaming','compleanni','biscotti','cover'];
+
+// Dove aprire il risultato: [timone da passare a openArchiveTimone, giorno o null, etichetta]
+function _cercaDestinazione(r) {
+  if (TIMONI_META[r.key]?.tipo === 'cover') return [r.key, null, 'Cover'];
+  const meta = TIMONI_META[r.timone];
+  if (meta?.tipo === 'tv') {
+    const g = r.key.slice(r.timone.length + 1);
+    return meta.giorni?.includes(g) ? [r.timone, g, GIORNI_LABEL[g] || g] : null;
+  }
+  return [r.timone, null, r.giorno || ''];
+}
+
+async function _eseguiRicerca() {
+  const q    = document.getElementById('cercaInput').value.trim();
+  const list = document.getElementById('cercaList');
+  if (q.length < 2) { list.innerHTML = '<div class="ver-empty">Scrivi almeno 2 lettere.</div>'; return; }
+  const seq = ++_cercaSeq;
+  list.innerHTML = '<div class="ver-empty">Ricerca in corso…</div>';
+  let d;
+  try {
+    const r = await fetch(`/api/archive/search?q=${encodeURIComponent(q)}`, { cache: 'no-store' });
+    d = await r.json();
+    if (!r.ok) throw new Error(d.error || r.status);
+  } catch {
+    if (seq === _cercaSeq) list.innerHTML = '<div class="ver-empty">Errore nella ricerca, riprova.</div>';
+    return;
+  }
+  if (seq !== _cercaSeq) return;   // nel frattempo è partita una ricerca più recente
+  const giornoIdx = r => {
+    const g = r.key.slice(r.timone.length + 1) || (r.giorno || '').toLowerCase().replace('ì', 'i');
+    const i = _CERCA_ORDINE_GIORNI.indexOf(g);
+    return i < 0 ? 99 : i;
+  };
+  _cercaRis = (d.risultati || [])
+    .map(r => ({ ...r, dest: _cercaDestinazione(r) }))
+    .filter(r => r.dest)
+    .sort((a, b) => b.week_id.localeCompare(a.week_id)
+                 || a.timone.localeCompare(b.timone)
+                 || giornoIdx(a) - giornoIdx(b));
+  if (!_cercaRis.length) { list.innerHTML = '<div class="ver-empty">Nessun risultato nelle settimane passate.</div>'; return; }
+  const fmtD = s => new Date(s + 'T00:00:00').toLocaleDateString('it-IT', { day:'numeric', month:'short', year:'numeric' });
+  list.innerHTML = (d.troppi ? '<div class="ver-empty">Molti risultati: mostro i primi 300, prova a scrivere di più.</div>' : '')
+    + _cercaRis.map((r, i) => {
+      const meta = TIMONI_META[r.timone];
+      const pos  = [
+        `${r.chiusa ? '🔒 ' : ''}${fmtD(r.week_id)} – ${fmtD(_cercaAl(r.week_id))}`,
+        meta?.label || r.timone, r.dest[2], r.canale, r.orario,
+      ].filter(Boolean).map(esc).join(' · ');
+      const main = [r.titolo && `<b>${esc(r.titolo)}</b>`, r.personaggio && esc(r.personaggio)].filter(Boolean).join(' — ');
+      return `<div class="cerca-item" data-i="${i}"><span class="cerca-item-main">${main}</span><span class="cerca-item-pos">${pos}</span></div>`;
+    }).join('');
+  list.querySelectorAll('.cerca-item').forEach(el => el.addEventListener('click', () => _apriRisultato(+el.dataset.i)));
+}
+
+function _apriRisultato(i) {
+  const r = _cercaRis[i];
+  if (!r) return;
+  chiudiRicerca();
+  closeAllDropdowns();
+  // come nelle altre navigazioni: salva le modifiche in sospeso e annulla l'autosave
+  // del timone che si sta lasciando, prima di cambiare timone/settimana
+  if (isDirty) { autoSave(); }
+  _navGen++;
+  clearTimeout(_saveTimer);
+  openArchiveTimone(r.dest[0], r.week_id, r.week_id, _cercaAl(r.week_id), r.dest[1], r.chiusa);
 }
 
 const _VER_FONTE = { attuale:'versione attuale', recente:'salvataggio recente', giorno:'copia del giorno' };

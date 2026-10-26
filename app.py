@@ -1026,6 +1026,73 @@ def archive_load(week_id, key):
     return jsonify({'rows': []})
 
 
+# ── Ricerca in archivio (sola lettura) ────────────────────────────────────────
+# Cerca titolo/personaggio in tutte le settimane passate (chiuse o no) delle
+# testate visibili all'utente. Per ogni file teniamo in memoria solo i campi che
+# servono, ricalcolati quando il file cambia (chiave: mtime + dimensione).
+_RICERCA_CAMPI = ('codice', 'titolo', 'personaggio', 'canale', 'orario', 'giorno')
+_ricerca_cache: dict[str, tuple[int, int, list]] = {}
+_ricerca_lock  = threading.Lock()
+
+def _norm_ricerca(s: str) -> str:
+    s = unicodedata.normalize('NFKD', s or '')
+    return ''.join(c for c in s if not unicodedata.combining(c)).lower()
+
+def _righe_ricerca(path: pathlib.Path) -> list:
+    st = path.stat()
+    k  = str(path)
+    with _ricerca_lock:
+        hit = _ricerca_cache.get(k)
+    if hit and hit[0] == st.st_mtime_ns and hit[1] == st.st_size:
+        return hit[2]
+    try:
+        rows = json.loads(path.read_text('utf-8')).get('rows', [])
+    except Exception:
+        rows = []
+    righe = []
+    for r in rows:
+        if not isinstance(r, dict) or r.get('_separator'):
+            continue
+        if not (r.get('titolo') or r.get('personaggio')):
+            continue
+        riga = {c: str(r.get(c) or '').strip() for c in _RICERCA_CAMPI}
+        riga['_cerca'] = _norm_ricerca(riga['titolo'] + ' ' + riga['personaggio'])
+        righe.append(riga)
+    with _ricerca_lock:
+        _ricerca_cache[k] = (st.st_mtime_ns, st.st_size, righe)
+    return righe
+
+@app.route('/api/archive/search')
+def archive_search():
+    parole = _norm_ricerca(request.args.get('q', '')).split()
+    if not parole or len(''.join(parole)) < 2:
+        return jsonify({'risultati': [], 'troppi': False})
+    ruolo   = session.get('ruolo', '')
+    visibili = set(KNOWN_TIMONI) if ruolo == 'admin' else set(TIMONI_ATTIVI) & KNOWN_TIMONI
+    correnti = {t: (get_week_meta(t).get('week_id') or '').strip() for t in visibili}
+    LIMITE = 300
+    risultati = []
+    for d in sorted(DATA_DIR.iterdir(), reverse=True):
+        if not d.is_dir() or not re.match(r'^\d{4}-\d{2}-\d{2}$', d.name):
+            continue
+        for f in sorted(d.glob('*.json')):
+            key = f.stem
+            timone = timone_from_key(key)
+            if not VALID_KEY.match(key) or timone not in visibili:
+                continue
+            # solo settimane passate: la corrente e le successive si aprono dall'app
+            if correnti[timone] and d.name >= correnti[timone]:
+                continue
+            for r in _righe_ricerca(f):
+                if all(p in r['_cerca'] for p in parole):
+                    risultati.append({**{c: r[c] for c in _RICERCA_CAMPI},
+                                      'week_id': d.name, 'key': key, 'timone': timone,
+                                      'chiusa': is_week_chiusa(timone, d.name)})
+                    if len(risultati) >= LIMITE:
+                        return jsonify({'risultati': risultati, 'troppi': True})
+    return jsonify({'risultati': risultati, 'troppi': False})
+
+
 @app.route('/autocomplete_titoli', methods=['POST'])
 def autocomplete_titoli():
     global _et50_ok

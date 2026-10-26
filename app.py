@@ -417,6 +417,9 @@ def _get_file_lock(path: pathlib.Path) -> threading.Lock:
             _write_locks[key] = threading.Lock()
         return _write_locks[key]
 
+_BAK_RECENTE_RE = re.compile(r'^(?P<stem>[a-z0-9_]+)_(\d{8}-\d{6})\.json$')
+_BAK_GIORNO_RE  = re.compile(r'^(?P<stem>[a-z0-9_]+)_(\d{4}-\d{2}-\d{2})\.json$')
+
 def _atomic_write(path: pathlib.Path, text: str) -> None:
     with _get_file_lock(path):
         tmp = path.with_suffix('.tmp')
@@ -427,8 +430,10 @@ def _atomic_write(path: pathlib.Path, text: str) -> None:
                 bak_dir.mkdir(exist_ok=True)
                 ts = _time.strftime('%Y%m%d-%H%M%S')
                 shutil.copy2(path, bak_dir / f'{path.stem}_{ts}{path.suffix}')
-                # tieni solo le ultime 5 versioni per file (rotanti)
-                old = sorted(bak_dir.glob(f'{path.stem}_*{path.suffix}'))
+                # tieni solo le ultime 5 versioni per file (rotanti); regex esatta
+                # sullo stem, così 'nuovo' non conta (e cancella) le copie di 'nuovo_cover'
+                old = sorted(f for f in bak_dir.glob(f'{path.stem}_*{path.suffix}')
+                             if (m := _BAK_RECENTE_RE.match(f.name)) and m.group('stem') == path.stem)
                 for f in old[:-5]:
                     f.unlink(missing_ok=True)
                 # snapshot giornaliero separato: solo se non esiste già uno per oggi
@@ -550,9 +555,6 @@ def load(key):
         return jsonify(json.loads(path.read_text('utf-8')))
     return jsonify({'rows': []})
 
-
-_BAK_RECENTE_RE = re.compile(r'^(?P<stem>[a-z0-9_]+)_(\d{8}-\d{6})\.json$')
-_BAK_GIORNO_RE  = re.compile(r'^(?P<stem>[a-z0-9_]+)_(\d{4}-\d{2}-\d{2})\.json$')
 
 def _versioni_di(path: pathlib.Path) -> list[tuple[str, pathlib.Path]]:
     """Copie di backup di `path`: (fonte, file). Regex esatta sullo stem,

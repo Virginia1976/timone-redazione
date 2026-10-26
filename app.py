@@ -6,6 +6,7 @@ Porta: 5010
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import os
@@ -100,6 +101,66 @@ def _psd_preview(path: str, size: int, out_dir: str) -> None:
     else:
         img = img.convert('RGB')   # es. faccette TvMia: CMYK senza trasparenza
     img.save(os.path.join(out_dir, os.path.basename(path) + '.png'))
+
+# Miniature PSD: sul NAS (2 GB di RAM) psd-tools arriva a ~300 MB per un PSD grande;
+# 8 in parallelo mandavano il NAS in swap (26/10/2026). Quindi: una sola alla volta,
+# in una coda separata da _io_pool, e ogni miniatura resta in cache finché il file
+# non cambia (chiave: percorso + mtime + dimensione). Richieste uguali in attesa
+# condividono lo stesso lavoro.
+_psd_pool    = ThreadPoolExecutor(max_workers=1, thread_name_prefix='psd-thumb')
+_psd_pending: dict = {}
+_psd_lock    = threading.Lock()
+THUMB_CACHE_DIR = pathlib.Path(tempfile.gettempdir()) / 'timone_thumbs'
+THUMB_CACHE_DIR.mkdir(exist_ok=True)
+
+def _psd_thumb_jpeg(path: str, size: int, box: tuple[int, int], quality: int) -> bytes | None:
+    tmp_dir = tempfile.mkdtemp(prefix='psd_thumb_')
+    try:
+        _psd_preview(path, size, tmp_dir)
+        thumb_png = os.path.join(tmp_dir, os.path.basename(path) + '.png')
+        if not os.path.isfile(thumb_png):
+            return None
+        with Image.open(thumb_png) as img:
+            img.thumbnail(box)
+            buf = io.BytesIO()
+            img.convert('RGB').save(buf, format='JPEG', quality=quality)
+            return buf.getvalue()
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+def _psd_thumb_cached(path: str, size: int, box: tuple[int, int], quality: int,
+                      timeout: float = 30) -> bytes | None:
+    """Miniatura JPEG del PSD dalla cache o dalla coda dedicata.
+    Se non è pronta entro timeout solleva FuturesTimeoutError: il lavoro prosegue
+    e riempie la cache, così la richiesta successiva è immediata."""
+    st = os.stat(path)
+    key = hashlib.sha1(
+        f'{path}|{st.st_mtime_ns}|{st.st_size}|{size}|{box}|{quality}'.encode()
+    ).hexdigest()
+    cache_file = THUMB_CACHE_DIR / (key + '.jpg')
+    if cache_file.is_file():
+        return cache_file.read_bytes()
+
+    def _job() -> bytes | None:
+        try:
+            if cache_file.is_file():
+                return cache_file.read_bytes()
+            data = _psd_thumb_jpeg(path, size, box, quality)
+            if data:
+                tmp = cache_file.with_suffix('.tmp')
+                tmp.write_bytes(data)
+                os.replace(tmp, cache_file)
+            return data
+        finally:
+            with _psd_lock:
+                _psd_pending.pop(key, None)
+
+    with _psd_lock:
+        fut = _psd_pending.get(key)
+        if fut is None:
+            fut = _psd_pool.submit(_job)
+            _psd_pending[key] = fut
+    return fut.result(timeout=timeout)
 
 def strip_parens(name: str) -> str:
     return re.sub(r'\s*\([^)]*\)', '', name).strip()
@@ -1074,21 +1135,8 @@ def tif_thumb():
             return None
         ext = pathlib.Path(actual).suffix.lower()
         if ext == '.psd':
-            tmp_dir = tempfile.mkdtemp(prefix='scont_ql_')
-            try:
-                basename = os.path.basename(actual)
-                _psd_preview(actual, 192, tmp_dir)
-                thumb_png = os.path.join(tmp_dir, basename + '.png')
-                if os.path.isfile(thumb_png):
-                    with Image.open(thumb_png) as img:
-                        img.thumbnail((192, 144))
-                        buf = io.BytesIO()
-                        img.convert('RGB').save(buf, format='JPEG', quality=85)
-                        buf.seek(0)
-                        return buf.read()
-                return None
-            finally:
-                shutil.rmtree(tmp_dir, ignore_errors=True)
+            # il PSD si elabora fuori da _io_pool, nella coda dedicata (vedi _psd_thumb_cached)
+            return actual
         else:
             with Image.open(actual) as img:
                 img.thumbnail((192, 144))
@@ -1098,11 +1146,20 @@ def tif_thumb():
                 return buf.read()
     try:
         data = _smb_call(_do)
+    except FuturesTimeoutError:
+        print(f'[THUMB] timeout SMB: {path}')
+        return '', 503
+    except Exception as e:
+        print(f'[THUMB] {e}')
+        return '', 500
+    try:
+        if isinstance(data, str):
+            data = _psd_thumb_cached(data, 192, (192, 144), 85)
         if data is None:
             return '', 404
         return Response(data, mimetype='image/jpeg', headers={'Cache-Control': 'no-cache'})
     except FuturesTimeoutError:
-        print(f'[THUMB] timeout SMB: {path}')
+        print(f'[THUMB] PSD ancora in coda: {path}')
         return '', 503
     except Exception as e:
         print(f'[THUMB] {e}')
@@ -1224,24 +1281,16 @@ def tlp_thumb():
 
     ext = pathlib.Path(path).suffix.lower()
     if ext == '.psd':
-        tmp_dir = tempfile.mkdtemp(prefix='tlp_ql_')
         try:
-            basename = os.path.basename(path)
-            _psd_preview(path, 100, tmp_dir)
-            thumb = os.path.join(tmp_dir, basename + '.png')
-            if os.path.isfile(thumb):
-                with Image.open(thumb) as img:
-                    img.thumbnail((100, 75))
-                    buf = io.BytesIO()
-                    img.convert('RGB').save(buf, format='JPEG', quality=80)
-                    buf.seek(0)
-                    jpeg = buf.read()
+            jpeg = _psd_thumb_cached(path, 100, (100, 75), 80)
+            if jpeg:
                 return Response(jpeg, mimetype='image/jpeg',
                                 headers={'Cache-Control': 'max-age=3600'})
+        except FuturesTimeoutError:
+            print(f'[TLP_THUMB] PSD ancora in coda: {path}')
+            return '', 503
         except Exception as e:
-            print(f'[TLP_THUMB qlmanage] {e}')
-        finally:
-            shutil.rmtree(tmp_dir, ignore_errors=True)
+            print(f'[TLP_THUMB psd] {e}')
     else:
         try:
             with Image.open(path) as img:

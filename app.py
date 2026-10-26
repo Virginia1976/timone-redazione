@@ -1066,12 +1066,19 @@ def _righe_ricerca(path: pathlib.Path) -> list:
 def archive_search():
     parole = _norm_ricerca(request.args.get('q', '')).split()
     if not parole or len(''.join(parole)) < 2:
-        return jsonify({'risultati': [], 'troppi': False})
+        return jsonify({'risultati': [], 'troppi': False, 'canali': []})
     ruolo   = session.get('ruolo', '')
     visibili = set(KNOWN_TIMONI) if ruolo == 'admin' else set(TIMONI_ATTIVI) & KNOWN_TIMONI
+    # filtri facoltativi: una sola testata, un solo canale
+    filtro_timone = request.args.get('timone', '').strip()
+    if filtro_timone:
+        visibili &= {filtro_timone}
+    filtro_canale = request.args.get('canale', '').strip().upper()
     correnti = {t: (get_week_meta(t).get('week_id') or '').strip() for t in visibili}
     LIMITE = 300
     risultati = []
+    troppi = False
+    canali: dict[str, list] = {}  # canali in cui compare la ricerca (prima del filtro canale): MAIUSC → [nome, righe]
     for d in sorted(DATA_DIR.iterdir(), reverse=True):
         if not d.is_dir() or not re.match(r'^\d{4}-\d{2}-\d{2}$', d.name):
             continue
@@ -1084,13 +1091,21 @@ def archive_search():
             if correnti[timone] and d.name >= correnti[timone]:
                 continue
             for r in _righe_ricerca(f):
-                if all(p in r['_cerca'] for p in parole):
+                if not all(p in r['_cerca'] for p in parole):
+                    continue
+                canale = r['canale'].upper()
+                if canale:
+                    canali.setdefault(canale, [r['canale'], 0])[1] += 1
+                if filtro_canale and canale != filtro_canale:
+                    continue
+                if len(risultati) < LIMITE:
                     risultati.append({**{c: r[c] for c in _RICERCA_CAMPI},
                                       'week_id': d.name, 'key': key, 'timone': timone,
                                       'chiusa': is_week_chiusa(timone, d.name)})
-                    if len(risultati) >= LIMITE:
-                        return jsonify({'risultati': risultati, 'troppi': True})
-    return jsonify({'risultati': risultati, 'troppi': False})
+                else:
+                    troppi = True
+    return jsonify({'risultati': risultati, 'troppi': troppi,
+                    'canali': sorted(canali.values())})
 
 
 @app.route('/autocomplete_titoli', methods=['POST'])

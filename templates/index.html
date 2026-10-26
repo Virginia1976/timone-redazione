@@ -166,6 +166,16 @@ body.admin-on .btn-versioni { display: flex; }
   border: 1.5px solid var(--border); border-radius: 10px; outline: none;
 }
 .cerca-input:focus { border-color: var(--accent); }
+.cerca-filtri {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 10px 24px; border-bottom: 1px solid var(--border);
+  font-size: 13px; color: var(--text-soft);
+}
+.cerca-filtri label { display: flex; align-items: center; gap: 6px; }
+.cerca-filtri select {
+  font: inherit; font-size: 13px; padding: 5px 8px;
+  border: 1.5px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text);
+}
 .cerca-list { overflow-y: auto; flex: 1; min-height: 120px; }
 .cerca-item {
   padding: 9px 22px; border-bottom: 1px solid var(--border); cursor: pointer;
@@ -2171,6 +2181,10 @@ body.sola-lettura .btn-copy-col { display: none; }
       <input type="search" class="cerca-input" id="cercaInput" autocomplete="off"
              placeholder="Cerca titolo o personaggio nelle settimane passate…">
       <button class="scont-modal-close" onclick="chiudiRicerca()">×</button>
+    </div>
+    <div class="cerca-filtri">
+      <label>Testata <select id="cercaTestata"></select></label>
+      <label>Canale <select id="cercaCanale"><option value="">Tutti i canali</option></select></label>
     </div>
     <div class="cerca-list" id="cercaList"></div>
   </div>
@@ -6634,11 +6648,20 @@ let _cercaSeq   = 0;
 let _cercaRis   = [];
 
 function apriRicerca() {
+  // il menu Testata parte dalla testata aperta (la cover conta come la sua testata)
+  const sel = document.getElementById('cercaTestata');
+  const testate = Object.keys(TIMONI_META).filter(t => TIMONI_META[t].tipo !== 'cover' && isTimoneAttivo(t));
+  sel.innerHTML = '<option value="">Tutte le testate</option>'
+    + testate.map(t => `<option value="${t}">${esc(TIMONI_META[t].label)}</option>`).join('');
+  const aperta = TIMONI_META[currentTimone]?.parent || currentTimone;
+  sel.value = testate.includes(aperta) ? aperta : '';
+  document.getElementById('cercaCanale').value = '';
   document.getElementById('cercaModal').classList.add('show');
   const inp = document.getElementById('cercaInput');
   inp.focus();
   inp.select();
-  if (!inp.value.trim()) document.getElementById('cercaList').innerHTML =
+  if (inp.value.trim().length >= 2) _eseguiRicerca();
+  else document.getElementById('cercaList').innerHTML =
     '<div class="ver-empty">Scrivi almeno 2 lettere. Si cerca in tutte le settimane passate; 🔒 = settimana chiusa.</div>';
 }
 
@@ -6651,6 +6674,11 @@ document.addEventListener('DOMContentLoaded', () => {
     clearTimeout(_cercaTimer);
     _cercaTimer = setTimeout(_eseguiRicerca, 350);
   });
+  document.getElementById('cercaTestata').addEventListener('change', () => {
+    document.getElementById('cercaCanale').value = '';
+    _eseguiRicerca();
+  });
+  document.getElementById('cercaCanale').addEventListener('change', _eseguiRicerca);
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && document.getElementById('cercaModal').classList.contains('show')) chiudiRicerca();
   });
@@ -6682,7 +6710,10 @@ async function _eseguiRicerca() {
   list.innerHTML = '<div class="ver-empty">Ricerca in corso…</div>';
   let d;
   try {
-    const r = await fetch(`/api/archive/search?q=${encodeURIComponent(q)}`, { cache: 'no-store' });
+    const params = new URLSearchParams({ q,
+      timone: document.getElementById('cercaTestata').value,
+      canale: document.getElementById('cercaCanale').value });
+    const r = await fetch(`/api/archive/search?${params}`, { cache: 'no-store' });
     d = await r.json();
     if (!r.ok) throw new Error(d.error || r.status);
   } catch {
@@ -6690,6 +6721,14 @@ async function _eseguiRicerca() {
     return;
   }
   if (seq !== _cercaSeq) return;   // nel frattempo è partita una ricerca più recente
+  // menu Canale: solo i canali in cui compare la ricerca, con il numero di righe
+  const selC = document.getElementById('cercaCanale');
+  const scelto = selC.value;
+  const canali = d.canali || [];
+  if (scelto && !canali.some(([c]) => c === scelto)) canali.push([scelto, 0]);
+  selC.innerHTML = '<option value="">Tutti i canali</option>'
+    + canali.map(([c, n]) => `<option value="${esc(c)}">${esc(c)} (${n})</option>`).join('');
+  selC.value = scelto;
   const giornoIdx = r => {
     const g = r.key.slice(r.timone.length + 1) || (r.giorno || '').toLowerCase().replace('ì', 'i');
     const i = _CERCA_ORDINE_GIORNI.indexOf(g);

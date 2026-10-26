@@ -551,6 +551,83 @@ def load(key):
     return jsonify({'rows': []})
 
 
+_BAK_RECENTE_RE = re.compile(r'^(?P<stem>[a-z0-9_]+)_(\d{8}-\d{6})\.json$')
+_BAK_GIORNO_RE  = re.compile(r'^(?P<stem>[a-z0-9_]+)_(\d{4}-\d{2}-\d{2})\.json$')
+
+def _versioni_di(path: pathlib.Path) -> list[tuple[str, pathlib.Path]]:
+    """Copie di backup di `path`: (fonte, file). Regex esatta sullo stem,
+    così 'dipiu' non prende le copie di 'dipiu_cover'."""
+    bak_dir = path.parent / '_backup'
+    out = []
+    for fonte, d, rx in (('recente', bak_dir, _BAK_RECENTE_RE),
+                         ('giorno', bak_dir / '_daily', _BAK_GIORNO_RE)):
+        if not d.is_dir():
+            continue
+        for f in d.glob(f'{path.stem}_*.json'):
+            m = rx.match(f.name)
+            if m and m.group('stem') == path.stem:
+                out.append((fonte, f))
+    return out
+
+def _riassunto_righe(rows: list) -> dict:
+    compilate = [r for r in rows if isinstance(r, dict) and not r.get('_separator')
+                 and any((r.get(c) or '').strip() for c in ('titolo', 'personaggio', 'trama'))]
+    return {
+        'compilate': len(compilate),
+        'anteprima': [{'codice': r.get('codice', ''), 'titolo': r.get('titolo', ''),
+                       'personaggio': r.get('personaggio', '')} for r in compilate],
+    }
+
+
+@app.route('/api/versioni/<key>')
+def versioni(key):
+    """Solo admin: versioni salvate di un timone/giorno (5 recenti + 1 al giorno)."""
+    if session.get('ruolo') != 'admin':
+        return jsonify({'error': 'solo admin'}), 403
+    if not VALID_KEY.match(key):
+        return jsonify({'error': 'chiave non valida'}), 400
+    timone = timone_from_key(key)
+    d      = resolve_week_dir(timone) if timone else DATA_DIR
+    path   = d / f'{key}.json'
+    elenco = []
+    candidati = [('attuale', path)] if path.exists() else []
+    for fonte, f in candidati + _versioni_di(path):
+        try:
+            rows = json.loads(f.read_text('utf-8')).get('rows', [])
+        except Exception:
+            continue   # copia illeggibile: non proporla
+        elenco.append({'id': f.name if fonte != 'attuale' else '', 'fonte': fonte,
+                       'mtime': f.stat().st_mtime, **_riassunto_righe(rows)})
+    elenco.sort(key=lambda v: v['mtime'], reverse=True)
+    return jsonify({'versioni': elenco})
+
+
+@app.route('/api/ripristina/<key>', methods=['POST'])
+def ripristina(key):
+    """Solo admin: rimette una versione di backup. La versione attuale finisce
+    tra le copie recenti (via _atomic_write), quindi il ripristino è annullabile."""
+    if session.get('ruolo') != 'admin':
+        return jsonify({'error': 'solo admin'}), 403
+    if not VALID_KEY.match(key):
+        return jsonify({'error': 'chiave non valida'}), 400
+    nome = (request.get_json(force=True, silent=True) or {}).get('id', '')
+    timone = timone_from_key(key)
+    d      = resolve_week_dir(timone) if timone else DATA_DIR
+    path   = d / f'{key}.json'
+    scelta = next((f for _, f in _versioni_di(path) if f.name == nome), None)
+    if not scelta:
+        return jsonify({'error': 'versione non trovata'}), 404
+    try:
+        data = json.loads(scelta.read_text('utf-8'))
+        if not isinstance(data.get('rows'), list):
+            raise ValueError('rows mancante')
+    except Exception:
+        return jsonify({'error': 'versione illeggibile'}), 422
+    _atomic_write(path, json.dumps(data, ensure_ascii=False, indent=2))
+    print(f'[RIPRISTINO] {path.parent.name}/{key} ← {scelta.name}')
+    return jsonify({'ok': True, 'mtime': path.stat().st_mtime})
+
+
 @app.route('/api/mtime/<key>')
 def data_mtime(key):
     if not VALID_KEY.match(key):

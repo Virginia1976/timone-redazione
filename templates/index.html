@@ -108,6 +108,53 @@ body {
 }
 .btn-logout:hover { border-color: #dc2626; color: #dc2626; background: #fef2f2; }
 
+.btn-versioni {
+  display: none;
+  background: none; border: 1.5px solid var(--border); color: var(--text-soft);
+}
+body.admin-on .btn-versioni { display: flex; }
+.btn-versioni:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.btn-versioni:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── Versioni salvate (solo admin) ─────────────────────────────────────────── */
+.ver-overlay {
+  position: fixed; inset: 0; z-index: 9300; background: rgba(15,23,42,.35);
+  display: none; align-items: flex-start; justify-content: center; padding-top: 70px;
+}
+.ver-overlay.show { display: flex; animation: fadeIn .15s ease; }
+.ver-box {
+  background: var(--card); border-radius: 18px; box-shadow: var(--shadow-lg);
+  width: 900px; max-width: 95vw; max-height: 80vh;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.ver-hdr {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px 24px 14px; border-bottom: 1px solid var(--border);
+}
+.ver-hdr-title { flex: 1; font-size: 15px; font-weight: 700; }
+.ver-body { display: flex; min-height: 0; flex: 1; }
+.ver-list { width: 340px; flex-shrink: 0; overflow-y: auto; border-right: 1px solid var(--border); }
+.ver-item {
+  padding: 10px 18px; border-bottom: 1px solid var(--border); cursor: pointer;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.ver-item:hover { background: var(--bg); }
+.ver-item.sel { background: var(--accent-light); }
+.ver-item.attuale { background: #f8fafc; }
+.ver-item-when { font-weight: 600; font-size: 14px; }
+.ver-item-info { font-size: 12px; color: var(--text-soft); }
+.ver-item-calo { color: #dc2626; font-weight: 600; }
+.ver-preview { flex: 1; overflow-y: auto; padding: 14px 20px; font-size: 13px; }
+.ver-preview table { width: 100%; border-collapse: collapse; }
+.ver-preview td { padding: 4px 6px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.ver-preview td:first-child { color: var(--muted); white-space: nowrap; width: 1%; }
+.ver-empty { color: var(--muted); padding: 20px; }
+.ver-foot {
+  display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+  padding: 12px 20px; border-top: 1px solid var(--border);
+}
+.ver-foot-note { flex: 1; font-size: 12px; color: var(--text-soft); }
+
 /* ── Main nav ──────────────────────────────────────────────────────────────── */
 .main-nav {
   position: sticky;
@@ -1624,6 +1671,10 @@ body.sola-lettura .btn-copy-col { display: none; }
     <button class="btn-header btn-export" id="btnExport" disabled onclick="esportaTimone()">
       📋 Esporta
     </button>
+    <button class="btn-header btn-versioni" id="btnVersioni" disabled onclick="apriVersioni()"
+            title="Versioni salvate di questo giorno — ripristino (solo admin)">
+      🕘 Versioni
+    </button>
     <button class="btn-header btn-save" id="btnSave" disabled onclick="salvaTimone()">
       💾 Salva
     </button>
@@ -2084,6 +2135,25 @@ body.sola-lettura .btn-copy-col { display: none; }
     <div class="trama-edit-footer">
       <span class="trama-edit-chars" id="tramaEditChars"></span>
       <button class="trama-edit-close-btn" id="tramaEditCloseBtn">Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Versioni salvate: ripristino (solo admin) ─────────────────────────────── -->
+<div id="verModal" class="ver-overlay" onclick="if (event.target === this) chiudiVersioni()">
+  <div class="ver-box">
+    <div class="ver-hdr">
+      <span class="ver-hdr-title" id="verTitle">Versioni salvate</span>
+      <button class="scont-modal-close" onclick="chiudiVersioni()">×</button>
+    </div>
+    <div class="ver-body">
+      <div class="ver-list" id="verList"></div>
+      <div class="ver-preview" id="verPreview"></div>
+    </div>
+    <div class="ver-foot">
+      <span class="ver-foot-note">La versione attuale viene conservata tra i salvataggi recenti: il ripristino si può annullare.</span>
+      <button class="btn-header btn-export" onclick="chiudiVersioni()">Chiudi</button>
+      <button class="btn-header btn-save" id="verRipristinaBtn" disabled onclick="ripristinaVersione()">Ripristina questa versione</button>
     </div>
   </div>
 </div>
@@ -3848,6 +3918,7 @@ async function openTimoneHome(timone) {
   updateBadgeLogo(timone);
   document.getElementById('btnSave').disabled   = true;
   document.getElementById('btnExport').disabled = true;
+  document.getElementById('btnVersioni').disabled = true;
 
   // Mostra schermata
   document.getElementById('welcome').style.display        = 'none';
@@ -4375,6 +4446,7 @@ async function caricaTimone() {
   const chiusa = currentWeek?.chiusa === true;
   document.getElementById('btnSave').disabled   = chiusa;
   document.getElementById('btnExport').disabled = false;
+  document.getElementById('btnVersioni').disabled = false;
   document.getElementById('welcome').style.display        = 'none';
   document.getElementById('timone-home').style.display    = 'none';
   document.getElementById('timone-section').style.display = 'block';
@@ -6501,6 +6573,115 @@ function hideAc() {
 document.addEventListener('mousedown', (e) => {
   if (!_acDd.contains(e.target)) hideAc();
 });
+
+// ── Versioni salvate: ripristino (solo admin) ────────────────────────────────
+let _verKey    = null;   // chiave del giorno per cui è aperta la finestra
+let _verWeek   = '';     // weekParam() al momento dell'apertura
+let _verNavGen = 0;
+let _verElenco = [];
+let _verSel    = null;
+
+function _verQuando(mtime) {
+  const d = new Date(mtime * 1000);
+  const oggi = new Date(); oggi.setHours(0,0,0,0);
+  const ieri = new Date(oggi); ieri.setDate(ieri.getDate() - 1);
+  const ora  = d.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' });
+  if (d >= oggi) return `Oggi ${ora}`;
+  if (d >= ieri) return `Ieri ${ora}`;
+  return d.toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' }) + ` ${ora}`;
+}
+
+const _VER_FONTE = { attuale:'versione attuale', recente:'salvataggio recente', giorno:'copia del giorno' };
+
+async function apriVersioni() {
+  if (_ruolo !== 'admin') return;
+  const key = storageKey();
+  if (!key) return;
+  _verKey = key; _verWeek = weekParam(); _verNavGen = _navGen;
+  _verElenco = []; _verSel = null;
+  const meta = TIMONI_META[currentTimone];
+  const giorno = meta.tipo === 'tv' && currentDay ? ` · ${GIORNI_LABEL[currentDay] || currentDay}` : '';
+  document.getElementById('verTitle').textContent = `Versioni salvate — ${meta.label}${giorno}`;
+  document.getElementById('verList').innerHTML = '<div class="ver-empty">Caricamento…</div>';
+  document.getElementById('verPreview').innerHTML = '';
+  document.getElementById('verRipristinaBtn').disabled = true;
+  document.getElementById('verModal').classList.add('show');
+  try {
+    const r = await fetch(`/api/versioni/${key}${_verWeek}`);
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || r.status);
+    if (_verKey !== key) return;
+    _verElenco = d.versioni || [];
+  } catch (e) {
+    document.getElementById('verList').innerHTML = '<div class="ver-empty">Impossibile leggere le versioni salvate.</div>';
+    return;
+  }
+  _renderVersioni();
+}
+
+function _renderVersioni() {
+  const list = document.getElementById('verList');
+  if (!_verElenco.length) { list.innerHTML = '<div class="ver-empty">Nessuna versione salvata per questo giorno.</div>'; return; }
+  list.innerHTML = _verElenco.map((v, i) => {
+    // segnala in rosso un calo di righe rispetto alla versione precedente (più vecchia)
+    const prec = _verElenco[i + 1];
+    const calo = prec && v.compilate < prec.compilate;
+    const cls  = v.fonte === 'attuale' ? 'attuale' : (v.id === _verSel ? 'sel' : '');
+    return `<div class="ver-item ${cls}" data-i="${i}">
+      <span class="ver-item-when">${esc(_verQuando(v.mtime))}</span>
+      <span class="ver-item-info"><span class="${calo ? 'ver-item-calo' : ''}">${v.compilate} righe compilate</span> · ${_VER_FONTE[v.fonte]}</span>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.ver-item').forEach(el => el.addEventListener('click', () => _selVersione(+el.dataset.i)));
+}
+
+function _selVersione(i) {
+  const v = _verElenco[i];
+  if (!v) return;
+  _verSel = v.fonte === 'attuale' ? null : v.id;
+  _renderVersioni();
+  document.getElementById('verRipristinaBtn').disabled = !_verSel;
+  const prev = document.getElementById('verPreview');
+  if (!v.anteprima.length) { prev.innerHTML = '<div class="ver-empty">Nessuna riga compilata in questa versione.</div>'; return; }
+  prev.innerHTML = `<table>${v.anteprima.map(r =>
+    `<tr><td>${esc(r.codice)}</td><td>${esc(r.titolo)}</td><td>${esc(r.personaggio)}</td></tr>`).join('')}</table>`;
+}
+
+function chiudiVersioni() {
+  document.getElementById('verModal').classList.remove('show');
+  _verKey = null; _verSel = null;
+}
+
+async function ripristinaVersione() {
+  const v = _verElenco.find(x => x.id === _verSel);
+  if (!v || !_verKey) return;
+  // la navigazione è cambiata sotto la finestra: non ripristinare sul giorno sbagliato
+  if (_verNavGen !== _navGen || storageKey() !== _verKey || weekParam() !== _verWeek) {
+    chiudiVersioni(); showStatus('Hai cambiato timone o giorno: riapri Versioni', 'error'); return;
+  }
+  if (!confirm(`Ripristinare la versione di ${_verQuando(v.mtime)} (${v.compilate} righe compilate)?\n\nLa versione attuale resta tra i salvataggi recenti.`)) return;
+  const key = _verKey, week = _verWeek;
+  // niente autosave del contenuto attuale sopra quello ripristinato
+  clearTimeout(_saveTimer);
+  stopRemotePolling();
+  while (_isSaving) await new Promise(r => setTimeout(r, 100));
+  try {
+    const r = await fetch(`/api/ripristina/${key}${week}`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ id: v.id })
+    });
+    const d = await r.json();
+    if (!r.ok || !d.ok) throw new Error(d.error || r.status);
+  } catch (e) {
+    showStatus('Ripristino non riuscito', 'error');
+    if (storageKey() === key) startRemotePolling(key);
+    return;
+  }
+  chiudiVersioni();
+  setDirty(false);
+  await caricaTimone();   // ricarica dal NAS: azzera righe in memoria e mtime
+  showStatus(`Ripristinata la versione di ${_verQuando(v.mtime)} ✓`, 'success');
+}
 
 // ── Rilevamento modifiche remote ─────────────────────────────────────────────
 let _ackedMtime     = null;

@@ -4770,20 +4770,20 @@ function getGroupedParts() {
   return { part1Rows, part2Rows, hasSeparator: inPart2 };
 }
 
-function _makeCopiaBtn(partRows) {
+function _makeCopiaBtn(partRows, nota = '') {
   const btn = document.createElement('button');
   btn.className = 'btn-copia-prev';
-  btn.title = 'Importa titoli, orari e canali dalla settimana precedente (senza personaggi)';
-  btn.textContent = '↩ Copia dalla settimana prec.';
+  btn.title = 'Importa titoli, orari e canali dalla settimana precedente (senza personaggi)' + nota;
+  btn.textContent = '↩ Copia dalla settimana prec.' + nota;
   btn.addEventListener('click', () => copiaTitoliPrevSettimana(partRows));
   return btn;
 }
 
-function _makeCopiaPersonaggiBtn(partRows) {
+function _makeCopiaPersonaggiBtn(partRows, nota = '') {
   const btn = document.createElement('button');
   btn.className = 'btn-copia-prev';
-  btn.title = 'Importa i personaggi dalla settimana precedente nelle righe ancora senza';
-  btn.textContent = '↩ Copia personaggi prec.';
+  btn.title = 'Importa i personaggi dalla settimana precedente nelle righe ancora senza' + nota;
+  btn.textContent = '↩ Copia personaggi prec.' + nota;
   btn.addEventListener('click', () => copiaPersonaggiPrevSettimana(partRows));
   return btn;
 }
@@ -5385,8 +5385,14 @@ function buildChannelGroupView(container, groupField = 'canale') {
           renderTable();
         });
         sepActions.appendChild(btnAll2);
-        if (!currentWeek?.chiusa) sepActions.appendChild(_makeCopiaBtn(part2Rows));
-        if (!currentWeek?.chiusa && currentTimone === 'dipiutv') sepActions.appendChild(_makeCopiaPersonaggiBtn(part2Rows));
+        // DipiùTV: le faccette del box Sky Cinema non si copiano dalla settimana precedente
+        if (currentTimone === 'dipiutv') {
+          const part2NoSky = part2Rows.filter(r => !/^sky cinema/i.test((r.canale || '').trim()));
+          if (!currentWeek?.chiusa) sepActions.appendChild(_makeCopiaBtn(part2NoSky, ' (esclusi Sky)'));
+          if (!currentWeek?.chiusa) sepActions.appendChild(_makeCopiaPersonaggiBtn(part2NoSky, ' (esclusi Sky)'));
+        } else {
+          if (!currentWeek?.chiusa) sepActions.appendChild(_makeCopiaBtn(part2Rows));
+        }
         sep.appendChild(sepActions);
       }
       container.appendChild(sep);

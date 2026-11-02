@@ -4518,13 +4518,16 @@ async function salvaTimone(silent = false, _keyOverride = null, _rowsOverride = 
   clearTimeout(_saveTimer);
   try {
     const nonSep = _rowsOverride ?? currentRows.filter(r => !r._separator);
+    // copia PRIMA dell'invio: se una riga cambia mentre si aspetta il server
+    // (es. auto-grigio), la modifica non deve risultare già salvata
+    const sentJson = JSON.stringify(nonSep);
     const res  = await fetch(`/api/save/${key}${weekParam()}`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ rows: nonSep })
     });
     const data = await res.json();
-    _lastSavedRows = JSON.parse(JSON.stringify(nonSep));
-    setDirty(false);
+    _lastSavedRows = JSON.parse(sentJson);
+    if (JSON.stringify(nonSep) === sentJson) setDirty(false); else scheduleSave();
     _ackedMtime = data.mtime ?? await fetchMtime(key);
     if (!silent) showStatus('Salvato ✓', 'success');
     aggiornaConteggiWelcome();
@@ -4552,6 +4555,7 @@ async function autoSave() {
     if (_lastSavedRows !== null && canUsePatch(nonSep)) {
       const patches = computePatches(_lastSavedRows, nonSep);
       if (Object.keys(patches).length === 0) { setDirty(false); return; }
+      const sentJson = JSON.stringify(nonSep);  // vedi salvaTimone
       try {
         const res  = await fetch(`/api/patch/${key}${weekParam()}`, {
           method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -4561,8 +4565,8 @@ async function autoSave() {
         if (data.error) { showStatus('Errore salvataggio', 'error'); return; }
         // Se il server non ha trovato righe (file vuoto/corrotto), ripiega su salvataggio completo
         if ((data.applied ?? 1) === 0) { await salvaTimone(true, key, nonSep); return; }
-        _lastSavedRows = JSON.parse(JSON.stringify(nonSep));
-        setDirty(false);
+        _lastSavedRows = JSON.parse(sentJson);
+        if (JSON.stringify(nonSep) === sentJson) setDirty(false); else scheduleSave();
         _ackedMtime = data.mtime;
         aggiornaConteggiWelcome();
       } catch { showStatus('Errore salvataggio', 'error'); }

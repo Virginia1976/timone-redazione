@@ -6312,6 +6312,18 @@ function getCartella() {
 let _mtimeTimer    = null;
 let _initialMtimes = {};
 let _newCodici     = new Set();
+let _diagGiri      = 0;
+let _diagVisti     = new Set();
+
+// Registro diagnostico auto-grigio: solo admin, resta nel browser (localStorage 'diagGrigio')
+function diagGrigio(msg) {
+  try {
+    if (_ruolo !== 'admin') return;
+    const log = JSON.parse(localStorage.getItem('diagGrigio') || '[]');
+    log.push(`${new Date().toLocaleTimeString('it-IT')} ${storageKey()} ${msg}`);
+    localStorage.setItem('diagGrigio', JSON.stringify(log.slice(-2000)));
+  } catch {}
+}
 
 function startMtimePolling() {
   stopMtimePolling();
@@ -6321,11 +6333,15 @@ function startMtimePolling() {
   // due fetch in sequenza: il primo scalda la cache SMB, il secondo legge valori stabili
   fetchInitialMtimes(cartella)
     .then(() => fetchInitialMtimes(cartella))
-    .then(() => { _mtimeTimer = setInterval(() => checkMtimes(cartella), 2000); });
+    .then(() => {
+      const valori = Object.values(_initialMtimes);
+      diagGrigio(`riferimento preso: ${valori.length} file, ${valori.filter(v => v === null).length} non trovati`);
+      _mtimeTimer = setInterval(() => checkMtimes(cartella), 2000);
+    });
 }
 
 function stopMtimePolling() {
-  if (_mtimeTimer) { clearInterval(_mtimeTimer); _mtimeTimer = null; }
+  if (_mtimeTimer) { clearInterval(_mtimeTimer); _mtimeTimer = null; diagGrigio('controllo fermato'); }
   _initialMtimes = {};
   _newCodici = new Set();
 }
@@ -6346,13 +6362,15 @@ async function fetchInitialMtimes(cartella) {
     const { _new: _, ...mtimes } = data;
     _initialMtimes = mtimes;
     _newCodici.forEach(c => { applyNewBadge(c); applyNewGrey(c); });
-  } catch {}
+  } catch (e) { diagGrigio(`riferimento fallito: ${e.message}`); }
 }
 
 async function checkMtimes(cartella) {
   const myNavGen = _navGen;
   const files = currentRows.filter(r => r.codice).map(r => ({ cartella: getCartellaForRow(r) || cartella, codice: r.codice }));
   if (!files.length) return;
+  const diagInizio = performance.now();
+  if (++_diagGiri % 30 === 0) diagGrigio(`attivo, ${files.length} file, pagina ${document.visibilityState}`);
   try {
     const res  = await fetch('/tif_mtime', {
       method: 'POST', headers: {'Content-Type':'application/json'},
@@ -6363,6 +6381,11 @@ async function checkMtimes(cartella) {
     if (myNavGen !== _navGen) return;
     const newSet = new Set(data._new || []);
 
+    const diagMs = Math.round(performance.now() - diagInizio);
+    if (diagMs > 3000) diagGrigio(`controllo lento: ${diagMs} ms`);
+    const diagMancanti = files.filter(f => !(f.codice in data)).length;
+    if (diagMancanti) diagGrigio(`risposta incompleta: mancano ${diagMancanti} file su ${files.length}`);
+
     // Aggiorna badge _NEW
     newSet.forEach(c => { if (!_newCodici.has(c)) { _newCodici.add(c); applyNewBadge(c); applyNewGrey(c); } });
     [..._newCodici].forEach(c => { if (!newSet.has(c)) { _newCodici.delete(c); removeNewBadge(c); } });
@@ -6370,12 +6393,21 @@ async function checkMtimes(cartella) {
     Object.entries(data).forEach(([codice, mtime]) => {
       if (codice === '_new') return;
       const init = _initialMtimes[codice];
-      if (init === undefined) { _initialMtimes[codice] = mtime; return; }
-      if (mtime === null) { if (init !== null) _initialMtimes[codice] = null; return; }
+      if (init === undefined) { diagGrigio(`${codice} senza riferimento, preso ${mtime}`); _initialMtimes[codice] = mtime; return; }
+      if (mtime === null) {
+        if (init !== null) { diagGrigio(`${codice} non trovato (era ${init})`); _initialMtimes[codice] = null; }
+        return;
+      }
 
       const appeared = init === null;                        // file non c'era, ora c'è
       const modified = init !== null && mtime - init >= 2;  // file modificato
-      if (!appeared && !modified) return;
+      if (!appeared && !modified) {
+        if (mtime !== init && !_diagVisti.has(`${codice}|${mtime}`)) {
+          _diagVisti.add(`${codice}|${mtime}`);
+          diagGrigio(`${codice} differenza ignorata: ${init} → ${mtime}`);
+        }
+        return;
+      }
 
       if (modified) console.log(`[auto-grigio] ${codice}: mtime +${mtime - init}s (${init} → ${mtime})`);
 
@@ -6383,6 +6415,7 @@ async function checkMtimes(cartella) {
       const img = document.querySelector(`img.codice-thumb[data-codice="${codice}"]`)
                || document.querySelector(`img.codice-thumb[data-codice="${codice}_NEW"]`);
       const tr  = img?.closest('tr');
+      diagGrigio(`${codice} ${appeared ? 'comparso' : 'modificato'} ${init} → ${mtime}, riga=${!!row} tr=${!!tr} colore=${row?.colore || ''}`);
       if (currentTimone !== 'dipiu' && row && tr && (row.colore === '' || row.colore === 'giallo' || !row.colore)) {
         if (modified || (appeared && isScont(row))) {
           setRowColor(tr, row, 'grigio');
@@ -6400,7 +6433,7 @@ async function checkMtimes(cartella) {
         if (img2 && img2.src === THUMB_PH) updateSingleThumb(img2, thumbCodice, thumbCartella);
       }, 6000);
     });
-  } catch {}
+  } catch (e) { diagGrigio(`controllo fallito: ${e.message}`); }
 }
 
 function applyNewGrey(codice) {
